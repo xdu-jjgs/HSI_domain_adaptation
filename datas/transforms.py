@@ -1,0 +1,128 @@
+import torch
+import numpy as np
+import torch.nn as nn
+import torchvision.transforms as transforms
+from sklearn import preprocessing
+from sklearn.decomposition import PCA
+
+from typing import Tuple, Any
+
+
+class Compose(nn.Module):
+    def __init__(self, transforms: List[nn.Module]):
+        super(Compose, self).__init__()
+        self.transforms = transforms
+
+    def forward(self, image, label):
+        for transform in self.transforms:
+            if image is not None:
+                image, label = transform(image, label)
+        return image, label
+
+
+class RandomCrop(nn.Module):
+    def __init__(self, size):
+        super(RandomCrop, self).__init__()
+        self.size = size
+
+    def forward(self, image, label):
+        if image is not None:
+            h, w, _ = image.shape
+            new_h, new_w = self.size
+
+            top = np.random.randint(0, h - new_h)
+            down = top + new_h
+            left = np.random.randint(0, w - new_w)
+            right = left + new_w
+
+            if image is not None:
+                image = image[top:down, left:right, :]
+            if label is not None:
+                label = label[top:down, left:right]
+
+        return image, label
+
+
+class ToTensor(nn.Module):
+    def __init__(self):
+        super(ToTensor, self).__init__()
+        # to C*H*W
+        self.to_tensor = transforms.ToTensor()
+
+    def forward(self, image, label):
+        image = self.to_tensor(image)
+        return image, label
+
+
+class ToTensorPreData(nn.Module):
+    def __init__(self):
+        super(ToTensorPreData, self).__init__()
+        self.to_tensor = transforms.ToTensor()
+
+    def forward(self, image, label):
+        image = [self.to_tensor(data) for data in image]
+        return image, label
+
+
+class ToTensorPreSubData(nn.Module):
+    def __init__(self):
+        super(ToTensorPreSubData, self).__init__()
+
+    def forward(self, image, label):
+        image = [torch.tensor(data, dtype=torch.float) for data in image]
+        image = [torch.permute(data, (0, 3, 1, 2)) for data in image]
+        return image, label
+
+
+class Normalize(nn.Module):
+    def __init__(self, mean, std):
+        super(Normalize, self).__init__()
+        self.normalize = transforms.Normalize(mean, std)
+
+    def forward(self, image, label):
+        image = self.normalize(image)
+        return image, label
+
+
+class LabelRenumber(nn.Module):
+    def __init__(self, class_interest, start: int = 0):
+        super(LabelRenumber, self).__init__()
+        self.class_interest = class_interest
+        self.start = start
+
+    def forward(self, image, label):
+        label = self.class_interest.index(label) + self.start
+        return image, label
+
+
+class ZScoreNormalize(nn.Module):
+    def __init__(self):
+        super(ZScoreNormalize, self).__init__()
+
+    def forward(self, image, label):
+        h, w, c = image.shape
+        image = preprocessing.StandardScaler().fit_transform(image.reshape(h * w, c))
+        print(np.mean(image, axis=-1), np.std(image, axis=-1))
+        image = image.reshape(h, w, c)
+        return image, label
+
+
+class CropImage(nn.Module):
+    def __init__(self, window_size: Tuple[int, int], pad_mode: str, pad_value: int = 0):
+        super(CropImage, self).__init__()
+        assert window_size[0] % 2 == 1 and window_size[1] % 2 == 1, 'window size should be odd!'
+        self.window_size = window_size
+        self.pad_mode = pad_mode
+        self.pad_value = pad_value
+
+    def forward(self, image, label):
+        h, w, c = image.shape
+        patch = ((self.window_size[0] - 1) // 2, (self.window_size[1] - 1) // 2)
+        image = np.pad(image, (patch, patch, (0, 0)), self.pad_mode, constant_values=self.pad_value)
+
+        images = []
+        for i in range(h):
+            for j in range(w):
+                images.append(image[i:i + self.window_size[0], j:j + self.window_size[1], ...])
+        images = np.concatenate(image)
+        return images, label
