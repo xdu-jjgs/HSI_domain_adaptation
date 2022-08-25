@@ -1,6 +1,7 @@
 import os
 import argparse
 
+import numpy as np
 import torch
 from tqdm import tqdm
 from datetime import datetime
@@ -32,17 +33,11 @@ def main():
     CFG.merge_from_file(args.config)
 
     splits = ['train', 'val', 'test']
+    save_path = os.path.join(args.path)
     for index, split in enumerate(splits):
-        save_path = os.path.join(args.path, split)
-        if not os.path.exists(save_path):
-            os.makedirs(save_path, exist_ok=True)
-
         dataset = build_dataset(split)
-        dataset_bar = tqdm(range(len(dataset)), desc='preprocessing {} dataset'.format(split), ascii=True)
-        for ind in dataset_bar:
-            data, label = dataset[ind]
-            print(data.shape, label)
-            torch.save(data, os.path.join(save_path, '{}_{}.pt'.format(ind, label)))
+        np.save(os.path.join(save_path, '{}_data.npy'.format(split)), dataset.data)
+        np.save(os.path.join(save_path, '{}_gt.npy'.format(split)), dataset.gt)
 
 
 if __name__ == '__main__':

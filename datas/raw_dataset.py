@@ -13,26 +13,18 @@ class RawHouston(Dataset):
         if split == 'train':
             data_filename = 'Houston13.mat'
             gt_filename = 'Houston13_7gt.mat'
-            gt_key = 'houston13new1_7'
         else:
             # 验证集等于测试集
             data_filename = 'Houston18.mat'
             gt_filename = 'Houston18_7gt.mat'
-            gt_key = 'houston18new1'
         self.data_path = os.path.join(root, data_filename)
-        self.data = sio.loadmat(self.data_path)['ori_data']
+        self.data = sio.loadmat(self.data_path)['ori_data'].astype('float16')
         self.gt_path = os.path.join(root, gt_filename)
-        self.gt = sio.loadmat(self.data_path)[gt_key]
+        self.gt = sio.loadmat(self.gt_path)['map'].astype('int')
 
         self.transform = transform
         if self.transform is not None:
-            self.data, self.gt = self.transform(self.data_path, self.gt)
-
-    def __getitem__(self, item):
-        return self.data[item], self.gt[item]
-
-    def __len__(self):
-        return self.data['label'].shape[0]
+            self.data, self.gt = self.transform(self.data, self.gt)
 
     def name2label(self, name):
         return self.names.index(name)

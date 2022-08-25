@@ -2,10 +2,10 @@ import torch
 import numpy as np
 import torch.nn as nn
 import torchvision.transforms as transforms
-from sklearn import preprocessing
+
 from sklearn.decomposition import PCA
 
-from typing import Tuple, Any
+from typing import List, Tuple
 
 
 class Compose(nn.Module):
@@ -69,8 +69,8 @@ class ToTensorPreSubData(nn.Module):
         super(ToTensorPreSubData, self).__init__()
 
     def forward(self, image, label):
-        image = [torch.tensor(data, dtype=torch.float) for data in image]
-        image = [torch.permute(data, (0, 3, 1, 2)) for data in image]
+        image = [torch.tensor(data) for data in image]
+        image = [data.permute((0, 3, 1, 2)) for data in image]
         return image, label
 
 
@@ -101,28 +101,28 @@ class ZScoreNormalize(nn.Module):
 
     def forward(self, image, label):
         h, w, c = image.shape
-        image = preprocessing.StandardScaler().fit_transform(image.reshape(h * w, c))
-        print(np.mean(image, axis=-1), np.std(image, axis=-1))
+        image = image.reshape(h * w, c)
+        image = (image - np.mean(image, axis=0)) / np.std(image, axis=0)
         image = image.reshape(h, w, c)
         return image, label
 
 
 class CropImage(nn.Module):
-    def __init__(self, window_size: Tuple[int, int], pad_mode: str, pad_value: int = 0):
+    def __init__(self, window_size: Tuple[int, int], pad_mode: str):
         super(CropImage, self).__init__()
         assert window_size[0] % 2 == 1 and window_size[1] % 2 == 1, 'window size should be odd!'
         self.window_size = window_size
         self.pad_mode = pad_mode
-        self.pad_value = pad_value
 
     def forward(self, image, label):
         h, w, c = image.shape
         patch = ((self.window_size[0] - 1) // 2, (self.window_size[1] - 1) // 2)
-        image = np.pad(image, (patch, patch, (0, 0)), self.pad_mode, constant_values=self.pad_value)
+        image = np.pad(image, (patch, patch, (0, 0)), self.pad_mode)
 
         images = []
         for i in range(h):
             for j in range(w):
                 images.append(image[i:i + self.window_size[0], j:j + self.window_size[1], ...])
-        images = np.concatenate(image)
+        images = np.stack(images, axis=0)
+        print(images.shape)
         return images, label
