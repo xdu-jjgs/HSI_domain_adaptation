@@ -29,8 +29,11 @@ def linear_mmd2(f_of_X, f_of_Y):
 
 
 class MMDLoss(nn.Module):
-    def __init__(self):
+    def __init__(self, kernel_mul=2.0, kernel_num=5):
         super(MMDLoss, self).__init__()
+        self.kernel_num = kernel_num
+        self.kernel_mul = kernel_mul
+        self.fix_sigma = None
 
     def forward(self, f_s, f_t):
         n = int(f_s.size()[0])

@@ -22,7 +22,7 @@ class ImageClassifier(nn.Module):
             self.layer2.append(self.dropout)
 
     def forward(self, x):
-        x1 = self.layer1(x)
-        x2 = self.layer2(x1)
-        out = self.head(x2)
-        return (x1, x2), out
+        x = self.layer1(x)
+        x = self.layer2(x)
+        out = self.head(x)
+        return x, out

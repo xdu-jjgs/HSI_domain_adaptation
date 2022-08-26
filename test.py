@@ -82,7 +82,7 @@ def main():
         for batch, (x, label) in enumerate(test_bar):
             # change DoubleTensor x to FloatTensor
             x, label = x.float().to(args.device), label.to(args.device)
-            y = model(x)
+            _, y = model(x)
 
             if NUM_CLASSES > 2:
                 pred = y.data.cpu().numpy().argmax(axis=1)

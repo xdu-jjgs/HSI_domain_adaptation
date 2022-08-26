@@ -16,7 +16,7 @@ CRITERION:
     WEIGHTS:
       - 1.0
       - 1.0
-    KERNEL_NUM: 1
+    KERNEL_NUM: 5
 
 OPTIMIZER:
     NAME: 'adam'
