@@ -1,25 +1,34 @@
 from configs import CFG
-from .bce import BCELoss, SigmoidBCELoss
-from .ce import CELoss, SoftmaxCELoss
-from .dice import DiceLoss, SigmoidDiceLoss
 from .focal import FocalLoss
+from .compose import LossComposer
+from .ce import CELoss, SoftmaxCELoss
+from .bce import BCELoss, SigmoidBCELoss
+from .dice import DiceLoss, SigmoidDiceLoss
+
+
+def build_loss(name):
+    if name == 'ce':
+        criterion = CELoss()
+    elif name == 'softmax+ce':
+        criterion = SoftmaxCELoss()
+    elif name == 'bce':
+        criterion = BCELoss()
+    elif name == 'sigmoid+bce':
+        criterion = SigmoidBCELoss()
+    elif name == 'dice':
+        criterion = DiceLoss()
+    elif name == 'sigmoid+dice':
+        criterion = SigmoidDiceLoss()
+    elif name == 'focal':
+        criterion = FocalLoss()
+    else:
+        raise NotImplementedError('invalid criterion: {}'.format(name))
+    return criterion
 
 
 def build_criterion():
-    if CFG.CRITERION.NAME == 'ce':
-        criterion = CELoss()
-    elif CFG.CRITERION.NAME == 'softmax+ce':
-        criterion = SoftmaxCELoss()
-    elif CFG.CRITERION.NAME == 'bce':
-        criterion = BCELoss()
-    elif CFG.CRITERION.NAME == 'sigmoid+bce':
-        criterion = SigmoidBCELoss()
-    elif CFG.CRITERION.NAME == 'dice':
-        criterion = DiceLoss()
-    elif CFG.CRITERION.NAME == 'sigmoid+dice':
-        criterion = SigmoidDiceLoss()
-    elif CFG.CRITERION.NAME == 'focal':
-        criterion = FocalLoss()
-    else:
-        raise NotImplementedError('invalid criterion: {}'.format(CFG.CRITERION.NAME))
-    return criterion
+    loss_names = CFG.CRITERION.ITEMS
+    weights = CFG.CRITERION.WEIGHTS
+    items = list(map(lambda x: build_loss(x), loss_names))
+    composer = LossComposer(items, weights)
+    return composer

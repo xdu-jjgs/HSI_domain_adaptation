@@ -1,9 +1,7 @@
 import os
+import torch
 import argparse
 
-import numpy as np
-import torch
-from tqdm import tqdm
 from datetime import datetime
 
 from configs import CFG
@@ -38,8 +36,6 @@ def main():
         dataset = build_dataset(split)
         torch.save(dataset.data, os.path.join(save_path, '{}_data.pt'.format(split)), pickle_protocol=4)
         torch.save(dataset.gt, os.path.join(save_path, '{}_gt.pt'.format(split)))
-        # np.save(os.path.join(save_path, '{}_data.npy'.format(split)), dataset.data)
-        # np.save(os.path.join(save_path, '{}_gt.npy'.format(split)), dataset.gt)
 
 
 if __name__ == '__main__':

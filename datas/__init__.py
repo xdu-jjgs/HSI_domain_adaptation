@@ -5,6 +5,7 @@ from torch.utils.data import DataLoader
 
 from configs import CFG
 from datas.raw_dataset import RawHouston
+from datas.preprocessed_dataset import PreprocessedHouston
 
 
 def build_transform():
@@ -25,6 +26,33 @@ def build_dataset(split: str):
     # assert split in ['train', 'val', 'test']
     if CFG.DATASET.NAME == 'RAW_Houston':
         dataset = RawHouston(CFG.DATASET.ROOT, split, transform=build_transform())
+    elif CFG.DATASET.NAME == 'PRRPROCESSED_Houston':
+        dataset = PreprocessedHouston(CFG.DATASET.ROOT, split)
     else:
         raise NotImplementedError('invalid dataset: {} for dataset'.format(CFG.DATASET.NAME))
     return dataset
+
+
+def build_dataloader(dataset, split: str, sampler=None):
+    assert split in ['train', 'val', 'test']
+    if split == 'train':
+        return DataLoader(dataset,
+                          batch_size=CFG.DATALOADER.BATCH_SIZE // dist.get_world_size(),
+                          num_workers=CFG.DATALOADER.NUM_WORKERS,
+                          pin_memory=True if CFG.DATALOADER.NUM_WORKERS > 0 else False,
+                          sampler=sampler
+                          )
+    elif split == 'val':
+        return DataLoader(dataset,
+                          batch_size=1,
+                          num_workers=CFG.DATALOADER.NUM_WORKERS,
+                          pin_memory=True if CFG.DATALOADER.NUM_WORKERS > 0 else False,
+                          sampler=sampler,
+                          )
+    elif split == 'test':
+        return DataLoader(dataset,
+                          batch_size=1,
+                          num_workers=CFG.DATALOADER.NUM_WORKERS,
+                          pin_memory=True if CFG.DATALOADER.NUM_WORKERS > 0 else False,
+                          sampler=sampler
+                          )
