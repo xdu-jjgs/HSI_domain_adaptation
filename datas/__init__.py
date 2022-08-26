@@ -14,6 +14,7 @@ def build_transform():
         transform = transforms.Compose([
             transforms.ZScoreNormalize(),
             transforms.CropImage((CFG.DATASET.PATCH.HEIGHT, CFG.DATASET.PATCH.WIDTH), CFG.DATASET.PATCH.PAD_MODE),
+            transforms.ToTensor()
         ])
     else:
         raise NotImplementedError('invalid dataset: {} for transform'.format(CFG.DATASET.NAME))

@@ -36,8 +36,10 @@ def main():
     save_path = os.path.join(args.path)
     for index, split in enumerate(splits):
         dataset = build_dataset(split)
-        np.save(os.path.join(save_path, '{}_data.npy'.format(split)), dataset.data)
-        np.save(os.path.join(save_path, '{}_gt.npy'.format(split)), dataset.gt)
+        torch.save(dataset.data, os.path.join(save_path, '{}_data.pt'.format(split)), pickle_protocol=4)
+        torch.save(dataset.gt, os.path.join(save_path, '{}_gt.pt'.format(split)))
+        # np.save(os.path.join(save_path, '{}_data.npy'.format(split)), dataset.data)
+        # np.save(os.path.join(save_path, '{}_gt.npy'.format(split)), dataset.gt)
 
 
 if __name__ == '__main__':

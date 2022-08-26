@@ -47,10 +47,9 @@ class ToTensor(nn.Module):
     def __init__(self):
         super(ToTensor, self).__init__()
         # to C*H*W
-        self.to_tensor = transforms.ToTensor()
 
     def forward(self, image, label):
-        image = self.to_tensor(image)
+        image = torch.tensor(image, dtype=torch.float16)
         return image, label
 
 
