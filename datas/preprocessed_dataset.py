@@ -19,12 +19,13 @@ class PreprocessedHouston(Dataset):
         self.transform = transform
         if self.transform is not None:
             self.data, self.gt = self.transform(self.data_path, self.gt)
+        print(len(self.data))
 
     def __getitem__(self, item):
         return self.data[item], self.gt[item]
 
     def __len__(self):
-        return len(self.data_paths)
+        return len(self.data)
 
     @property
     def num_channels(self):

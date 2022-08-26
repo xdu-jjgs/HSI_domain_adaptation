@@ -26,7 +26,7 @@ def build_dataset(split: str):
     # assert split in ['train', 'val', 'test']
     if CFG.DATASET.NAME == 'RAW_Houston':
         dataset = RawHouston(CFG.DATASET.ROOT, split, transform=build_transform())
-    elif CFG.DATASET.NAME == 'PRRPROCESSED_Houston':
+    elif CFG.DATASET.NAME == 'PREPROCESSED_Houston':
         dataset = PreprocessedHouston(CFG.DATASET.ROOT, split)
     else:
         raise NotImplementedError('invalid dataset: {} for dataset'.format(CFG.DATASET.NAME))

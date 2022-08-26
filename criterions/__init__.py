@@ -1,4 +1,5 @@
 from configs import CFG
+from .mmd import MMDLoss
 from .focal import FocalLoss
 from .compose import LossComposer
 from .ce import CELoss, SoftmaxCELoss
@@ -21,6 +22,8 @@ def build_loss(name):
         criterion = SigmoidDiceLoss()
     elif name == 'focal':
         criterion = FocalLoss()
+    elif name == 'mmd':
+        criterion = MMDLoss()
     else:
         raise NotImplementedError('invalid criterion: {}'.format(name))
     return criterion

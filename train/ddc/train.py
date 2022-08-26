@@ -33,7 +33,7 @@ def parse_args():
                         help='checkpoint file')
     parser.add_argument('--path',
                         type=str,
-                        default=os.path.join('runs', datetime.now().strftime('%Y%m%d-%H%M%S-train')),
+                        default=os.path.join('../../runs', datetime.now().strftime('%Y%m%d-%H%M%S-train')),
                         help='path for experiment output files')
     parser.add_argument('--no-validate',
                         action='store_true',
