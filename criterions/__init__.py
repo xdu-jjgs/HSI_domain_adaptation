@@ -1,9 +1,9 @@
 from configs import CFG
+from .mmd import MMDLoss
 from .focal import FocalLoss
 from .compose import LossComposer
 from .ce import CELoss, SoftmaxCELoss
 from .bce import BCELoss, SigmoidBCELoss
-from .mmd import MMDLoss, MultiKernelMMD
 from .dice import DiceLoss, SigmoidDiceLoss
 
 
