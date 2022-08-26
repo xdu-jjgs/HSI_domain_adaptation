@@ -128,6 +128,7 @@ def worker(rank_gpu, args):
     # build dataset
     train_dataset = build_dataset('train')
     val_dataset = build_dataset('val')
+    test_dataset = build_dataset('test')
     assert train_dataset.num_classes == val_dataset.num_classes
     NUM_CHANNELS = train_dataset.num_channels
     NUM_CLASSES = train_dataset.num_classes
@@ -136,6 +137,7 @@ def worker(rank_gpu, args):
     # build data loader
     train_dataloader = build_dataloader(train_dataset, 'train', sampler=train_sampler)
     val_dataloader = build_dataloader(val_dataset, 'val', sampler=None)
+    test_dataloader = build_dataloader(test_dataset, 'test')
     # build model
     model = build_model(NUM_CHANNELS, NUM_CLASSES)
     model.to(device)
@@ -195,14 +197,19 @@ def worker(rank_gpu, args):
         metric.reset()  # reset metric
         train_bar = tqdm(train_dataloader, desc='training', ascii=True)
         train_loss = 0.
-        for x, label in train_bar:
+        for train_item, test_item in zip(train_bar, test_dataloader):
             iteration += 1
 
-            x, label = x.to(device), label.to(device)
-            y = model(x)
-            # print("Y shape: {}, label shape:;{}".format(y.shape, label.shape))
+            x_s, label = train_item
+            x_s, label = x_s.to(device), label.to(device)
+            f_s, y_s = model(x_s)
 
-            loss = criterion(y, label)
+            x_t, _ = test_item
+            x_t = x_t.to(device)
+            f_t = model(x_t)
+            # print("Y shape: {}, label shape:;{}".format(y_s.shape, label.shape))
+
+            loss = criterion(y_s, label, f_s, f_t)
             train_loss += loss.item()
             if dist.get_rank() == 0:
                 writer.add_scalar('train/loss-iteration', loss.item(), iteration)
@@ -212,7 +219,7 @@ def worker(rank_gpu, args):
                 scaled_loss.backward()
             optimizer.step()
 
-            pred = y.argmax(axis=1)
+            pred = y_s.argmax(axis=1)
             metric.add(pred.data.cpu().numpy(), label.data.cpu().numpy())
             # metric.add(pred, label)
             # TypeError: can't convert cuda:0 device type tensor to numpy.
@@ -248,14 +255,14 @@ def worker(rank_gpu, args):
         val_bar = tqdm(val_dataloader, desc='validating', ascii=True)
         val_loss = 0.
         with torch.no_grad():  # disable gradient back-propagation
-            for x, label in val_bar:
-                x, label = x.to(device), label.to(device)
-                y = model(x)
+            for x_s, label in val_bar:
+                x_s, label = x_s.to(device), label.to(device)
+                y_s = model(x_s)
 
-                loss = criterion(y, label)
+                loss = criterion(y_s, label)
                 val_loss += loss.item()
 
-                pred = y.argmax(axis=1)
+                pred = y_s.argmax(axis=1)
                 metric.add(pred.data.cpu().numpy(), label.data.cpu().numpy())
 
                 val_bar.set_postfix({

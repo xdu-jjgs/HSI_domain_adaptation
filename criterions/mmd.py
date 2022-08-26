@@ -32,16 +32,13 @@ class MMDLoss(nn.Module):
     def __init__(self):
         super(MMDLoss, self).__init__()
 
-    def forward(self, source, target):
-        if self.kernel_type == 'linear':
-            return linear_mmd2(source, target)
-        elif self.kernel_type == 'rbf':
-            n = int(source.size()[0])
-            kernels = guassian_kernel(
-                source, target, kernel_mul=self.kernel_mul, kernel_num=self.kernel_num, fix_sigma=self.fix_sigma)
-            XX = torch.mean(kernels[:n, :n])
-            YY = torch.mean(kernels[n:, n:])
-            XY = torch.mean(kernels[:n, n:])
-            YX = torch.mean(kernels[n:, :n])
-            loss = torch.mean(XX + YY - XY - YX)
-            return loss
+    def forward(self, f_s, f_t):
+        n = int(f_s.size()[0])
+        kernels = guassian_kernel(
+            f_s, f_t, kernel_mul=self.kernel_mul, kernel_num=self.kernel_num, fix_sigma=self.fix_sigma)
+        XX = torch.mean(kernels[:n, :n])
+        YY = torch.mean(kernels[n:, n:])
+        XY = torch.mean(kernels[:n, n:])
+        YX = torch.mean(kernels[n:, :n])
+        loss = torch.mean(XX + YY - XY - YX)
+        return loss
