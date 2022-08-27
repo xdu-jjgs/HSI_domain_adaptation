@@ -33,26 +33,11 @@ def build_dataset(split: str):
     return dataset
 
 
-def build_dataloader(dataset, split: str, sampler=None):
-    assert split in ['train', 'val', 'test']
-    if split == 'train':
-        return DataLoader(dataset,
-                          batch_size=CFG.DATALOADER.BATCH_SIZE // dist.get_world_size(),
-                          num_workers=CFG.DATALOADER.NUM_WORKERS,
-                          pin_memory=True if CFG.DATALOADER.NUM_WORKERS > 0 else False,
-                          sampler=sampler
-                          )
-    elif split == 'val':
-        return DataLoader(dataset,
-                          batch_size=1,
-                          num_workers=CFG.DATALOADER.NUM_WORKERS,
-                          pin_memory=True if CFG.DATALOADER.NUM_WORKERS > 0 else False,
-                          sampler=sampler,
-                          )
-    elif split == 'test':
-        return DataLoader(dataset,
-                          batch_size=CFG.DATALOADER.BATCH_SIZE // dist.get_world_size(),
-                          num_workers=CFG.DATALOADER.NUM_WORKERS,
-                          pin_memory=True if CFG.DATALOADER.NUM_WORKERS > 0 else False,
-                          sampler=sampler
-                          )
+def build_dataloader(dataset, sampler=None):
+    return DataLoader(dataset,
+                      batch_size=CFG.DATALOADER.BATCH_SIZE // dist.get_world_size(),
+                      num_workers=CFG.DATALOADER.NUM_WORKERS,
+                      pin_memory=True if CFG.DATALOADER.NUM_WORKERS > 0 else False,
+                      sampler=sampler
+                      )
+

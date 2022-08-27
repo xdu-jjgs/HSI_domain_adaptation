@@ -3,16 +3,16 @@ import torch.nn as nn
 
 
 class ImageClassifier(nn.Module):
-    def __init__(self, in_nodes: int, num_classes: int, dropout: bool = True):
+    def __init__(self, in_nodes: int, num_classes: int, dropout: bool = False):
         super(ImageClassifier, self).__init__()
-        self.relu = nn.ReLU()
+        self.leaky_relu = nn.LeakyReLU()
         self.layer1 = nn.Sequential(
             nn.Linear(in_nodes, 256),
-            self.relu,
+            self.leaky_relu,
         )
         self.layer2 = nn.Sequential(
             nn.Linear(256, 100),
-            self.relu
+            self.leaky_relu
         )
         self.head = nn.Sequential(
             nn.Linear(100, num_classes)
@@ -23,7 +23,8 @@ class ImageClassifier(nn.Module):
             self.layer2.append(self.dropout)
 
     def forward(self, x):
-        x = torch.squeeze(x)
+        x = torch.squeeze(x, 2)
+        x = torch.squeeze(x, 3)
         x = self.layer1(x)
         x = self.layer2(x)
         out = self.head(x)

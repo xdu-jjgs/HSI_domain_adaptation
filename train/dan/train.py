@@ -135,9 +135,9 @@ def worker(rank_gpu, args):
     # build data sampler
     train_sampler = DistributedSampler(train_dataset, shuffle=True)
     # build data loader
-    train_dataloader = build_dataloader(train_dataset, 'train', sampler=train_sampler)
-    val_dataloader = build_dataloader(val_dataset, 'val', sampler=None)
-    test_dataloader = build_dataloader(test_dataset, 'test')
+    train_dataloader = build_dataloader(train_dataset, sampler=train_sampler)
+    val_dataloader = build_dataloader(val_dataset, sampler=None)
+    test_dataloader = build_dataloader(test_dataset)
     # build model
     model = build_model(NUM_CHANNELS, NUM_CLASSES)
     model.to(device)

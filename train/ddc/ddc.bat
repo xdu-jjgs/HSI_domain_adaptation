@@ -11,4 +11,4 @@ python train/ddc/train.py configs/houston/ddc.yaml ^
         --master-ip localhost ^
         --master-port 8886 ^
         --seed 30 ^
-        --opt-level O2
+        --opt-level O0

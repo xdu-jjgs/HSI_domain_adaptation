@@ -58,7 +58,7 @@ def main():
     NUM_CHANNELS = test_dataset.num_channels
     NUM_CLASSES = test_dataset.num_classes
     # build data loader
-    test_dataloader = build_dataloader(test_dataset, 'test')
+    test_dataloader = build_dataloader(test_dataset)
     # build model
     model = build_model(NUM_CHANNELS, NUM_CLASSES)
     model.to(args.device)

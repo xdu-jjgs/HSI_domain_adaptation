@@ -17,7 +17,8 @@ class LossComposer(nn.Module):
         res = 0.
         for weight, item in zip(self.weights, self.items):
             if isinstance(item, BaseMMDLoss):
-                res += weight * item(**kwargs)
+                l = weight * item(**kwargs)
             else:
-                res += weight * item(input, target)
+                l = weight * item(input, target)
+            res += l
         return res
