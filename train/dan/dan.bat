@@ -11,4 +11,4 @@ python train/dan/train.py configs/houston/dan.yaml ^
         --master-ip localhost ^
         --master-port 8886 ^
         --seed 30 ^
-        --opt-level O1
+        --opt-level O2
