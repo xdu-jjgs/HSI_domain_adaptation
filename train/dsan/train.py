@@ -132,19 +132,24 @@ def worker(rank_gpu, args):
     assert train_dataset.num_classes == val_dataset.num_classes
     NUM_CHANNELS = train_dataset.num_channels
     NUM_CLASSES = train_dataset.num_classes
+    print("Number of class: {}".format(NUM_CLASSES))
     # build data sampler
     train_sampler = DistributedSampler(train_dataset, shuffle=True)
+    val_sampler = DistributedSampler(val_dataset, shuffle=True)
+    test_sampler = DistributedSampler(test_dataset, shuffle=True)
     # build data loader
     train_dataloader = build_dataloader(train_dataset, sampler=train_sampler)
-    val_dataloader = build_dataloader(val_dataset, sampler=None)
-    test_dataloader = build_dataloader(test_dataset)
+    val_dataloader = build_dataloader(val_dataset, sampler=val_sampler)
+    test_dataloader = build_dataloader(test_dataset, sampler=test_sampler)
     # build model
     model = build_model(NUM_CHANNELS, NUM_CLASSES)
     model.to(device)
     # print(model)
     # build criterion
-    criterion = build_criterion()
-    criterion.to(device)
+    train_criterion = build_criterion()
+    train_criterion.to(device)
+    val_criterion = build_criterion('val')
+    val_criterion.to(device)
     # build metric
     metric = Metric(NUM_CLASSES)
     # build optimizer
@@ -209,7 +214,7 @@ def worker(rank_gpu, args):
             f_t, y_t = model(x_t)
             # print("Y shape: {}, label shape:;{}".format(y_s.shape, label.shape))
 
-            loss = criterion(y_s, label, f_s=f_s, f_t=f_t, label_s=label, y_t=y_t)
+            loss = train_criterion(y_s, label, f_s=f_s, f_t=f_t, label_s=label, y_t=y_t)
             train_loss += loss.item()
             if dist.get_rank() == 0:
                 writer.add_scalar('train/loss-iteration', loss.item(), iteration)
@@ -255,14 +260,14 @@ def worker(rank_gpu, args):
         val_bar = tqdm(val_dataloader, desc='validating', ascii=True)
         val_loss = 0.
         with torch.no_grad():  # disable gradient back-propagation
-            for x_s, label in val_bar:
-                x_s, label = x_s.to(device), label.to(device)
-                y_s = model(x_s)
+            for x_t, label in val_bar:
+                x_t, label = x_t.to(device), label.to(device)
+                _, y_t = model(x_t)
 
-                loss = criterion(y_s, label)
+                loss = val_criterion(y_t, label)
                 val_loss += loss.item()
 
-                pred = y_s.argmax(axis=1)
+                pred = y_t.argmax(axis=1)
                 metric.add(pred.data.cpu().numpy(), label.data.cpu().numpy())
 
                 val_bar.set_postfix({
@@ -271,7 +276,6 @@ def worker(rank_gpu, args):
                     'mP': f'{metric.mPA():.3f}',
                     'PA': f'{metric.PA():.3f}'
                 })
-
         val_loss /= len(val_dataloader)
 
         PA, mPA, Ps, Rs, F1S = metric.PA(), metric.mPA(), metric.Ps(), metric.Rs(), metric.F1s()
@@ -283,7 +287,7 @@ def worker(rank_gpu, args):
             best_epoch = epoch
 
         logging.info(
-            'rank{} val epoch={} | loss={:.3f} PA={:.3f} mPA={:.3f}'.format(dist.get_rank() + 1, epoch, train_loss, PA,
+            'rank{} val epoch={} | loss={:.3f} PA={:.3f} mPA={:.3f}'.format(dist.get_rank() + 1, epoch, val_loss, PA,
                                                                             mPA))
         for c in range(NUM_CLASSES):
             logging.info(
