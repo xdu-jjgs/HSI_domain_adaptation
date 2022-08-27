@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 
 
@@ -22,6 +23,7 @@ class ImageClassifier(nn.Module):
             self.layer2.append(self.dropout)
 
     def forward(self, x):
+        x = torch.squeeze(x)
         x = self.layer1(x)
         x = self.layer2(x)
         out = self.head(x)

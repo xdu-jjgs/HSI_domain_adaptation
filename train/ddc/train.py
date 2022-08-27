@@ -134,10 +134,11 @@ def worker(rank_gpu, args):
     NUM_CLASSES = train_dataset.num_classes
     # build data sampler
     train_sampler = DistributedSampler(train_dataset, shuffle=True)
+    test_sampler = DistributedSampler(test_dataset, shuffle=True)
     # build data loader
     train_dataloader = build_dataloader(train_dataset, 'train', sampler=train_sampler)
     val_dataloader = build_dataloader(val_dataset, 'val', sampler=None)
-    test_dataloader = build_dataloader(test_dataset, 'test')
+    test_dataloader = build_dataloader(test_dataset, 'test', sampler=test_sampler)
     # build model
     model = build_model(NUM_CHANNELS, NUM_CLASSES)
     model.to(device)
@@ -199,7 +200,6 @@ def worker(rank_gpu, args):
         train_loss = 0.
         for train_item, test_item in zip(train_bar, test_dataloader):
             iteration += 1
-
             x_s, label = train_item
             x_s, label = x_s.to(device), label.to(device)
             f_s, y_s = model(x_s)

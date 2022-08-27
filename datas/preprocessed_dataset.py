@@ -14,12 +14,12 @@ class PreprocessedHouston(Dataset):
 
         # NCHW
         self.data = torch.load(self.data_path)
-        self.gt = torch.load(self.gt_path)
+        self.gt = torch.load(self.gt_path).flatten()
 
         self.transform = transform
         if self.transform is not None:
             self.data, self.gt = self.transform(self.data_path, self.gt)
-        print(len(self.data))
+        # print(len(self.data), self.data.shape, self.gt.shape)
 
     def __getitem__(self, item):
         return self.data[item], self.gt[item]

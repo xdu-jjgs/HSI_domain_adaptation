@@ -14,5 +14,5 @@ class DDC(nn.Module):
 
     def forward(self, x):
         features = self.feature_extractor(x)
-        xs, out = self.classifier(features)
-        return xs, out
+        x, out = self.classifier(features)
+        return x, out
