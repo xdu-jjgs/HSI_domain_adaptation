@@ -127,8 +127,8 @@ def worker(rank_gpu, args):
 
     # build dataset
     train_dataset = build_dataset('train')
-    val_dataset = build_dataset('val')
     test_dataset = build_dataset('test')
+    val_dataset = test_dataset
     assert train_dataset.num_classes == val_dataset.num_classes
     NUM_CHANNELS = train_dataset.num_channels
     NUM_CLASSES = train_dataset.num_classes
@@ -209,7 +209,7 @@ def worker(rank_gpu, args):
             f_t, _ = model(x_t)
             # print("Y shape: {}, label shape:;{}".format(y_s.shape, label.shape))
 
-            loss = criterion(y_s, label, f_s, f_t)
+            loss = criterion(y_s, label, f_s=f_s, f_t=f_t)
             train_loss += loss.item()
             if dist.get_rank() == 0:
                 writer.add_scalar('train/loss-iteration', loss.item(), iteration)

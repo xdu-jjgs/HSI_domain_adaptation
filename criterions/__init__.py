@@ -1,5 +1,5 @@
 from configs import CFG
-from .mmd import MMDLoss
+from .mmd import MMDLoss, LocalMMDLoss
 from .focal import FocalLoss
 from .compose import LossComposer
 from .ce import CELoss, SoftmaxCELoss
@@ -24,6 +24,8 @@ def build_loss(name):
         criterion = FocalLoss()
     elif name == 'mmd':
         criterion = MMDLoss(kernel_num=CFG.CRITERION.KERNEL_NUM)
+    elif name == 'localmmd':
+        criterion = LocalMMDLoss(kernel_num=CFG.CRITERION.KERNEL_NUM)
     else:
         raise NotImplementedError('invalid criterion: {}'.format(name))
     return criterion
