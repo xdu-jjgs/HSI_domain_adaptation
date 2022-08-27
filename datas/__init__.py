@@ -16,6 +16,7 @@ def build_transform():
             transforms.ZScoreNormalize(),
             transforms.CropImage((CFG.DATASET.PATCH.HEIGHT, CFG.DATASET.PATCH.WIDTH), CFG.DATASET.PATCH.PAD_MODE,
                                  selector=lambda x, y: y != 0),
+            transforms.LabelRenumber(-1),
             transforms.ToTensor()
         ])
     else:

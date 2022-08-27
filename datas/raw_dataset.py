@@ -1,6 +1,4 @@
 import os
-import h5py
-import numpy as np
 import scipy.io as sio
 
 from datas.base import Dataset
@@ -18,7 +16,7 @@ class RawHouston(Dataset):
             data_filename = 'Houston18.mat'
             gt_filename = 'Houston18_7gt.mat'
         self.data_path = os.path.join(root, data_filename)
-        self.data = sio.loadmat(self.data_path)['ori_data'].astype('float32')
+        self.data = sio.loadmat(self.data_path)['ori_data'].astype('float16')
         self.gt_path = os.path.join(root, gt_filename)
         self.gt = sio.loadmat(self.gt_path)['map'].astype('int')
 

@@ -49,7 +49,7 @@ class ToTensor(nn.Module):
         # to C*H*W
 
     def forward(self, image, label):
-        image = torch.tensor(image, dtype=torch.float32)
+        image = torch.tensor(image, dtype=torch.float16)
         image = image.permute((0, 3, 1, 2))
         print(image.shape)
         return image, label
@@ -86,13 +86,12 @@ class Normalize(nn.Module):
 
 
 class LabelRenumber(nn.Module):
-    def __init__(self, class_interest, start: int = 0):
+    def __init__(self, start: int = 0):
         super(LabelRenumber, self).__init__()
-        self.class_interest = class_interest
         self.start = start
 
     def forward(self, image, label):
-        label = self.class_interest.index(label) + self.start
+        label = label + self.start
         return image, label
 
 

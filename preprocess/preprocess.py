@@ -31,7 +31,7 @@ def main():
     # merge config with config file
     CFG.merge_from_file(args.config)
 
-    splits = ['train', 'val', 'test']
+    splits = ['train', 'test']
     save_path = os.path.join(args.path)
     for index, split in enumerate(splits):
         dataset = build_dataset(split)
