@@ -2,7 +2,7 @@ import torch.nn as nn
 
 from typing import List
 
-from criterions.mmd import BaseMMDLoss
+from criterions.mmd import TransferLoss
 
 
 class LossComposer(nn.Module):
@@ -16,7 +16,7 @@ class LossComposer(nn.Module):
     def forward(self, input, target, **kwargs):
         res = 0.
         for weight, item in zip(self.weights, self.items):
-            if isinstance(item, BaseMMDLoss):
+            if isinstance(item, TransferLoss):
                 l = weight * item(**kwargs)
             else:
                 l = weight * item(input, target)

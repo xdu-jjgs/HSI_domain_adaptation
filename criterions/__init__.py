@@ -1,6 +1,7 @@
 from configs import CFG
 from .mmd import MMDLoss, LocalMMDLoss
 from .focal import FocalLoss
+from .coral import CoralLoss
 from .compose import LossComposer
 from .ce import CELoss, SoftmaxCELoss
 from .bce import BCELoss, SigmoidBCELoss
@@ -26,6 +27,8 @@ def build_loss(name):
         criterion = MMDLoss(kernel_num=CFG.CRITERION.KERNEL_NUM)
     elif name == 'localmmd':
         criterion = LocalMMDLoss(kernel_num=CFG.CRITERION.KERNEL_NUM)
+    elif name == 'coral':
+        criterion = CoralLoss()
     else:
         raise NotImplementedError('invalid criterion: {}'.format(name))
     return criterion

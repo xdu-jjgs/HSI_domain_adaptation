@@ -1,6 +1,7 @@
 import torch
 import numpy as np
-import torch.nn as nn
+
+from criterions.base import TransferLoss
 
 
 def guassian_kernel(source, target, kernel_mul, kernel_num, fix_sigma):
@@ -29,7 +30,7 @@ def linear_mmd2(f_of_X, f_of_Y):
     return loss
 
 
-class BaseMMDLoss(nn.Module):
+class BaseMMDLoss(TransferLoss):
     def __init__(self, kernel_mul=2.0, kernel_num=1):
         super(BaseMMDLoss, self).__init__()
         self.kernel_num = kernel_num
