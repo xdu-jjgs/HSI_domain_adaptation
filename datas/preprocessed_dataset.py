@@ -10,11 +10,11 @@ class PreprocessedHouston(Dataset):
         assert split in ['train', 'val', 'test']
 
         self.data_path = os.path.join(root, '{}_data.pt'.format(split))
-        self.gt_path = os.path.join(root, '{}_gt.pt'.format(split))
+        self.gt_path = os.path.join(root, '{}_gt.npy'.format(split))
 
         # NCHW
         self.data = torch.load(self.data_path)
-        self.gt = torch.load(self.gt_path).flatten()
+        self.gt = torch.load(self.gt_path)
 
         self.transform = transform
         if self.transform is not None:

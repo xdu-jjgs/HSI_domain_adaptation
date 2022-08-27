@@ -109,11 +109,12 @@ class ZScoreNormalize(nn.Module):
 
 
 class CropImage(nn.Module):
-    def __init__(self, window_size: Tuple[int, int], pad_mode: str):
+    def __init__(self, window_size: Tuple[int, int], pad_mode: str, selector=None):
         super(CropImage, self).__init__()
         assert window_size[0] % 2 == 1 and window_size[1] % 2 == 1, 'window size should be odd!'
         self.window_size = window_size
         self.pad_mode = pad_mode
+        self.selector = selector
 
     def forward(self, image, label):
         h, w, c = image.shape
@@ -121,8 +122,12 @@ class CropImage(nn.Module):
         image = np.pad(image, (patch, patch, (0, 0)), self.pad_mode)
 
         images = []
+        labels = []
         for i in range(h):
             for j in range(w):
-                images.append(image[i:i + self.window_size[0], j:j + self.window_size[1], ...])
+                if self.selector and self.selector(image, label):
+                    images.append(image[i:i + self.window_size[0], j:j + self.window_size[1], ...])
+                    labels.append(label[i][j])
         images = np.stack(images, axis=0)
-        return images, label
+        labels = np.array(labels)
+        return images, labels

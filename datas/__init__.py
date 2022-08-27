@@ -14,7 +14,8 @@ def build_transform():
         # 归一化、裁剪
         transform = transforms.Compose([
             transforms.ZScoreNormalize(),
-            transforms.CropImage((CFG.DATASET.PATCH.HEIGHT, CFG.DATASET.PATCH.WIDTH), CFG.DATASET.PATCH.PAD_MODE),
+            transforms.CropImage((CFG.DATASET.PATCH.HEIGHT, CFG.DATASET.PATCH.WIDTH), CFG.DATASET.PATCH.PAD_MODE,
+                                 selector=lambda x, y: y == 1),
             transforms.ToTensor()
         ])
     else:
@@ -40,4 +41,3 @@ def build_dataloader(dataset, sampler=None):
                       pin_memory=True if CFG.DATALOADER.NUM_WORKERS > 0 else False,
                       sampler=sampler
                       )
-
