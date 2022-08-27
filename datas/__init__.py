@@ -15,7 +15,7 @@ def build_transform():
         transform = transforms.Compose([
             transforms.ZScoreNormalize(),
             transforms.CropImage((CFG.DATASET.PATCH.HEIGHT, CFG.DATASET.PATCH.WIDTH), CFG.DATASET.PATCH.PAD_MODE,
-                                 selector=lambda x, y: y == 1),
+                                 selector=lambda x, y: y != 0),
             transforms.ToTensor()
         ])
     else:

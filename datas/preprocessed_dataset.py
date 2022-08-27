@@ -1,5 +1,6 @@
 import os
 import torch
+import numpy as np
 
 from datas.base import Dataset
 
@@ -14,7 +15,7 @@ class PreprocessedHouston(Dataset):
 
         # NCHW
         self.data = torch.load(self.data_path)
-        self.gt = torch.load(self.gt_path)
+        self.gt = np.load(self.gt_path)
 
         self.transform = transform
         if self.transform is not None:
@@ -50,7 +51,6 @@ class PreprocessedHouston(Dataset):
     def names(self):
         # e.g. ['background', 'road', 'building']
         return [
-            'Unclassified',
             'Healthy grass',
             'Stressed grass',
             'Synthetic grass',

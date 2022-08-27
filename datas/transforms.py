@@ -49,7 +49,7 @@ class ToTensor(nn.Module):
         # to C*H*W
 
     def forward(self, image, label):
-        image = torch.tensor(image, dtype=torch.float16)
+        image = torch.tensor(image, dtype=torch.float32)
         image = image.permute((0, 3, 1, 2))
         print(image.shape)
         return image, label
@@ -125,7 +125,7 @@ class CropImage(nn.Module):
         labels = []
         for i in range(h):
             for j in range(w):
-                if self.selector and self.selector(image, label):
+                if self.selector and self.selector(image[i,j], label[i,j]):
                     images.append(image[i:i + self.window_size[0], j:j + self.window_size[1], ...])
                     labels.append(label[i][j])
         images = np.stack(images, axis=0)

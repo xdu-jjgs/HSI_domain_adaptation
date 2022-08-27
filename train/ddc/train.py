@@ -146,8 +146,10 @@ def worker(rank_gpu, args):
     model.to(device)
     # print(model)
     # build criterion
-    criterion = build_criterion()
-    criterion.to(device)
+    train_criterion = build_criterion()
+    train_criterion.to(device)
+    val_criterion = build_criterion('val')
+    val_criterion.to(device)
     # build metric
     metric = Metric(NUM_CLASSES)
     # build optimizer
@@ -211,7 +213,7 @@ def worker(rank_gpu, args):
             f_t, _ = model(x_t)
             # print("Y shape: {}, label shape:;{}".format(y_s.shape, label.shape))
 
-            loss = criterion(y_s, label, f_s=f_s, f_t=f_t)
+            loss = train_criterion(y_s, label, f_s=f_s, f_t=f_t)
             train_loss += loss.item()
             if dist.get_rank() == 0:
                 writer.add_scalar('train/loss-iteration', loss.item(), iteration)
@@ -255,30 +257,36 @@ def worker(rank_gpu, args):
         model.eval()  # set model to evaluation mode
         metric.reset()  # reset metric
         val_bar = tqdm(val_dataloader, desc='validating', ascii=True)
+        val_loss = 0.
         with torch.no_grad():  # disable gradient back-propagation
-            for x_s, label in val_bar:
-                x_s, label = x_s.to(device), label.to(device)
-                _, y_s = model(x_s)
+            for x_t, label in val_bar:
+                x_t, label = x_t.to(device), label.to(device)
+                _, y_t = model(x_t)
 
-                print(y_s.size())
-                pred = y_s.argmax(axis=1)
+                loss = val_criterion(y_t, label)
+                val_loss += loss.item()
+
+                pred = y_t.argmax(axis=1)
                 metric.add(pred.data.cpu().numpy(), label.data.cpu().numpy())
 
                 val_bar.set_postfix({
                     'epoch': epoch,
+                    'loss': f'{loss.item():.3f}',
                     'mP': f'{metric.mPA():.3f}',
                     'PA': f'{metric.PA():.3f}'
                 })
+        val_loss /= len(val_dataloader)
 
         PA, mPA, Ps, Rs, F1S = metric.PA(), metric.mPA(), metric.Ps(), metric.Rs(), metric.F1s()
         if dist.get_rank() == 0:
+            writer.add_scalar('val/loss-epoch', val_loss, epoch)
             writer.add_scalar('val/PA-epoch', PA, epoch)
             writer.add_scalar('val/mPA-epoch', mPA, epoch)
         if PA > best_PA:
             best_epoch = epoch
 
         logging.info(
-            'rank{} val epoch={} | loss={:.3f} PA={:.3f} mPA={:.3f}'.format(dist.get_rank() + 1, epoch, train_loss, PA,
+            'rank{} val epoch={} | loss={:.3f} PA={:.3f} mPA={:.3f}'.format(dist.get_rank() + 1, epoch, val_loss, PA,
                                                                             mPA))
         for c in range(NUM_CLASSES):
             logging.info(
@@ -286,7 +294,11 @@ def worker(rank_gpu, args):
                                                                                       Ps[c], Rs[c], F1S[c]))
 
         # adjust learning rate if specified
-        scheduler.step()
+        if scheduler is not None:
+            try:
+                scheduler.step()
+            except TypeError:
+                scheduler.step(val_loss)
 
         # save checkpoint
         if dist.get_rank() == 0:

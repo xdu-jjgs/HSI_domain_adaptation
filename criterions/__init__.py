@@ -31,9 +31,14 @@ def build_loss(name):
     return criterion
 
 
-def build_criterion():
-    loss_names = CFG.CRITERION.ITEMS
-    weights = CFG.CRITERION.WEIGHTS
+def build_criterion(split: str = 'train'):
+    # TODO: Find a better way
+    if split == 'train':
+        loss_names = CFG.CRITERION.ITEMS
+        weights = CFG.CRITERION.WEIGHTS
+    else:
+        loss_names = ['softmax+ce']
+        weights = [1.0]
     items = list(map(lambda x: build_loss(x), loss_names))
     composer = LossComposer(items, weights)
     return composer

@@ -283,7 +283,7 @@ def worker(rank_gpu, args):
             best_epoch = epoch
 
         logging.info(
-            'rank{} val epoch={} | loss={:.3f} PA={:.3f} mPA={:.3f}'.format(dist.get_rank() + 1, epoch, train_loss, PA,
+            'rank{} val epoch={} | loss={:.3f} PA={:.3f} mPA={:.3f}'.format(dist.get_rank() + 1, epoch, val_loss, PA,
                                                                             mPA))
         for c in range(NUM_CLASSES):
             logging.info(

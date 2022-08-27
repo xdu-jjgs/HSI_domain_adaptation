@@ -24,7 +24,7 @@ class ImageClassifier(nn.Module):
 
     def forward(self, x):
         x = torch.squeeze(x, 2)
-        x = torch.squeeze(x, 3)
+        x = torch.squeeze(x, 2)
         x = self.layer1(x)
         x = self.layer2(x)
         out = self.head(x)
