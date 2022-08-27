@@ -1,14 +1,14 @@
 call "E:\zts\software\Anaconda\Scripts\activate.bat" zts
-rem ddc
+rem dan
 cd E:\zts\HSI_domain_adaption
 set PYTHONPATH=%cd%
-python train/dsan/train.py configs/houston/dsan.yaml ^
-        --path ./runs/houston/dsan-train ^
+python train/nommd/train.py configs/houston/nommd.yaml ^
+        --path ./runs/houston/nommd-train ^
         --nodes 1 ^
         --gpus 2 ^
         --rank-node 0 ^
         --backend gloo ^
         --master-ip localhost ^
-        --master-port 8892 ^
+        --master-port 8890 ^
         --seed 30 ^
         --opt-level O2

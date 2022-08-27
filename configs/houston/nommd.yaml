@@ -1,0 +1,28 @@
+DATASET:
+    NAME: 'PREPROCESSED_Houston'
+    ROOT: 'E:/zts/dataset/houston_preprocessed'
+
+DATALOADER:
+    BATCH_SIZE: 32
+    NUM_WORKERS: 8
+
+MODEL:
+    NAME: 'ddc'
+
+CRITERION:
+    ITEMS:
+      - 'softmax+ce'
+    WEIGHTS:
+      - 1.0
+
+OPTIMIZER:
+    NAME: 'adam'
+    LR: 0.001
+
+SCHEDULER:
+    NAME: 'plateau'
+    MODE: 'min'
+    FACTOR: 0.1
+    PATIENCE: 2
+
+EPOCHS: 30
