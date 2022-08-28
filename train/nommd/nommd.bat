@@ -5,7 +5,7 @@ set PYTHONPATH=%cd%
 python train/nommd/train.py configs/houston/nommd.yaml ^
         --path ./runs/houston/nommd-train ^
         --nodes 1 ^
-        --gpus 2 ^
+        --gpus 1 ^
         --rank-node 0 ^
         --backend gloo ^
         --master-ip localhost ^

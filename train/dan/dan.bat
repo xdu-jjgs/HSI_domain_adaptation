@@ -5,7 +5,7 @@ set PYTHONPATH=%cd%
 python train/dan/train.py configs/houston/dan.yaml ^
         --path ./runs/houston/dan-train ^
         --nodes 1 ^
-        --gpus 1 ^
+        --gpus 2 ^
         --rank-node 0 ^
         --backend gloo ^
         --master-ip localhost ^

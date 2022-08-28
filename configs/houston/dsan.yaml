@@ -3,7 +3,7 @@ DATASET:
     ROOT: 'E:/zts/dataset/houston_preprocessed'
 
 DATALOADER:
-    BATCH_SIZE: 16
+    BATCH_SIZE: 32
     NUM_WORKERS: 8
 
 MODEL:
@@ -15,7 +15,7 @@ CRITERION:
       - 'localmmd'
     WEIGHTS:
       - 1.0
-      - 1.0
+      - 5.0
     KERNEL_NUM: 5
 
 OPTIMIZER:
@@ -28,4 +28,4 @@ SCHEDULER:
     FACTOR: 0.1
     PATIENCE: 2
 
-EPOCHS: 30
+EPOCHS: 20

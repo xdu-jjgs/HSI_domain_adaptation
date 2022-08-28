@@ -65,9 +65,9 @@ class LocalMMDLoss(BaseMMDLoss):
         weight_tt = torch.from_numpy(weight_tt).cuda()
         weight_st = torch.from_numpy(weight_st).cuda()
 
-        kernels = self.guassian_kernel(f_s, f_t,
-                                       kernel_mul=self.kernel_mul, kernel_num=self.kernel_num,
-                                       fix_sigma=self.fix_sigma)
+        kernels = guassian_kernel(f_s, f_t,
+                                  kernel_mul=self.kernel_mul, kernel_num=self.kernel_num,
+                                  fix_sigma=self.fix_sigma)
         loss = torch.Tensor([0]).cuda()
         if torch.sum(torch.isnan(sum(kernels))):
             return loss
