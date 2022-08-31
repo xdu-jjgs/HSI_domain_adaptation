@@ -4,12 +4,12 @@ import datas.transforms as transforms
 from torch.utils.data import DataLoader
 
 from configs import CFG
-from datas.raw_dataset import RawHouston
+from datas.raw_dataset import RawHouston, RawHyRANK
 from datas.preprocessed_dataset import PreprocessedHouston
 
 
 def build_transform():
-    if CFG.DATASET.NAME == 'RAW_Houston':
+    if CFG.DATASET.NAME in ['RAW_Houston', 'Raw_HyRANK']:
         # 对整个数据集处理
         # 归一化、裁剪
         transform = transforms.Compose([
@@ -19,7 +19,7 @@ def build_transform():
             transforms.LabelRenumber(-1),
             transforms.ToTensor()
         ])
-    elif CFG.DATASET.NAME == 'PREPROCESSED_Houston':
+    elif CFG.DATASET.NAME in ['PREPROCESSED_Houston', 'PREPROCESSED_HyRANK']:
         transform = transforms.Compose([
             transforms.DataAugment(ratio=CFG.DATASET.AUGMENT.RATIO, trans=CFG.DATASET.AUGMENT.TRANS)
         ])
@@ -32,7 +32,14 @@ def build_dataset(split: str):
     # assert split in ['train', 'val', 'test']
     if CFG.DATASET.NAME == 'RAW_Houston':
         dataset = RawHouston(CFG.DATASET.ROOT, split, transform=build_transform())
+    elif CFG.DATASET.NAME == 'RAW_HyRANK':
+        dataset = RawHyRANK(CFG.DATASET.ROOT, split, transform=build_transform())
     elif CFG.DATASET.NAME == 'PREPROCESSED_Houston':
+        if split == 'train':
+            dataset = PreprocessedHouston(CFG.DATASET.ROOT, split, transform=build_transform())
+        else:
+            dataset = PreprocessedHouston(CFG.DATASET.ROOT, split)
+    elif CFG.DATASET.NAME == 'PREPROCESSED_HyRANK':
         if split == 'train':
             dataset = PreprocessedHouston(CFG.DATASET.ROOT, split, transform=build_transform())
         else:
