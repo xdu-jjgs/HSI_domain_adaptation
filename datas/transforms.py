@@ -150,8 +150,8 @@ class DataAugment(nn.Module):
     def forward(self, image, label):
         image_concat = image
         label_concat = label
-        for i in range(self.ratio - 1):
-            image_concat = torch.concat([image_concat, image])
+        for _ in range(self.ratio - 1):
+            image_concat = torch.cat([image_concat, image], dim=0)
             label_concat = np.concatenate([label_concat, label])
         # TODO: Add trans for augmentation
         if self.trans:

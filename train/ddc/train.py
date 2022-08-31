@@ -130,9 +130,10 @@ def worker(rank_gpu, args):
     test_dataset = build_dataset('test')
     val_dataset = test_dataset
     assert train_dataset.num_classes == val_dataset.num_classes
+    logging.info("Number of train {}, val {}, test {}".format(len(train_dataset), len(val_dataset), len(test_dataset)))
     NUM_CHANNELS = train_dataset.num_channels
     NUM_CLASSES = train_dataset.num_classes
-    print("Number of class: {}".format(NUM_CLASSES))
+    logging.info("Number of class: {}".format(NUM_CLASSES))
     # build data sampler
     train_sampler = DistributedSampler(train_dataset, shuffle=True)
     val_sampler = DistributedSampler(val_dataset, shuffle=True)

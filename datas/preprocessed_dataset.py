@@ -19,7 +19,7 @@ class PreprocessedHouston(Dataset):
 
         self.transform = transform
         if self.transform is not None:
-            self.data, self.gt = self.transform(self.data_path, self.gt)
+            self.data, self.gt = self.transform(self.data, self.gt)
         # print(len(self.data), self.data.shape, self.gt.shape)
 
     def __getitem__(self, item):
