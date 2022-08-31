@@ -212,7 +212,7 @@ def worker(rank_gpu, args):
             x_t, _ = test_item
             x_t = x_t.to(device)
             with torch.no_grad():
-                f_t, _ = model(x_t)
+                f_t, y_t = model(x_t)
             model.train()
 
             loss = train_criterion(y_s, label, f_s=f_s, f_t=f_t, label_s=label, y_t=y_t)
