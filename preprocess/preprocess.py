@@ -36,7 +36,7 @@ def main():
     for index, split in enumerate(splits):
         dataset = build_dataset(split)
         print("{} dataset data size {}".format(split, dataset.data.size()))
-        print("{} dataset gt size {}".format(split,dataset.gt.shape))
+        print("{} dataset gt size {}".format(split, dataset.gt.shape))
         torch.save(dataset.data, os.path.join(save_path, '{}_data.pt'.format(split)), pickle_protocol=4)
         np.save(os.path.join(save_path, '{}_gt.npy'.format(split)), dataset.gt)
 

@@ -3,8 +3,8 @@ DATASET:
     ROOT: 'E:/zts/dataset/houston_preprocessed'
 
 DATALOADER:
-    BATCH_SIZE: 16
-    NUM_WORKERS: 8
+    BATCH_SIZE: 64
+    NUM_WORKERS: 0
 
 MODEL:
     NAME: 'ddc'
@@ -27,4 +27,4 @@ SCHEDULER:
     FACTOR: 0.1
     PATIENCE: 2
 
-EPOCHS: 40
+EPOCHS: 20

@@ -2,8 +2,8 @@ call "E:\zts\software\Anaconda\Scripts\activate.bat" zts
 rem dan
 cd E:\zts\HSI_domain_adaption
 set PYTHONPATH=%cd%
-python train/nommd/train.py configs/houston/nommd.yaml ^
-        --path ./runs/houston/nommd-train ^
+python train/ddc/train.py configs/houston/nommd.yaml ^
+        --path ./runs/houston/nommd_2-train ^
         --nodes 1 ^
         --gpus 1 ^
         --rank-node 0 ^

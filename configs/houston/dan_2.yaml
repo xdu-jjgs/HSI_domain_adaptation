@@ -12,8 +12,11 @@ MODEL:
 CRITERION:
     ITEMS:
       - 'softmax+ce'
+      - 'mmd'
     WEIGHTS:
       - 1.0
+      - 0.2
+    KERNEL_NUM: 5
 
 OPTIMIZER:
     NAME: 'adam'
@@ -25,4 +28,4 @@ SCHEDULER:
     FACTOR: 0.1
     PATIENCE: 2
 
-EPOCHS: 30
+EPOCHS: 15

@@ -208,12 +208,14 @@ def worker(rank_gpu, args):
             x_s, label = x_s.to(device), label.to(device)
             f_s, y_s = model(x_s)
 
+            model.eval()
             x_t, _ = test_item
             x_t = x_t.to(device)
-            f_t, _ = model(x_t)
-            # print("Y shape: {}, label shape:;{}".format(y_s.shape, label.shape))
+            with torch.no_grad():
+                f_t, _ = model(x_t)
+            model.train()
 
-            loss = train_criterion(y_s, label, f_s=f_s, f_t=f_t)
+            loss = train_criterion(y_s, label, f_s=f_s, f_t=f_t, label_s=label, y_t=y_t)
             train_loss += loss.item()
             if dist.get_rank() == 0:
                 writer.add_scalar('train/loss-iteration', loss.item(), iteration)
