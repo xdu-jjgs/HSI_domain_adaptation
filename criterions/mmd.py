@@ -42,7 +42,7 @@ class MMDLoss(BaseMMDLoss):
     def __init__(self, kernel_mul=2.0, kernel_num=1):
         super(MMDLoss, self).__init__(kernel_mul, kernel_num)
 
-    def forward(self, f_s, f_t):
+    def forward(self, f_s, f_t, **kwargs):
         n = int(f_s.size()[0])
         kernels = guassian_kernel(
             f_s, f_t, kernel_mul=self.kernel_mul, kernel_num=self.kernel_num, fix_sigma=self.fix_sigma)
@@ -58,7 +58,7 @@ class LocalMMDLoss(BaseMMDLoss):
     def __init__(self, kernel_mul=2.0, kernel_num=1):
         super(LocalMMDLoss, self).__init__(kernel_mul, kernel_num)
 
-    def forward(self, f_s, f_t, label_s, y_t):
+    def forward(self, f_s, f_t, label_s, y_t, **kwargs):
         batch_size = f_s.size()[0]
         weight_ss, weight_tt, weight_st = self.cal_weight(label_s, y_t)
         weight_ss = torch.from_numpy(weight_ss).cuda()  # B, B

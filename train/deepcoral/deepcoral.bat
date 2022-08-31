@@ -5,7 +5,7 @@ set CUDA_VISIBLE_DEVICES=1
 
 rem deepcoral
 python train/ddc/train.py configs/houston/deepcoral.yaml ^
-        --path ./runs/houston/deepcoral10-train ^
+        --path ./runs/houston/deepcoral1-train ^
         --nodes 1 ^
         --gpus 1 ^
         --rank-node 0 ^

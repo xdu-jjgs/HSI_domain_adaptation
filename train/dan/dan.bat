@@ -3,8 +3,8 @@ rem dan
 cd E:\zts\HSI_domain_adaption
 set PYTHONPATH=%cd%
 set CUDA_VISIBLE_DEVICES=1
-python train/ddc/train.py configs/houston/dan_2.yaml ^
-        --path ./runs/houston/dan_02-train ^
+python train/ddc/train.py configs/houston/dan.yaml ^
+        --path ./runs/houston/dan-train ^
         --nodes 1 ^
         --gpus 1 ^
         --rank-node 0 ^

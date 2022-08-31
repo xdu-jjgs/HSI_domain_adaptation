@@ -1,6 +1,6 @@
 DATASET:
     NAME: 'PREPROCESSED_Houston'
-    ROOT: 'E:/zts/dataset/houston_preprocessed'.
+    ROOT: 'E:/zts/dataset/houston_preprocessed'
     AUGMENT:
       RATIO: 21
       TRANS: ''

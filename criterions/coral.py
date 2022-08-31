@@ -7,7 +7,7 @@ class CoralLoss(TransferLoss):
     def __init__(self):
         super(CoralLoss, self).__init__()
 
-    def forward(self, f_s, f_t):
+    def forward(self, f_s, f_t, **kwargs):
         d = f_s.data.shape[1]
         ns, nt = f_s.data.shape[0], f_t.data.shape[0]
         # source covariance
