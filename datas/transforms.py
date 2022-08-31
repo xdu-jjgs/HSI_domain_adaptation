@@ -21,6 +21,7 @@ class Compose(nn.Module):
 
 
 class RandomCrop(nn.Module):
+    # 元素
     def __init__(self, size):
         super(RandomCrop, self).__init__()
         self.size = size
@@ -44,6 +45,7 @@ class RandomCrop(nn.Module):
 
 
 class ToTensor(nn.Module):
+    # 元素
     def __init__(self):
         super(ToTensor, self).__init__()
         # to C*H*W
@@ -56,6 +58,7 @@ class ToTensor(nn.Module):
 
 
 class ToTensorPreData(nn.Module):
+    # 整体
     def __init__(self):
         super(ToTensorPreData, self).__init__()
         self.to_tensor = transforms.ToTensor()
@@ -66,6 +69,7 @@ class ToTensorPreData(nn.Module):
 
 
 class ToTensorPreSubData(nn.Module):
+    # 整体
     def __init__(self):
         super(ToTensorPreSubData, self).__init__()
 
@@ -76,6 +80,7 @@ class ToTensorPreSubData(nn.Module):
 
 
 class Normalize(nn.Module):
+    # 整体/元素
     def __init__(self, mean, std):
         super(Normalize, self).__init__()
         self.normalize = transforms.Normalize(mean, std)
@@ -86,6 +91,7 @@ class Normalize(nn.Module):
 
 
 class LabelRenumber(nn.Module):
+    # 整体/元素
     def __init__(self, start: int = 0):
         super(LabelRenumber, self).__init__()
         self.start = start
@@ -96,6 +102,7 @@ class LabelRenumber(nn.Module):
 
 
 class ZScoreNormalize(nn.Module):
+    # 整体
     def __init__(self):
         super(ZScoreNormalize, self).__init__()
 
@@ -108,6 +115,7 @@ class ZScoreNormalize(nn.Module):
 
 
 class CropImage(nn.Module):
+    # 整体
     def __init__(self, window_size: Tuple[int, int], pad_mode: str, selector=None):
         super(CropImage, self).__init__()
         assert window_size[0] % 2 == 1 and window_size[1] % 2 == 1, 'window size should be odd!'
@@ -124,9 +132,29 @@ class CropImage(nn.Module):
         labels = []
         for i in range(h):
             for j in range(w):
-                if self.selector and self.selector(image[i,j], label[i,j]):
+                if self.selector and self.selector(image[i, j], label[i, j]):
                     images.append(image[i:i + self.window_size[0], j:j + self.window_size[1], ...])
                     labels.append(label[i][j])
         images = np.stack(images, axis=0)
         labels = np.array(labels)
         return images, labels
+
+
+class DataAugment(nn.Module):
+    # 整体
+    def __init__(self, ratio: int = 1, trans=None):
+        super(DataAugment, self).__init__()
+        self.ratio = ratio
+        self.trans = trans
+
+    def forward(self, image, label):
+        image_concat = image
+        label_concat = label
+        for i in range(self.ratio - 1):
+            image_concat = torch.concat([image_concat, image])
+            label_concat = np.concatenate([label_concat, label])
+        # TODO: Add trans for augmentation
+        if self.trans:
+            print("Augment with {}".format(self.trans))
+
+        return image_concat, label_concat

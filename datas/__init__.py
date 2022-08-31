@@ -19,6 +19,10 @@ def build_transform():
             transforms.LabelRenumber(-1),
             transforms.ToTensor()
         ])
+    elif CFG.DATASET.NAME == 'PREPROCESSED_Houston':
+        transform = transforms.Compose([
+            transforms.DataAugment(ratio=CFG.DATASET.AUGMENT.RATIO, trans=CFG.DATASET.AUGMENT.TRANS)
+        ])
     else:
         raise NotImplementedError('invalid dataset: {} for transform'.format(CFG.DATASET.NAME))
     return transform
@@ -29,7 +33,10 @@ def build_dataset(split: str):
     if CFG.DATASET.NAME == 'RAW_Houston':
         dataset = RawHouston(CFG.DATASET.ROOT, split, transform=build_transform())
     elif CFG.DATASET.NAME == 'PREPROCESSED_Houston':
-        dataset = PreprocessedHouston(CFG.DATASET.ROOT, split)
+        if split == 'train':
+            dataset = PreprocessedHouston(CFG.DATASET.ROOT, split, transform=build_transform())
+        else:
+            dataset = PreprocessedHouston(CFG.DATASET.ROOT, split)
     else:
         raise NotImplementedError('invalid dataset: {} for dataset'.format(CFG.DATASET.NAME))
     return dataset
