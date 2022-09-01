@@ -97,7 +97,14 @@ class LabelRenumber(nn.Module):
         self.start = start
 
     def forward(self, image, label):
-        label = label + self.start
+
+        def renumber(ele):
+            return label_cur.index(ele)
+
+        renumber_np = np.frompyfunc(renumber, 1, 1)
+        label_cur = list(np.unique(label))
+        label = renumber_np(label).astype('int')
+
         return image, label
 
 

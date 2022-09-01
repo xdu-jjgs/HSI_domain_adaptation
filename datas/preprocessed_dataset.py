@@ -70,15 +70,12 @@ class PreprocessedHyRank(PreprocessedHouston):
     def names(self):
         # e.g. ['background', 'road', 'building']
         return [
-            'Unused',
             'Dense urban fabric',
             'Mineral extraction sites',
             'Non irrigated land',
             'Fruit trees',
             'Olive Groves',
-            'Broad-leaved Forest',
             'Coniferous Forest',
-            'Mixed Forest',
             'Dense Vegetation',
             'Sparce Vegetation',
             'Sparce Areas',
