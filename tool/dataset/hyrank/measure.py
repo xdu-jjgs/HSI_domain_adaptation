@@ -4,11 +4,11 @@ import numpy as np
 
 from collections import Counter
 
-path = r'E:\zts\dataset\houston_preprocessed'
+path = r'E:\zts\dataset\hyrank_preprocessed'
 files = os.listdir(path)
 for file in files:
     if file.split('.')[-1] == 'pt':
-        data = torch.load(os.path.join(path, file))
+        data = torch.load(os.path.join(path, file)).float()
         # NCHW -> CHWN
         data = torch.permute(data, (1, 2, 3, 0))
         c = data.size()[0]
@@ -20,6 +20,8 @@ for file in files:
         print(Counter(gt))
 
 """
-train - Counter({6: 443, 5: 408, 2: 365, 1: 365, 0: 345, 4: 319, 3: 285})
-test - Counter({5: 32459, 6: 6365, 4: 5347, 1: 4888, 2: 2766, 0: 1353, 3: 22})
+train - Counter({8: 3793, 9: 2803, 4: 1401, 12: 1393, 7: 1072, 2: 542, 6: 500, 11: 487, 13: 451, 10: 404, 0: 288, 
+5: 223, 3: 79, 1: 67})
+test - Counter({9: 6374, 8: 5035, 4: 1768, 10: 1754, 12: 1612, 0: 1262, 2: 614, 11: 492, 
+13: 398, 6: 361, 1: 204, 3: 150}) 
 """

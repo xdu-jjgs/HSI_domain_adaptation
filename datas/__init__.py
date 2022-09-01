@@ -9,7 +9,7 @@ from datas.preprocessed_dataset import PreprocessedHouston
 
 
 def build_transform():
-    if CFG.DATASET.NAME in ['RAW_Houston', 'Raw_HyRANK']:
+    if CFG.DATASET.NAME in ['RAW_Houston', 'RAW_HyRANK']:
         # 对整个数据集处理
         # 归一化、裁剪
         transform = transforms.Compose([

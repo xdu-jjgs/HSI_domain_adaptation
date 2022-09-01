@@ -108,9 +108,14 @@ class ZScoreNormalize(nn.Module):
 
     def forward(self, image, label):
         h, w, c = image.shape
-        image = image.reshape(h * w, c)
-        image = (image - np.mean(image, axis=0)) / np.std(image, axis=0)
-        image = image.reshape(h, w, c)
+        data_type = image.dtype
+        image = image.reshape(h * w, c).astype('float32')
+        mean = np.mean(image, axis=0)
+        # std上溢了，需要用float32
+        std = np.std(image, axis=0)
+        # print("mean:{}, std: {}".format(mean, std))
+        image = (image - mean) / std
+        image = image.reshape(h, w, c).astype(data_type)
         return image, label
 
 
