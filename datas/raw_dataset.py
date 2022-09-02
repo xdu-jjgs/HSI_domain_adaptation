@@ -128,11 +128,11 @@ class RawShangHang(Dataset):
         self.data_path = os.path.join(root, data_filename)
         raw = sio.loadmat(self.data_path)
         if split == 'train':
-            self.data = raw['DataCube1'].astype('float16')
-            self.gt = raw['gt1'].astype('int')
-        else:
-            self.data = raw['DataCube2'].astype('float16')
+            self.data = raw['DataCube2'].astype('float32')
             self.gt = raw['gt2'].astype('int')
+        else:
+            self.data = raw['DataCube1'].astype('float32')
+            self.gt = raw['gt1'].astype('int')
 
         self.transform = transform
         if self.transform is not None:

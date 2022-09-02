@@ -12,4 +12,4 @@ python train/ddc/train.py configs/shanghang/ddc_5.yaml ^
         --master-ip localhost ^
         --master-port 8890 ^
         --seed 30 ^
-        --opt-level O2
+        --opt-level O1

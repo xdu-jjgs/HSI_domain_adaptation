@@ -1,5 +1,4 @@
 import os
-import torch
 import numpy as np
 
 from collections import Counter
@@ -7,14 +6,12 @@ from collections import Counter
 path = r'E:\zts\dataset\shanghaihangzhou_preprocessed'
 files = os.listdir(path)
 for file in files:
-    if file.split('.')[-1] == 'pt':
-        data = torch.load(os.path.join(path, file)).float()
-        # NCHW -> CHWN
-        data = torch.permute(data, (1, 2, 3, 0))
-        c = data.size()[0]
-        data = torch.reshape(data, (c, -1))
-        print(torch.mean(data, dim=-1))
-        print(torch.std(data, dim=-1))
-    elif file.split('.')[-1] == 'npy':
-        gt = np.load(os.path.join(path, file))
-        print(gt.shape, Counter(gt))
+    if file.split('.')[-1] == 'npy':
+        if '_gt'in file:
+            gt = np.load(os.path.join(path, file))
+            print(file, gt.shape, Counter(gt))
+
+'''
+test_gt.npy (368000,) Counter({1: 161689, 0: 123123, 2: 83188})
+train_gt.npy (135700,) Counter({1: 77450, 2: 40207, 0: 18043})
+'''

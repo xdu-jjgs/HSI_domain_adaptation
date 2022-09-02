@@ -80,23 +80,26 @@ class PreprocessedHyRank(PreprocessedHouston):
 
 
 class PreprocessedShangHang(Dataset):
-    def __init__(self, root, split: str, window_size: Tuple[int, int], pad_mode: str, transform=None):
+    def __init__(self, root, split: str, window_size: Tuple[int, int], pad_mode: str, ratio: int = 1, transform=None):
         super(PreprocessedShangHang, self).__init__()
         assert split in ['train', 'val', 'test']
         assert window_size[0] % 2 == 1 and window_size[1] % 2 == 1, 'window size should be odd!'
+        self.split = split
         self.window_size = window_size
         self.pad_mode = pad_mode
+        self.ratio = ratio
 
         data_filename = 'DataCube_ShanghaiHangzhou.mat'
         self.data_path = os.path.join(root, data_filename)
         raw = sio.loadmat(self.data_path)
         if split == 'train':
-            self.data = raw['DataCube1'].astype('float16')
+            self.data = raw['DataCube2'].astype('float32')
         else:
-            self.data = raw['DataCube2'].astype('float16')
+            self.data = raw['DataCube1'].astype('float32')
         self.gt_path = os.path.join(root, '{}_gt.npy'.format(split))
         self.gt = np.load(self.gt_path)
-        self.coordinate = np.load(root, '{}_coordinate.npy'.format(split))
+        self.coordinate_path = os.path.join(root, '{}_coordinate.npy'.format(split))
+        self.coordinate = np.load(self.coordinate_path)
 
         patch = ((self.window_size[0] - 1) // 2, (self.window_size[1] - 1) // 2)
         self.data = np.pad(self.data, (patch, patch, (0, 0)), self.pad_mode)
@@ -109,12 +112,15 @@ class PreprocessedShangHang(Dataset):
         n_ori = self.coordinate.shape[0]
         x1 = self.coordinate[item % n_ori][0]
         y1 = self.coordinate[item % n_ori][1]
-        data = self.data[x1:x1 + self.window_size[0], y1:y1 + self.window_size[1], ...]
-        return data, self.gt[item]
+        data = self.data[..., x1:x1 + self.window_size[0], y1:y1 + self.window_size[1]]
+        gt = self.gt[item % n_ori]
+        return data, gt
 
     def __len__(self):
-        h, w, c = self.data.shape
-        return h * w
+        if self.split == 'train':
+            return self.gt.shape[0] * self.ratio
+        else:
+            return self.gt.shape[0]
 
     def name2label(self, name):
         return self.names.index(name)

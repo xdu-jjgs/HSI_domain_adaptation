@@ -8,7 +8,7 @@ from datas.raw_dataset import RawHouston, RawHyRANK, RawShangHang
 from datas.preprocessed_dataset import PreprocessedHouston, PreprocessedHyRank, PreprocessedShangHang
 
 
-def build_transform():
+def build_transform(split):
     if CFG.DATASET.NAME == 'RAW_Houston':
         # 对整个数据集处理
         transform = transforms.Compose([
@@ -32,21 +32,27 @@ def build_transform():
         transform = transforms.Compose([
             transforms.CropImage((CFG.DATASET.PATCH.HEIGHT, CFG.DATASET.PATCH.WIDTH), CFG.DATASET.PATCH.PAD_MODE,
                                  return_type='coordinate'),
-            transforms.LabelRenumber(),
-            transforms.ToTensor()
+            transforms.LabelRenumber()
         ])
 
     elif CFG.DATASET.NAME in ['PREPROCESSED_Houston', 'PREPROCESSED_HyRANK']:
-        transform = transforms.Compose([
-            transforms.DataAugment(ratio=CFG.DATASET.AUGMENT.RATIO, trans=CFG.DATASET.AUGMENT.TRANS)
-        ])
+        if split == 'train':
+            transform = transforms.Compose([
+                transforms.DataAugment(ratio=CFG.DATASET.AUGMENT.RATIO, trans=CFG.DATASET.AUGMENT.TRANS)
+            ])
+        else:
+            return None
     elif CFG.DATASET.NAME == 'PREPROCESSED_ShangHang':
-        transform = transforms.Compose([
-            transforms.ZScoreNormalize(),
-            transforms.ToTensor(),
-            transforms.DataAugment(ratio=CFG.DATASET.AUGMENT.RATIO, trans=CFG.DATASET.AUGMENT.TRANS),
-
-        ])
+        if split == 'train':
+            transform = transforms.Compose([
+                transforms.ZScoreNormalize(),
+                transforms.ToTensor(),
+            ])
+        else:
+            transform = transforms.Compose([
+                transforms.ZScoreNormalize(),
+                transforms.ToTensor(),
+            ])
     else:
         raise NotImplementedError('invalid dataset: {} for transform'.format(CFG.DATASET.NAME))
     return transform
@@ -55,21 +61,22 @@ def build_transform():
 def build_dataset(split: str):
     # assert split in ['train', 'val', 'test']
     if CFG.DATASET.NAME == 'RAW_Houston':
-        dataset = RawHouston(CFG.DATASET.ROOT, split, transform=build_transform())
+        dataset = RawHouston(CFG.DATASET.ROOT, split, transform=build_transform(split))
     elif CFG.DATASET.NAME == 'RAW_HyRANK':
-        dataset = RawHyRANK(CFG.DATASET.ROOT, split, transform=build_transform())
+        dataset = RawHyRANK(CFG.DATASET.ROOT, split, transform=build_transform(split))
     elif CFG.DATASET.NAME == 'RAW_ShangHang':
-        dataset = RawShangHang(CFG.DATASET.ROOT, split, transform=build_transform())
+        dataset = RawShangHang(CFG.DATASET.ROOT, split, transform=build_transform(split))
 
     elif CFG.DATASET.NAME == 'PREPROCESSED_Houston':
-        dataset = PreprocessedHouston(CFG.DATASET.ROOT, split,
-                                      transform=build_transform() if split == 'train' else None)
+        dataset = PreprocessedHouston(CFG.DATASET.ROOT, split, transform=build_transform(split))
     elif CFG.DATASET.NAME == 'PREPROCESSED_HyRANK':
-        dataset = PreprocessedHyRank(CFG.DATASET.ROOT, split,
-                                     transform=build_transform() if split == 'train' else None)
+        dataset = PreprocessedHyRank(CFG.DATASET.ROOT, split, transform=build_transform(split))
     elif CFG.DATASET.NAME == 'PREPROCESSED_ShangHang':
         dataset = PreprocessedShangHang(CFG.DATASET.ROOT, split,
-                                        transform=build_transform() if split == 'train' else None)
+                                        (CFG.DATASET.PATCH.HEIGHT, CFG.DATASET.PATCH.WIDTH),
+                                        CFG.DATASET.PATCH.PAD_MODE,
+                                        CFG.DATASET.AUGMENT.RATIO,
+                                        transform=build_transform(split))
     else:
         raise NotImplementedError('invalid dataset: {} for dataset'.format(CFG.DATASET.NAME))
     return dataset

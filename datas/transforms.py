@@ -3,8 +3,6 @@ import numpy as np
 import torch.nn as nn
 import torchvision.transforms as transforms
 
-from sklearn.decomposition import PCA
-
 from typing import List, Tuple
 
 
@@ -45,12 +43,14 @@ class RandomCrop(nn.Module):
 
 
 class ToTensor(nn.Module):
-    # 元素
-
+    # 元素/整体
     def forward(self, image, label):
-        image = torch.tensor(image, dtype=torch.float16)
-        image = image.permute((0, 3, 1, 2))
-        print(image.shape)
+        shape = image.shape
+        image = torch.tensor(image, dtype=torch.float32)
+        if len(shape) == 4:
+            image = image.permute((0, 3, 1, 2))
+        elif len(shape) == 3:
+            image = image.permute((2, 0, 1))
         return image, label
 
 
@@ -86,7 +86,6 @@ class Normalize(nn.Module):
 
 class LabelRenumber(nn.Module):
     # 整体/元素
-
     def forward(self, image, label):
         def renumber(ele):
             return label_cur.index(ele)
@@ -100,7 +99,6 @@ class LabelRenumber(nn.Module):
 
 class ZScoreNormalize(nn.Module):
     # 整体
-
     def forward(self, image, label):
         h, w, c = image.shape
         data_type = image.dtype
@@ -156,13 +154,14 @@ class DataAugment(nn.Module):
         self.trans = trans
 
     def forward(self, image, label):
-        image_concat = image
-        label_concat = label
-        for _ in range(self.ratio - 1):
-            image_concat = torch.cat([image_concat, image], dim=0)
-            label_concat = np.concatenate([label_concat, label])
+        shape = image.size()
+        assert len(shape) == 4
+        # NCHW
+        image_concat = torch.cat([image for _ in range(self.ratio - 1)], dim=0)
+        label_concat = np.concatenate([label for _ in range(self.ratio - 1)])
+
         # TODO: Add trans for augmentation
         if self.trans:
             print("Augment with {}".format(self.trans))
-
+        print(image_concat.size())
         return image_concat, label_concat

@@ -4,6 +4,10 @@ DATASET:
     AUGMENT:
       RATIO: 3
       TRANS: ''
+    PATCH:
+      HEIGHT: 27
+      WIDTH: 27
+      PAD_MODE: 'symmetric'
 
 DATALOADER:
     BATCH_SIZE: 64
@@ -30,4 +34,4 @@ SCHEDULER:
     FACTOR: 0.1
     PATIENCE: 2
 
-EPOCHS: 20
+EPOCHS: 10
