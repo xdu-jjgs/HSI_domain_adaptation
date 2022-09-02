@@ -3,8 +3,8 @@ cd E:\zts\HSI_domain_adaption
 set PYTHONPATH=%cd%
 
 rem ddc
-python train/ddc/train.py configs/shanghang/ddc_5.yaml ^
-        --path ./runs/shanghang/ddc_5-train ^
+python train/ddc/train.py configs/shanghang/ddc.yaml ^
+        --path ./runs/shanghang/ddc-train ^
         --nodes 1 ^
         --gpus 1 ^
         --rank-node 0 ^
