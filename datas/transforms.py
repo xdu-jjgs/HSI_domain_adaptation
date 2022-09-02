@@ -3,8 +3,6 @@ import numpy as np
 import torch.nn as nn
 import torchvision.transforms as transforms
 
-from sklearn.decomposition import PCA
-
 from typing import List, Tuple
 
 
@@ -45,15 +43,14 @@ class RandomCrop(nn.Module):
 
 
 class ToTensor(nn.Module):
-    # 元素
-    def __init__(self):
-        super(ToTensor, self).__init__()
-        # to C*H*W
-
+    # 元素/整体
     def forward(self, image, label):
-        image = torch.tensor(image, dtype=torch.float16)
-        image = image.permute((0, 3, 1, 2))
-        print(image.shape)
+        shape = image.shape
+        image = torch.tensor(image, dtype=torch.float32)
+        if len(shape) == 4:
+            image = image.permute((0, 3, 1, 2))
+        elif len(shape) == 3:
+            image = image.permute((2, 0, 1))
         return image, label
 
 
@@ -70,9 +67,6 @@ class ToTensorPreData(nn.Module):
 
 class ToTensorPreSubData(nn.Module):
     # 整体
-    def __init__(self):
-        super(ToTensorPreSubData, self).__init__()
-
     def forward(self, image, label):
         image = [torch.tensor(data) for data in image]
         image = [data.permute((0, 3, 1, 2)) for data in image]
@@ -92,12 +86,7 @@ class Normalize(nn.Module):
 
 class LabelRenumber(nn.Module):
     # 整体/元素
-    def __init__(self, start: int = 0):
-        super(LabelRenumber, self).__init__()
-        self.start = start
-
     def forward(self, image, label):
-
         def renumber(ele):
             return label_cur.index(ele)
 
@@ -110,9 +99,6 @@ class LabelRenumber(nn.Module):
 
 class ZScoreNormalize(nn.Module):
     # 整体
-    def __init__(self):
-        super(ZScoreNormalize, self).__init__()
-
     def forward(self, image, label):
         h, w, c = image.shape
         data_type = image.dtype
@@ -128,28 +114,36 @@ class ZScoreNormalize(nn.Module):
 
 class CropImage(nn.Module):
     # 整体
-    def __init__(self, window_size: Tuple[int, int], pad_mode: str, selector=None):
+    def __init__(self, window_size: Tuple[int, int], pad_mode: str, selector=None, return_type: str = 'data'):
         super(CropImage, self).__init__()
         assert window_size[0] % 2 == 1 and window_size[1] % 2 == 1, 'window size should be odd!'
+        assert return_type in ['data', 'coordinate']
         self.window_size = window_size
         self.pad_mode = pad_mode
         self.selector = selector
+        self.return_type = return_type
 
     def forward(self, image, label):
         h, w, c = image.shape
+
         patch = ((self.window_size[0] - 1) // 2, (self.window_size[1] - 1) // 2)
         image = np.pad(image, (patch, patch, (0, 0)), self.pad_mode)
-
         images = []
         labels = []
+        coordinates = []
         for i in range(h):
             for j in range(w):
-                if self.selector and self.selector(image[i, j], label[i, j]):
+                if self.selector is None or self.selector(image[i, j], label[i, j]):
                     images.append(image[i:i + self.window_size[0], j:j + self.window_size[1], ...])
                     labels.append(label[i][j])
-        images = np.stack(images, axis=0)
-        labels = np.array(labels)
-        return images, labels
+                    coordinates.append([i, j])
+        if self.return_type == 'data':
+            images = np.stack(images, axis=0)
+            labels = np.array(labels)
+            return images, labels
+        else:
+            coordinates = np.array(coordinates)
+            return coordinates, labels
 
 
 class DataAugment(nn.Module):
@@ -160,13 +154,14 @@ class DataAugment(nn.Module):
         self.trans = trans
 
     def forward(self, image, label):
-        image_concat = image
-        label_concat = label
-        for _ in range(self.ratio - 1):
-            image_concat = torch.cat([image_concat, image], dim=0)
-            label_concat = np.concatenate([label_concat, label])
+        shape = image.size()
+        assert len(shape) == 4
+        # NCHW
+        image_concat = torch.cat([image for _ in range(self.ratio - 1)], dim=0)
+        label_concat = np.concatenate([label for _ in range(self.ratio - 1)])
+
         # TODO: Add trans for augmentation
         if self.trans:
             print("Augment with {}".format(self.trans))
-
+        print(image_concat.size())
         return image_concat, label_concat

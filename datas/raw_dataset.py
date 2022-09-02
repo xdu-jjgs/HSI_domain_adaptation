@@ -117,3 +117,51 @@ class RawHyRANK(Dataset):
             'Water',
             'Coastal Water'
         ]
+
+
+class RawShangHang(Dataset):
+    def __init__(self, root, split: str, transform=None):
+        super(RawShangHang, self).__init__()
+        assert split in ['train', 'val', 'test']
+        data_filename = 'DataCube_ShanghaiHangzhou.mat'
+
+        self.data_path = os.path.join(root, data_filename)
+        raw = sio.loadmat(self.data_path)
+        if split == 'train':
+            self.data = raw['DataCube2'].astype('float32')
+            self.gt = raw['gt2'].astype('int')
+        else:
+            self.data = raw['DataCube1'].astype('float32')
+            self.gt = raw['gt1'].astype('int')
+
+        self.transform = transform
+        if self.transform is not None:
+            self.data, self.gt = self.transform(self.data, self.gt)
+
+    def name2label(self, name):
+        return self.names.index(name)
+
+    def label2name(self, label):
+        return self.names[label]
+
+    @property
+    def num_classes(self):
+        return len(self.labels)
+
+    @property
+    def num_channels(self):
+        raise NotImplementedError('num_channels() not implemented')
+
+    @property
+    def labels(self):
+        # e.g. [0, 1, 2]
+        return list(range(len(self.names)))
+
+    @property
+    def names(self):
+        # e.g. ['background', 'road', 'building']
+        return [
+            'Water',
+            'Land/ Building',
+            'Plant'
+        ]

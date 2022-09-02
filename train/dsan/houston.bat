@@ -5,10 +5,10 @@ set PYTHONPATH=%cd%
 python train/dsan/train.py configs/houston/dsan.yaml ^
         --path ./runs/houston/dsan-train ^
         --nodes 1 ^
-        --gpus 2 ^
+        --gpus 1 ^
         --rank-node 0 ^
         --backend gloo ^
         --master-ip localhost ^
         --master-port 8892 ^
         --seed 30 ^
-        --opt-level O2
+        --opt-level O1

@@ -1,7 +1,8 @@
 call "E:\zts\software\Anaconda\Scripts\activate.bat" zts
-rem dan
 cd E:\zts\HSI_domain_adaption
 set PYTHONPATH=%cd%
+
+rem dan
 python train/ddc/train.py configs/hyrank/dan_5.yaml ^
         --path ./runs/hyrank/dan_5-train ^
         --nodes 1 ^
@@ -11,4 +12,4 @@ python train/ddc/train.py configs/hyrank/dan_5.yaml ^
         --master-ip localhost ^
         --master-port 8890 ^
         --seed 30 ^
-        --opt-level O2
+        --opt-level O1

@@ -22,7 +22,7 @@ class Dataset(utils.data.Dataset):
     @property
     def labels(self):
         # e.g. [0, 1, 2]
-        raise NotImplementedError('labels() not implemented')
+        return list(range(len(self.names)))
 
     @property
     def names(self):

@@ -1,7 +1,7 @@
 import os
 import torch
-import numpy as np
 import argparse
+import numpy as np
 
 from datetime import datetime
 
@@ -35,9 +35,13 @@ def main():
     save_path = os.path.join(args.path)
     for index, split in enumerate(splits):
         dataset = build_dataset(split)
-        print("{} dataset data size {}".format(split, dataset.data.size()))
+        if isinstance(dataset.data, torch.Tensor):
+            print("{} dataset data size {}".format(split, dataset.data.size()))
+            torch.save(dataset.data, os.path.join(save_path, '{}_data.pt'.format(split)), pickle_protocol=4)
+        elif isinstance(dataset.data, np.ndarray):
+            print("{} dataset data size {}".format(split, dataset.data.shape))
+            np.save(os.path.join(save_path, '{}_coordinate.npy'.format(split)), dataset.data)
         print("{} dataset gt size {}".format(split, dataset.gt.shape))
-        torch.save(dataset.data, os.path.join(save_path, '{}_data.pt'.format(split)), pickle_protocol=4)
         np.save(os.path.join(save_path, '{}_gt.npy'.format(split)), dataset.gt)
 
 

@@ -1,9 +1,13 @@
 DATASET:
-    NAME: 'PREPROCESSED_HyRANK'
-    ROOT: 'E:/zts/dataset/hyrank_preprocessed'
+    NAME: 'PREPROCESSED_ShangHang'
+    ROOT: 'E:/zts/dataset/shanghaihangzhou_preprocessed'
     AUGMENT:
-      RATIO: 1
+      RATIO: 3
       TRANS: ''
+    PATCH:
+      HEIGHT: 27
+      WIDTH: 27
+      PAD_MODE: 'symmetric'
 
 DATALOADER:
     BATCH_SIZE: 64
@@ -18,7 +22,7 @@ CRITERION:
       - 'mmd'
     WEIGHTS:
       - 1.0
-      - 1.0
+      - 5.0
     KERNEL_NUM: 1
 
 OPTIMIZER:
@@ -31,4 +35,4 @@ SCHEDULER:
     FACTOR: 0.1
     PATIENCE: 2
 
-EPOCHS: 20
+EPOCHS: 5
