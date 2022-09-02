@@ -97,7 +97,14 @@ class LabelRenumber(nn.Module):
         self.start = start
 
     def forward(self, image, label):
-        label = label + self.start
+
+        def renumber(ele):
+            return label_cur.index(ele)
+
+        renumber_np = np.frompyfunc(renumber, 1, 1)
+        label_cur = list(np.unique(label))
+        label = renumber_np(label).astype('int')
+
         return image, label
 
 
@@ -108,9 +115,14 @@ class ZScoreNormalize(nn.Module):
 
     def forward(self, image, label):
         h, w, c = image.shape
-        image = image.reshape(h * w, c)
-        image = (image - np.mean(image, axis=0)) / np.std(image, axis=0)
-        image = image.reshape(h, w, c)
+        data_type = image.dtype
+        image = image.reshape(h * w, c).astype('float32')
+        mean = np.mean(image, axis=0)
+        # std上溢了，需要用float32
+        std = np.std(image, axis=0)
+        # print("mean:{}, std: {}".format(mean, std))
+        image = (image - mean) / std
+        image = image.reshape(h, w, c).astype(data_type)
         return image, label
 
 

@@ -1,0 +1,7 @@
+DATASET:
+    NAME: 'RAW_HyRANK'
+    ROOT: 'E:/zzy/GAN/data/HyRANK'
+    PATCH:
+        HEIGHT: 27
+        WIDTH: 27
+        PAD_MODE: 'symmetric'

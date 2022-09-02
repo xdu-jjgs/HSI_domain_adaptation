@@ -4,14 +4,13 @@ import datas.transforms as transforms
 from torch.utils.data import DataLoader
 
 from configs import CFG
-from datas.raw_dataset import RawHouston
-from datas.preprocessed_dataset import PreprocessedHouston
+from datas.raw_dataset import RawHouston, RawHyRANK
+from datas.preprocessed_dataset import PreprocessedHouston, PreprocessedHyRank
 
 
 def build_transform():
     if CFG.DATASET.NAME == 'RAW_Houston':
         # 对整个数据集处理
-        # 归一化、裁剪
         transform = transforms.Compose([
             transforms.ZScoreNormalize(),
             transforms.CropImage((CFG.DATASET.PATCH.HEIGHT, CFG.DATASET.PATCH.WIDTH), CFG.DATASET.PATCH.PAD_MODE,
@@ -19,7 +18,16 @@ def build_transform():
             transforms.LabelRenumber(-1),
             transforms.ToTensor()
         ])
-    elif CFG.DATASET.NAME == 'PREPROCESSED_Houston':
+    elif CFG.DATASET.NAME == 'RAW_HyRANK':
+        # 对整个数据集处理
+        transform = transforms.Compose([
+            transforms.ZScoreNormalize(),
+            transforms.CropImage((CFG.DATASET.PATCH.HEIGHT, CFG.DATASET.PATCH.WIDTH), CFG.DATASET.PATCH.PAD_MODE,
+                                 selector=lambda x, y: y not in [0, 6, 8]),
+            transforms.LabelRenumber(-1),
+            transforms.ToTensor()
+        ])
+    elif CFG.DATASET.NAME in ['PREPROCESSED_Houston', 'PREPROCESSED_HyRANK']:
         transform = transforms.Compose([
             transforms.DataAugment(ratio=CFG.DATASET.AUGMENT.RATIO, trans=CFG.DATASET.AUGMENT.TRANS)
         ])
@@ -32,11 +40,15 @@ def build_dataset(split: str):
     # assert split in ['train', 'val', 'test']
     if CFG.DATASET.NAME == 'RAW_Houston':
         dataset = RawHouston(CFG.DATASET.ROOT, split, transform=build_transform())
+    elif CFG.DATASET.NAME == 'RAW_HyRANK':
+        dataset = RawHyRANK(CFG.DATASET.ROOT, split, transform=build_transform())
     elif CFG.DATASET.NAME == 'PREPROCESSED_Houston':
         if split == 'train':
             dataset = PreprocessedHouston(CFG.DATASET.ROOT, split, transform=build_transform())
         else:
             dataset = PreprocessedHouston(CFG.DATASET.ROOT, split)
+    elif CFG.DATASET.NAME == 'PREPROCESSED_HyRANK':
+        dataset = PreprocessedHyRank(CFG.DATASET.ROOT, split, transform=build_transform())
     else:
         raise NotImplementedError('invalid dataset: {} for dataset'.format(CFG.DATASET.NAME))
     return dataset

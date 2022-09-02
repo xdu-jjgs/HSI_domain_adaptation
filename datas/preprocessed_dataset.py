@@ -59,3 +59,27 @@ class PreprocessedHouston(Dataset):
             'Water',
             'Residential'
         ]
+
+
+class PreprocessedHyRank(PreprocessedHouston):
+    @property
+    def num_channels(self):
+        return 176
+
+    @property
+    def names(self):
+        # e.g. ['background', 'road', 'building']
+        return [
+            'Dense urban fabric',
+            'Mineral extraction sites',
+            'Non irrigated land',
+            'Fruit trees',
+            'Olive Groves',
+            'Coniferous Forest',
+            'Dense Vegetation',
+            'Sparce Vegetation',
+            'Sparce Areas',
+            'Rocks and Sand',
+            'Water',
+            'Coastal Water'
+        ]
