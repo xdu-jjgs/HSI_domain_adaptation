@@ -1,6 +1,9 @@
 import os
 import torch
 import numpy as np
+import scipy.io as sio
+
+from typing import Tuple
 
 from datas.base import Dataset
 
@@ -28,10 +31,6 @@ class PreprocessedHouston(Dataset):
     def __len__(self):
         return len(self.data)
 
-    @property
-    def num_channels(self):
-        return 48
-
     def name2label(self, name):
         return self.names.index(name)
 
@@ -39,13 +38,8 @@ class PreprocessedHouston(Dataset):
         return self.names[label]
 
     @property
-    def num_classes(self):
-        return len(self.labels)
-
-    @property
-    def labels(self):
-        # e.g. [0, 1, 2]
-        return list(range(len(self.names)))
+    def num_channels(self):
+        return 48
 
     @property
     def names(self):
@@ -85,7 +79,49 @@ class PreprocessedHyRank(PreprocessedHouston):
         ]
 
 
-class PreprocessedShangHang(PreprocessedHouston):
+class PreprocessedShangHang(Dataset):
+    def __init__(self, root, split: str, window_size: Tuple[int, int], pad_mode: str, transform=None):
+        super(PreprocessedShangHang, self).__init__()
+        assert split in ['train', 'val', 'test']
+        assert window_size[0] % 2 == 1 and window_size[1] % 2 == 1, 'window size should be odd!'
+        self.window_size = window_size
+        self.pad_mode = pad_mode
+
+        data_filename = 'DataCube_ShanghaiHangzhou.mat'
+        self.data_path = os.path.join(root, data_filename)
+        raw = sio.loadmat(self.data_path)
+        if split == 'train':
+            self.data = raw['DataCube1'].astype('float16')
+        else:
+            self.data = raw['DataCube2'].astype('float16')
+        self.gt_path = os.path.join(root, '{}_gt.npy'.format(split))
+        self.gt = np.load(self.gt_path)
+        self.coordinate = np.load(root, '{}_coordinate.npy'.format(split))
+
+        patch = ((self.window_size[0] - 1) // 2, (self.window_size[1] - 1) // 2)
+        self.data = np.pad(self.data, (patch, patch, (0, 0)), self.pad_mode)
+
+        self.transform = transform
+        if self.transform is not None:
+            self.data, self.gt = self.transform(self.data, self.gt)
+
+    def __getitem__(self, item):
+        n_ori = self.coordinate.shape[0]
+        x1 = self.coordinate[item % n_ori][0]
+        y1 = self.coordinate[item % n_ori][1]
+        data = self.data[x1:x1 + self.window_size[0], y1:y1 + self.window_size[1], ...]
+        return data, self.gt[item]
+
+    def __len__(self):
+        h, w, c = self.data.shape
+        return h * w
+
+    def name2label(self, name):
+        return self.names.index(name)
+
+    def label2name(self, label):
+        return self.names[label]
+
     @property
     def num_channels(self):
         return 198

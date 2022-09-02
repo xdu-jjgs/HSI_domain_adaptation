@@ -30,14 +30,22 @@ def build_transform():
     elif CFG.DATASET.NAME == 'RAW_ShangHang':
         # 对整个数据集处理
         transform = transforms.Compose([
-            transforms.ZScoreNormalize(),
-            transforms.CropImage((CFG.DATASET.PATCH.HEIGHT, CFG.DATASET.PATCH.WIDTH), CFG.DATASET.PATCH.PAD_MODE),
+            transforms.CropImage((CFG.DATASET.PATCH.HEIGHT, CFG.DATASET.PATCH.WIDTH), CFG.DATASET.PATCH.PAD_MODE,
+                                 return_type='coordinate'),
             transforms.LabelRenumber(),
             transforms.ToTensor()
         ])
-    elif CFG.DATASET.NAME in ['PREPROCESSED_Houston', 'PREPROCESSED_HyRANK', 'PREPROCESSED_ShangHang']:
+
+    elif CFG.DATASET.NAME in ['PREPROCESSED_Houston', 'PREPROCESSED_HyRANK']:
         transform = transforms.Compose([
             transforms.DataAugment(ratio=CFG.DATASET.AUGMENT.RATIO, trans=CFG.DATASET.AUGMENT.TRANS)
+        ])
+    elif CFG.DATASET.NAME == 'PREPROCESSED_ShangHang':
+        transform = transforms.Compose([
+            transforms.ZScoreNormalize(),
+            transforms.ToTensor(),
+            transforms.DataAugment(ratio=CFG.DATASET.AUGMENT.RATIO, trans=CFG.DATASET.AUGMENT.TRANS),
+
         ])
     else:
         raise NotImplementedError('invalid dataset: {} for transform'.format(CFG.DATASET.NAME))

@@ -67,7 +67,6 @@ class ToTensorPreData(nn.Module):
 
 class ToTensorPreSubData(nn.Module):
     # 整体
-
     def forward(self, image, label):
         image = [torch.tensor(data) for data in image]
         image = [data.permute((0, 3, 1, 2)) for data in image]
@@ -89,7 +88,6 @@ class LabelRenumber(nn.Module):
     # 整体/元素
 
     def forward(self, image, label):
-
         def renumber(ele):
             return label_cur.index(ele)
 
@@ -118,28 +116,36 @@ class ZScoreNormalize(nn.Module):
 
 class CropImage(nn.Module):
     # 整体
-    def __init__(self, window_size: Tuple[int, int], pad_mode: str, selector=None):
+    def __init__(self, window_size: Tuple[int, int], pad_mode: str, selector=None, return_type: str = 'data'):
         super(CropImage, self).__init__()
         assert window_size[0] % 2 == 1 and window_size[1] % 2 == 1, 'window size should be odd!'
+        assert return_type in ['data', 'coordinate']
         self.window_size = window_size
         self.pad_mode = pad_mode
         self.selector = selector
+        self.return_type = return_type
 
     def forward(self, image, label):
         h, w, c = image.shape
+
         patch = ((self.window_size[0] - 1) // 2, (self.window_size[1] - 1) // 2)
         image = np.pad(image, (patch, patch, (0, 0)), self.pad_mode)
-
         images = []
         labels = []
+        coordinates = []
         for i in range(h):
             for j in range(w):
                 if self.selector is None or self.selector(image[i, j], label[i, j]):
                     images.append(image[i:i + self.window_size[0], j:j + self.window_size[1], ...])
                     labels.append(label[i][j])
-        images = np.stack(images, axis=0)
-        labels = np.array(labels)
-        return images, labels
+                    coordinates.append([i, j])
+        if self.return_type == 'data':
+            images = np.stack(images, axis=0)
+            labels = np.array(labels)
+            return images, labels
+        else:
+            coordinates = np.array(coordinates)
+            return coordinates, labels
 
 
 class DataAugment(nn.Module):
