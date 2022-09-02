@@ -1,7 +1,8 @@
 call "E:\zts\software\Anaconda\Scripts\activate.bat" zts
-rem dan
 cd E:\zts\HSI_domain_adaption
 set PYTHONPATH=%cd%
+
+rem ddc
 python train/ddc/train.py configs/hyrank/ddc_5.yaml ^
         --path ./runs/hyrank/ddc_5-train ^
         --nodes 1 ^

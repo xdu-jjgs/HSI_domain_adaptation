@@ -53,11 +53,11 @@ class PreprocessedHouston(Dataset):
         return [
             'Healthy grass',
             'Stressed grass',
-            'Synthetic grass',
             'Trees',
-            'Soil',
             'Water',
-            'Residential'
+            'Residential buildings',
+            'Non-residential buildings',
+            'Road'
         ]
 
 
@@ -82,4 +82,19 @@ class PreprocessedHyRank(PreprocessedHouston):
             'Rocks and Sand',
             'Water',
             'Coastal Water'
+        ]
+
+
+class PreprocessedShangHang(PreprocessedHouston):
+    @property
+    def num_channels(self):
+        return 198
+
+    @property
+    def names(self):
+        # e.g. ['background', 'road', 'building']
+        return [
+            'Water',
+            'Land/ Building',
+            'Plant'
         ]

@@ -1,8 +1,8 @@
 DATASET:
-    NAME: 'PREPROCESSED_HyRANK'
-    ROOT: 'E:/zts/dataset/hyrank_preprocessed'
+    NAME: 'PREPROCESSED_ShangHang'
+    ROOT: 'E:/zts/dataset/shanghaihangzhou_preprocessed'
     AUGMENT:
-      RATIO: 1
+      RATIO: 3
       TRANS: ''
 
 DATALOADER:
@@ -15,11 +15,8 @@ MODEL:
 CRITERION:
     ITEMS:
       - 'softmax+ce'
-      - 'mmd'
     WEIGHTS:
       - 1.0
-      - 1.0
-    KERNEL_NUM: 1
 
 OPTIMIZER:
     NAME: 'adam'

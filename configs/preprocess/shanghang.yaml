@@ -1,0 +1,7 @@
+DATASET:
+    NAME: 'RAW_ShangHang'
+    ROOT: 'E:/zzy/GAN/data/ShanghaiHangzhou'
+    PATCH:
+        HEIGHT: 27
+        WIDTH: 27
+        PAD_MODE: 'symmetric'

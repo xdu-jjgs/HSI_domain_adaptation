@@ -1,8 +1,8 @@
 call "E:\zts\software\Anaconda\Scripts\activate.bat" zts
-rem dan
 cd E:\zts\HSI_domain_adaption
 set PYTHONPATH=%cd%
-set CUDA_VISIBLE_DEVICES=1
+
+rem dan
 python train/ddc/train.py configs/houston/dan.yaml ^
         --path ./runs/houston/dan-train ^
         --nodes 1 ^

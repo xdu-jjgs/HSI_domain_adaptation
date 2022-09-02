@@ -46,12 +46,9 @@ class RandomCrop(nn.Module):
 
 class ToTensor(nn.Module):
     # 元素
-    def __init__(self):
-        super(ToTensor, self).__init__()
-        # to C*H*W
 
     def forward(self, image, label):
-        image = torch.tensor(image, dtype=torch.float16)
+        image = torch.tensor(image, dtype=torch.float32)
         image = image.permute((0, 3, 1, 2))
         print(image.shape)
         return image, label
@@ -70,8 +67,6 @@ class ToTensorPreData(nn.Module):
 
 class ToTensorPreSubData(nn.Module):
     # 整体
-    def __init__(self):
-        super(ToTensorPreSubData, self).__init__()
 
     def forward(self, image, label):
         image = [torch.tensor(data) for data in image]
@@ -92,9 +87,6 @@ class Normalize(nn.Module):
 
 class LabelRenumber(nn.Module):
     # 整体/元素
-    def __init__(self, start: int = 0):
-        super(LabelRenumber, self).__init__()
-        self.start = start
 
     def forward(self, image, label):
 
@@ -110,8 +102,6 @@ class LabelRenumber(nn.Module):
 
 class ZScoreNormalize(nn.Module):
     # 整体
-    def __init__(self):
-        super(ZScoreNormalize, self).__init__()
 
     def forward(self, image, label):
         h, w, c = image.shape
