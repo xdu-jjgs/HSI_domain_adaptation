@@ -11,4 +11,4 @@ python train/dsan/train.py configs/houston/dsan.yaml ^
         --master-ip localhost ^
         --master-port 8892 ^
         --seed 30 ^
-        --opt-level O1
+        --opt-level O2

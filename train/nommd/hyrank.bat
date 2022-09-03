@@ -12,4 +12,4 @@ python train/ddc/train.py configs/hyrank/nommd.yaml ^
         --master-ip localhost ^
         --master-port 8890 ^
         --seed 30 ^
-        --opt-level O1
+        --opt-level O2

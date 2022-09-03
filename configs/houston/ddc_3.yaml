@@ -1,16 +1,12 @@
 DATASET:
-    NAME: 'PREPROCESSED_ShangHang'
-    ROOT: 'E:/zts/dataset/shanghaihangzhou_preprocessed'
+    NAME: 'PREPROCESSED_Houston'
+    ROOT: 'E:/zts/dataset/houston_preprocessed'
     AUGMENT:
-      RATIO: 1
+      RATIO: 21
       TRANS: ''
-    PATCH:
-      HEIGHT: 27
-      WIDTH: 27
-      PAD_MODE: 'symmetric'
 
 DATALOADER:
-    BATCH_SIZE: 16
+    BATCH_SIZE: 64
     NUM_WORKERS: 0
 
 MODEL:
@@ -22,7 +18,7 @@ CRITERION:
       - 'mmd'
     WEIGHTS:
       - 1.0
-      - 5.0
+      - 3.0
     KERNEL_NUM: 1
 
 OPTIMIZER:
@@ -35,4 +31,4 @@ SCHEDULER:
     FACTOR: 0.1
     PATIENCE: 2
 
-EPOCHS: 5
+EPOCHS: 10

@@ -2,7 +2,7 @@ DATASET:
     NAME: 'PREPROCESSED_ShangHang'
     ROOT: 'E:/zts/dataset/shanghaihangzhou_preprocessed'
     AUGMENT:
-      RATIO: 3
+      RATIO: 1
       TRANS: ''
     PATCH:
       HEIGHT: 27
@@ -10,7 +10,7 @@ DATASET:
       PAD_MODE: 'symmetric'
 
 DATALOADER:
-    BATCH_SIZE: 64
+    BATCH_SIZE: 16
     NUM_WORKERS: 0
 
 MODEL:
