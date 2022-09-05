@@ -13,4 +13,4 @@ python train/ddc/train.py configs/hyrank/deepcoral.yaml ^
         --master-ip localhost ^
         --master-port 8886 ^
         --seed 30 ^
-        --opt-level O1
+        --opt-level O2

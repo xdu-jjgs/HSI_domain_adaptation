@@ -1,0 +1,11 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="hyrank_preprocess" type="BatchConfigurationType" factoryName="Batch">
+    <module name="HSI_domain_adaption" />
+    <option name="INTERPRETER_OPTIONS" value="" />
+    <option name="WORKING_DIRECTORY" value="./preprocess" />
+    <option name="PARENT_ENVS" value="true" />
+    <option name="SCRIPT_NAME" value="hyrank.bat" />
+    <option name="PARAMETERS" value="" />
+    <method v="2" />
+  </configuration>
+</component>

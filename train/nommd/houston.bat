@@ -4,7 +4,7 @@ set PYTHONPATH=%cd%
 
 rem nommd
 python train/ddc/train.py configs/houston/nommd.yaml ^
-        --path ./runs/houston/nommd_2-train ^
+        --path ./runs/houston/nommd-train ^
         --nodes 1 ^
         --gpus 1 ^
         --rank-node 0 ^
@@ -12,4 +12,4 @@ python train/ddc/train.py configs/houston/nommd.yaml ^
         --master-ip localhost ^
         --master-port 8890 ^
         --seed 30 ^
-        --opt-level O1
+        --opt-level O2

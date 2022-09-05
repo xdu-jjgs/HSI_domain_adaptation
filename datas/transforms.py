@@ -155,10 +155,11 @@ class DataAugment(nn.Module):
 
     def forward(self, image, label):
         shape = image.size()
+        print(shape)
         assert len(shape) == 4
         # NCHW
-        image_concat = torch.cat([image for _ in range(self.ratio - 1)], dim=0)
-        label_concat = np.concatenate([label for _ in range(self.ratio - 1)])
+        image_concat = torch.cat([image for _ in range(self.ratio)], dim=0)
+        label_concat = np.concatenate([label for _ in range(self.ratio)])
 
         # TODO: Add trans for augmentation
         if self.trans:

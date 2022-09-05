@@ -10,7 +10,6 @@ from datas.preprocessed_dataset import PreprocessedHouston, PreprocessedHyRank, 
 
 def build_transform(split):
     if CFG.DATASET.NAME == 'RAW_Houston':
-        # 对整个数据集处理
         transform = transforms.Compose([
             transforms.ZScoreNormalize(),
             transforms.CropImage((CFG.DATASET.PATCH.HEIGHT, CFG.DATASET.PATCH.WIDTH), CFG.DATASET.PATCH.PAD_MODE,
@@ -19,7 +18,6 @@ def build_transform(split):
             transforms.ToTensor()
         ])
     elif CFG.DATASET.NAME == 'RAW_HyRANK':
-        # 对整个数据集处理
         transform = transforms.Compose([
             transforms.ZScoreNormalize(),
             transforms.CropImage((CFG.DATASET.PATCH.HEIGHT, CFG.DATASET.PATCH.WIDTH), CFG.DATASET.PATCH.PAD_MODE,
@@ -28,7 +26,6 @@ def build_transform(split):
             transforms.ToTensor()
         ])
     elif CFG.DATASET.NAME == 'RAW_ShangHang':
-        # 对整个数据集处理
         transform = transforms.Compose([
             transforms.CropImage((CFG.DATASET.PATCH.HEIGHT, CFG.DATASET.PATCH.WIDTH), CFG.DATASET.PATCH.PAD_MODE,
                                  return_type='coordinate'),
