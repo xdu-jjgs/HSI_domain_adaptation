@@ -76,10 +76,6 @@ class LocalMMDLoss(BaseMMDLoss):
         ST = kernels[:batch_size, batch_size:]
 
         loss += torch.sum(weight_ss * SS + weight_tt * TT - 2 * weight_st * ST)
-        # Dynamic weighting
-        lamb = self.lamb()
-        self.step()
-        loss = loss * lamb
         return loss
 
     def cal_weight(self, label_s, y_t):

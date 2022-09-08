@@ -8,17 +8,14 @@ class CoralLoss(TransferLoss):
         super(CoralLoss, self).__init__()
 
     def forward(self, f_s, f_t, **kwargs):
-        d = f_s.data.shape[1]
-        ns, nt = f_s.data.shape[0], f_t.data.shape[0]
-        # source covariance
-        xm = torch.mean(f_s, 0, keepdim=True) - f_s
-        xc = xm.t() @ xm / (ns - 1)
+        mean_s = f_s.mean(0, keepdim=True)
+        mean_t = f_t.mean(0, keepdim=True)
+        cent_s = f_s - mean_s
+        cent_t = f_t - mean_t
+        cov_s = torch.mm(cent_s.t(), cent_s) / (len(f_s) - 1)
+        cov_t = torch.mm(cent_t.t(), cent_t) / (len(f_t) - 1)
 
-        # target covariance
-        xmt = torch.mean(f_t, 0, keepdim=True) - f_t
-        xct = xmt.t() @ xmt / (nt - 1)
+        mean_diff = (mean_s - mean_t).pow(2).mean()
+        cov_diff = (cov_s - cov_t).pow(2).mean()
 
-        # frobenius norm between source and target
-        loss = torch.mul((xc - xct), (xc - xct))
-        loss = torch.sum(loss) / (4 * d * d)
-        return loss
+        return mean_diff + cov_diff
