@@ -1,12 +1,12 @@
 DATASET:
-    NAME: 'PREPROCESSED_Houston'
-    ROOT: 'E:/zts/dataset/houston_preprocessed'
+    NAME: 'PREPROCESSED_HyRANK'
+    ROOT: 'E:/zts/dataset/hyrank_preprocessed'
     AUGMENT:
-      RATIO: 21
+      RATIO: 1
       TRANS: ''
 
 DATALOADER:
-    BATCH_SIZE: 64
+    BATCH_SIZE: 16
     NUM_WORKERS: 0
 
 MODEL:
@@ -15,11 +15,10 @@ MODEL:
 CRITERION:
     ITEMS:
       - 'softmax+ce'
-      - 'localmmd'
+      - 'coral'
     WEIGHTS:
       - 1.0
-      - 1.0
-    KERNEL_NUM: 5
+      - 2.0
 
 OPTIMIZER:
     NAME: 'adam'
@@ -31,4 +30,4 @@ SCHEDULER:
     FACTOR: 0.1
     PATIENCE: 2
 
-EPOCHS: 10
+EPOCHS: 20

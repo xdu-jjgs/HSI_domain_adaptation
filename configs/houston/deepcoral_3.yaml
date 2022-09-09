@@ -15,11 +15,10 @@ MODEL:
 CRITERION:
     ITEMS:
       - 'softmax+ce'
-      - 'localmmd'
+      - 'coral'
     WEIGHTS:
       - 1.0
-      - 1.0
-    KERNEL_NUM: 5
+      - 3.0
 
 OPTIMIZER:
     NAME: 'adam'

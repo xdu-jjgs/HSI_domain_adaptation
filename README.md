@@ -86,7 +86,7 @@ python preprocess/preprocess.py configs/preprocess/shanghang.yaml ^
 - [x] DDC
 - [x] DAN
 - [ ] DeepCORAL
-- [ ] DSAN
+- [x] DSAN
 - [ ] DANN
 - [ ] ADAA
 - [ ] CDAN

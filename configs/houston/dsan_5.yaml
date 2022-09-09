@@ -18,7 +18,7 @@ CRITERION:
       - 'localmmd'
     WEIGHTS:
       - 1.0
-      - 1.0
+      - 5.0
     KERNEL_NUM: 5
 
 OPTIMIZER:
