@@ -216,7 +216,7 @@ def worker(rank_gpu, args):
                 f_t, y_t = model(x_t)
             model.train()
 
-            loss = train_criterion(y_s, label, f_s=f_s, f_t=f_t, label_s=label, y_t=y_t)
+            loss = train_criterion(f_s=f_s, y_s=y_s, label_s=label, f_t=f_t, y_t=y_t)
             train_loss += loss.item()
             if dist.get_rank() == 0:
                 writer.add_scalar('train/loss-iteration', loss.item(), iteration)
@@ -266,7 +266,7 @@ def worker(rank_gpu, args):
                 x_t, label = x_t.to(device), label.to(device)
                 _, y_t = model(x_t)
 
-                loss = val_criterion(y_t, label)
+                loss = val_criterion(y_s=y_t, label_s=label)
                 val_loss += loss.item()
 
                 pred = y_t.argmax(axis=1)

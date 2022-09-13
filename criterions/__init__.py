@@ -1,5 +1,5 @@
 from configs import CFG
-from .mmd import MMDLoss, LocalMMDLoss
+from .mmd import MMDLoss, LocalMMDLoss, JointMMDLoss
 from .focal import FocalLoss
 from .coral import CoralLoss
 from .compose import LossComposer
@@ -27,6 +27,8 @@ def build_loss(name):
         criterion = MMDLoss(kernel_num=CFG.CRITERION.KERNEL_NUM)
     elif name == 'localmmd':
         criterion = LocalMMDLoss(kernel_num=CFG.CRITERION.KERNEL_NUM)
+    elif name == 'jmmd':
+        criterion = JointMMDLoss(kernel_num=CFG.CRITERION.KERNEL_NUM)
     elif name == 'coral':
         criterion = CoralLoss()
     else:

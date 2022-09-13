@@ -7,14 +7,14 @@ class DiceLoss(nn.Module):
 
         self.smooth = smooth
 
-    def forward(self, input, target):
-        n = input.shape[0]
+    def forward(self, y_s, label_s):
+        n = y_s.shape[0]
 
-        input = input.view(n, -1)
-        target = target.view(n, -1)
-        intersection = input * target
+        y_s = y_s.view(n, -1)
+        label_s = label_s.view(n, -1)
+        intersection = y_s * label_s
 
-        loss = 1 - (2 * (intersection.sum(1) + self.smooth) / (input.sum(1) + target.sum(1) + self.smooth)).sum() / n
+        loss = 1 - (2 * (intersection.sum(1) + self.smooth) / (y_s.sum(1) + label_s.sum(1) + self.smooth)).sum() / n
         return loss
 
 
@@ -25,7 +25,7 @@ class SigmoidDiceLoss(nn.Module):
         self.sigmoid = nn.Sigmoid()
         self.dice = DiceLoss(smooth=smooth)
 
-    def forward(self, input, target):
-        input = self.sigmoid(input)
-        loss = self.dice(input, target)
+    def forward(self, y_s, label_s):
+        y_s = self.sigmoid(y_s)
+        loss = self.dice(y_s, label_s)
         return loss

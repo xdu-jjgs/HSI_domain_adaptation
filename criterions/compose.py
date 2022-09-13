@@ -13,12 +13,9 @@ class LossComposer(nn.Module):
         assert len(self.items) == len(self.weights), 'The number of loss items {} does not match weights {}'.format(
             len(self.items), len(self.weights))
 
-    def forward(self, input, target, **kwargs):
+    def forward(self, **kwargs):
         res = 0.
         for weight, item in zip(self.weights, self.items):
-            if isinstance(item, TransferLoss):
-                l = weight * item(**kwargs)
-            else:
-                l = weight * item(input, target)
+            l = weight * item(**kwargs)
             res += l
         return res

@@ -3,6 +3,9 @@ import numpy as np
 
 from criterions.base import TransferLoss
 
+from tllib.modules.kernels import GaussianKernel
+from tllib.alignment.jan import JointMultipleKernelMaximumMeanDiscrepancy
+
 
 def guassian_kernel(source, target, kernel_mul, kernel_num, fix_sigma):
     n_samples = int(source.size()[0]) + int(target.size()[0])
@@ -22,12 +25,6 @@ def guassian_kernel(source, target, kernel_mul, kernel_num, fix_sigma):
     kernel_val = [torch.exp(-L2_distance / bandwidth_temp)
                   for bandwidth_temp in bandwidth_list]
     return sum(kernel_val)
-
-
-def linear_mmd2(f_of_X, f_of_Y):
-    delta = f_of_X.float().mean(0) - f_of_Y.float().mean(0)
-    loss = delta.dot(delta.T)
-    return loss
 
 
 class BaseMMDLoss(TransferLoss):
@@ -126,3 +123,14 @@ class LocalMMDLoss(BaseMMDLoss):
             weight_tt = np.array([0])
             weight_st = np.array([0])
         return weight_ss.astype('float32'), weight_tt.astype('float32'), weight_st.astype('float32')
+
+
+class JointMMDLoss(BaseMMDLoss):
+    def __init__(self, kernel_mul=0.5, kernel_num=1):
+        super(JointMMDLoss, self).__init__(kernel_mul, kernel_num)
+
+    def forward(self, f_s, f_t, y_s, y_t, **kwargs):
+        kernels1 = [GaussianKernel(alpha=self.kernel_mul * (i + 1)) for i in range(self.kernel_num)]
+        kernels2 = [GaussianKernel(1.)]
+        res = JointMultipleKernelMaximumMeanDiscrepancy(kernels=[kernels1, kernels2])((f_s, y_s), (f_t, y_t))
+        return res
