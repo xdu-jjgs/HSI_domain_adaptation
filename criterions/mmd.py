@@ -1,7 +1,6 @@
 import torch
 import numpy as np
-
-from criterions.base import TransferLoss
+import torch.nn as nn
 
 from tllib.modules.kernels import GaussianKernel
 from tllib.alignment.jan import JointMultipleKernelMaximumMeanDiscrepancy
@@ -27,7 +26,7 @@ def guassian_kernel(source, target, kernel_mul, kernel_num, fix_sigma):
     return sum(kernel_val)
 
 
-class BaseMMDLoss(TransferLoss):
+class BaseMMDLoss(nn.Module):
     def __init__(self, kernel_mul=2.0, kernel_num=1):
         super(BaseMMDLoss, self).__init__()
         self.kernel_num = kernel_num

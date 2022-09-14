@@ -1,9 +1,8 @@
 import torch
+import torch.nn as nn
 
-from criterions.base import TransferLoss
 
-
-class CoralLoss(TransferLoss):
+class CoralLoss(nn.Module):
     def __init__(self):
         super(CoralLoss, self).__init__()
 

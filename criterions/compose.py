@@ -2,8 +2,6 @@ import torch.nn as nn
 
 from typing import List
 
-from criterions.mmd import TransferLoss
-
 
 class LossComposer(nn.Module):
     def __init__(self, items: List[nn.Module], weights: List[float]):

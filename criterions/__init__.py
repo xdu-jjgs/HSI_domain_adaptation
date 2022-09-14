@@ -1,11 +1,12 @@
+from typing import List
 from configs import CFG
-from .mmd import MMDLoss, LocalMMDLoss, JointMMDLoss
 from .focal import FocalLoss
 from .coral import CoralLoss
 from .compose import LossComposer
 from .ce import CELoss, SoftmaxCELoss
 from .bce import BCELoss, SigmoidBCELoss
 from .dice import DiceLoss, SigmoidDiceLoss
+from .mmd import MMDLoss, LocalMMDLoss, JointMMDLoss
 
 
 def build_loss(name):
@@ -36,14 +37,11 @@ def build_loss(name):
     return criterion
 
 
-def build_criterion(split: str = 'train'):
-    # TODO: Find a better way
-    if split == 'train':
+def build_criterion(loss_names: List[str] = None, weights: List[float] = None):
+    if not loss_names:
         loss_names = CFG.CRITERION.ITEMS
+    if not weights:
         weights = CFG.CRITERION.WEIGHTS
-    else:
-        loss_names = ['softmax+ce']
-        weights = [1.0]
     items = list(map(lambda x: build_loss(x), loss_names))
     composer = LossComposer(items, weights)
     return composer

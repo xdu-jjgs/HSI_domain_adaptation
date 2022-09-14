@@ -149,7 +149,7 @@ def worker(rank_gpu, args):
     # build criterion
     train_criterion = build_criterion()
     train_criterion.to(device)
-    val_criterion = build_criterion('val')
+    val_criterion = build_criterion(['softmax+ce'], [1.0])
     val_criterion.to(device)
     # build metric
     metric = Metric(NUM_CLASSES)

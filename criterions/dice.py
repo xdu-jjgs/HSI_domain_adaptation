@@ -7,7 +7,7 @@ class DiceLoss(nn.Module):
 
         self.smooth = smooth
 
-    def forward(self, y_s, label_s):
+    def forward(self, y_s, label_s, **kwargs):
         n = y_s.shape[0]
 
         y_s = y_s.view(n, -1)
@@ -25,7 +25,7 @@ class SigmoidDiceLoss(nn.Module):
         self.sigmoid = nn.Sigmoid()
         self.dice = DiceLoss(smooth=smooth)
 
-    def forward(self, y_s, label_s):
+    def forward(self, y_s, label_s, **kwargs):
         y_s = self.sigmoid(y_s)
         loss = self.dice(y_s, label_s)
         return loss

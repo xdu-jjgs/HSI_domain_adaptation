@@ -8,7 +8,7 @@ class FocalLoss(nn.CrossEntropyLoss):
         self.alpha = alpha
         self.gamma = gamma
 
-    def forward(self, y_s, label_s):
+    def forward(self, y_s, label_s, **kwargs):
         label_s = label_s.long()
         ce_loss = super(FocalLoss, self).forward(y_s, label_s)
         pt = torch.exp(-1 * ce_loss)
