@@ -1,0 +1,52 @@
+CRITERION:
+  ITEMS1:
+  - softmax+ce
+  - softmax+ce
+  ITEMS2:
+  - softmax+ce
+  - softmax+ce
+  - dis
+  ITEMS3:
+  - dis
+  ITEMS4:
+  - softmax+ce
+  KERNEL_NUM: 1
+  WEIGHTS1:
+  - 1.0
+  - 1.0
+  WEIGHTS2:
+  - 1.0
+  - 1.0
+  - -1.0
+  WEIGHTS3:
+  - 1.0
+  WEIGHTS4:
+  - 1.0
+DATALOADER:
+  BATCH_SIZE: 64
+  NUM_WORKERS: 0
+DATASET:
+  AUGMENT:
+    RATIO: 21
+    TRANS: ''
+  NAME: PREPROCESSED_Houston
+  PATCH:
+    HEIGHT: 0
+    PAD_MODE: ''
+    WIDTH: 0
+  ROOT: E:/zzy/GAN/HSI_domain_adaptation/dataset/houston_preprocessed
+EPOCHFE: 4
+EPOCHS: 10
+MODEL:
+  NAME: mcd
+OPTIMIZER:
+  LR: 0.001
+  MOMENTUM: 0.0
+  NAME: adam
+  WEIGHT_DECAY: 0.0
+SCHEDULER:
+  FACTOR: 0.1
+  GAMMA: 0.0
+  MODE: min
+  NAME: plateau
+  PATIENCE: 2
