@@ -31,10 +31,6 @@ CRITERION:
       - 'dis'
     WEIGHTS3:
       - 1.0
-    ITEMS4:
-      - 'softmax+ce'
-    WEIGHTS4:
-      - 1.0
     KERNEL_NUM: 1
 
 OPTIMIZER:

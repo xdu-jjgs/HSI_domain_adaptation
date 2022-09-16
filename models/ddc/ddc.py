@@ -1,8 +1,7 @@
-import torch
 import torch.nn as nn
 
-from models.backbone.extractor import FeatureExtractor
-from models.backbone.classifier import ImageClassifier
+from models.backbone import FeatureExtractor
+from models.backbone import ImageClassifier
 
 
 class DDC(nn.Module):
