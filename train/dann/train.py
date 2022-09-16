@@ -16,6 +16,7 @@ from torch.utils.data.distributed import DistributedSampler
 
 from configs import CFG
 from metric import Metric
+from auxiliary_func import *
 from models import build_model
 from criterions import build_criterion
 from optimizers import build_optimizer
@@ -156,7 +157,7 @@ def worker(rank_gpu, args):
     # build metric
     metric = Metric(NUM_CLASSES)
     # build optimizer
-    optimizer = build_optimizer(DANN)
+    optimizer = build_optimizer(DANN, CFG.OPTIMIZER.NAME1, CFG.OPTIMIZER.LR1)
     # build scheduler
     scheduler = build_scheduler(optimizer)
 
@@ -168,7 +169,7 @@ def worker(rank_gpu, args):
     epoch = 0
     iteration = 0
     best_epoch = 0
-    best_PA = 0.
+    best_OA = 0.
 
     # load checkpoint if specified
     if args.checkpoint is not None:
@@ -179,9 +180,9 @@ def worker(rank_gpu, args):
         optimizer.load_state_dict(checkpoint['optimizer']['state_dict'])
         epoch = checkpoint['optimizer']['epoch']
         iteration = checkpoint['optimizer']['iteration']
-        best_PA = checkpoint['metric']['PA']
+        best_OA = checkpoint['metric']['OA']
         best_epoch = checkpoint['optimizer']['best_epoch']
-        logging.info('load checkpoint {} with PA={:.4f}, epoch={}'.format(args.checkpoint, best_PA, epoch))
+        logging.info('load checkpoint {} with OA={:.4f}, epoch={}'.format(args.checkpoint, best_OA, epoch))
 
     # train - validation loop
 
@@ -189,7 +190,7 @@ def worker(rank_gpu, args):
         epoch += 1
         # apportion epochs to each gpu averagely
         if epoch > int(CFG.EPOCHS / args.world_size):
-            logging.info("Best epoch:{}, PA:{:.3f}".format(best_epoch, best_PA))
+            logging.info("Best epoch:{}, OA:{:.3f}".format(best_epoch, best_OA))
             if dist.get_rank() == 0:
                 writer.close()
             return
@@ -202,7 +203,7 @@ def worker(rank_gpu, args):
 
         # train
         DANN.train()  # set model to training mode
-        metric.reset()  # reset metric
+        # metric.reset()  # reset metric
         train_bar = tqdm(train_dataloader, desc='training', ascii=True)
         epoch_loss = 0.
         for train_item, test_item in zip(train_bar, test_dataloader):
@@ -231,33 +232,35 @@ def worker(rank_gpu, args):
                 writer.add_scalar('train/loss_pretrain-iteration', loss.item(), iteration)
 
             pred = class_out.argmax(axis=1)
-            metric.add(pred.data.cpu().numpy(), label.data.cpu().numpy())
+            # metric.add(pred.data.cpu().numpy(), label.data.cpu().numpy())
+            oa, aa, kappa, per_class_acc = get_criteria(pred, label, NUM_CLASSES)
 
             train_bar.set_postfix({
                 'epoch': epoch,
-                'loss_pre': f'{loss.item():.3f}',
-                'mP': f'{metric.mPA():.3f}',
-                'PA': f'{metric.PA():.3f}'
+                'loss': f'{loss.item():.3f}',
+                'OA': f'{oa:.3f}',
+                'AA': f'{aa:.3f}',
+                'Kappa': f'{kappa:.3f}'
             })
 
         epoch_loss /= len(train_dataloader)
-        PA, mPA, Ps, Rs, F1S = metric.PA(), metric.mPA(), metric.Ps(), metric.Rs(), metric.F1s()
         if dist.get_rank() == 0:
-            writer.add_scalar('train/pretrain_loss-epoch', epoch_loss, epoch)
-            writer.add_scalar('train/PA-epoch', PA, epoch)
-            writer.add_scalar('train/mPA-epoch', mPA, epoch)
+            writer.add_scalar('train/loss-epoch', epoch_loss, epoch)
+            writer.add_scalar('train/OA-epoch', oa, epoch)
+            writer.add_scalar('train/AA-epoch', aa, epoch)
+            writer.add_scalar('train/Kappa-epoch', kappa, epoch)
         logging.info(
             'rank{} train epoch={} | loss={:.3f} '.format(dist.get_rank() + 1,epoch, epoch_loss))
         for c in range(NUM_CLASSES):
             logging.info(
-                'rank{} train epoch={} | class={} P={:.3f} R={:.3f} F1={:.3f}'.format(dist.get_rank() + 1, epoch, c,
-                                                                                      Ps[c], Rs[c], F1S[c]))
+                'rank{} train epoch={} | class={} Per_class_acc={:.3f} '.format(dist.get_rank() + 1, epoch, c,
+                                                                                per_class_acc[c]))
 
         # validate
         if args.no_validate:
             continue
         DANN.eval()  # set model to evaluation mode
-        metric.reset()  # reset metric
+        # metric.reset()  # reset metric
         val_bar = tqdm(val_dataloader, desc='validating', ascii=True)
         val_loss = 0.
         with torch.no_grad():  # disable gradient back-propagation
@@ -269,31 +272,32 @@ def worker(rank_gpu, args):
                 val_loss += loss.item()
 
                 pred = y_t.argmax(axis=1)
-                metric.add(pred.data.cpu().numpy(), label.data.cpu().numpy())
+                oa, aa, kappa, per_class_acc = get_criteria(pred, label, NUM_CLASSES)
 
                 val_bar.set_postfix({
                     'epoch': epoch,
                     'loss': f'{loss.item():.3f}',
-                    'mP': f'{metric.mPA():.3f}',
-                    'PA': f'{metric.PA():.3f}'
+                    'OA': f'{oa:.3f}',
+                    'AA': f'{aa:.3f}',
+                    'Kappa': f'{kappa:.3f}'
                 })
         val_loss /= len(val_dataloader)
 
-        PA, mPA, Ps, Rs, F1S = metric.PA(), metric.mPA(), metric.Ps(), metric.Rs(), metric.F1s()
         if dist.get_rank() == 0:
             writer.add_scalar('val/loss-epoch', val_loss, epoch)
-            writer.add_scalar('val/PA-epoch', PA, epoch)
-            writer.add_scalar('val/mPA-epoch', mPA, epoch)
-        if PA > best_PA:
+            writer.add_scalar('val/OA-epoch', oa, epoch)
+            writer.add_scalar('val/AA-epoch', aa, epoch)
+            writer.add_scalar('val/Kappa-epoch', kappa, epoch)
+        if oa > best_OA:
             best_epoch = epoch
 
         logging.info(
-            'rank{} val epoch={} | loss={:.3f} PA={:.3f} mPA={:.3f}'.format(dist.get_rank() + 1, epoch, val_loss, PA,
-                                                                            mPA))
+            'rank{} val epoch={} | loss={:.3f} OA={:.3f} AA={:.3f} Kappa={:.3f}'.format(dist.get_rank() + 1, epoch,
+                                                                                        val_loss, oa, aa, kappa))
         for c in range(NUM_CLASSES):
             logging.info(
-                'rank{} val epoch={} |  class={}- P={:.3f} R={:.3f} F1={:.3f}'.format(dist.get_rank() + 1, epoch, c,
-                                                                                      Ps[c], Rs[c], F1S[c]))
+                'rank{} val epoch={} |  class={}- Per_class_acc={:.3f}'.format(dist.get_rank() + 1, epoch, c,
+                                                                               per_class_acc[c]))
 
         # adjust learning rate if specified
         if scheduler is not None:
@@ -315,22 +319,22 @@ def worker(rank_gpu, args):
                     'iteration': iteration
                 },
                 'metric': {
-                    'PA': PA,
-                    'mPA': mPA,
-                    'Ps': Ps,
-                    'Rs': Rs,
-                    'F1S': F1S
+                    'OA': oa,
+                    'AA': aa,
+                    'Kappa': kappa,
+                    'Per_class_acc': per_class_acc,
                 },
             }
             torch.save(checkpoint, os.path.join(args.path, 'last.pth'))
-            if PA > best_PA:
-                best_PA = PA
+            if oa > best_OA:
+                best_OA = oa
                 torch.save(checkpoint, os.path.join(args.path, 'best.pth'))
 
 
 def main():
     # parse command line arguments
     args = parse_args()
+
 
     # multi processes, each process runs worker(i,args) i=range(nprocs)
     # total processes = world size = nprocs*nodes

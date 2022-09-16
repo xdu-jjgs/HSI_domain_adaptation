@@ -74,9 +74,13 @@ EPOCHS: 10
 MODEL:
   NAME: dann
 OPTIMIZER:
-  LR: 0.001
+  LR1: 0.001
+  LR2: 0.0
+  LR3: 0.0
   MOMENTUM: 0.0
-  NAME: adam
+  NAME1: adam
+  NAME2: ''
+  NAME3: ''
   WEIGHT_DECAY: 0.0
 SCHEDULER:
   FACTOR: 0.1

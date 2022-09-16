@@ -22,14 +22,14 @@ CRITERION:
     ITEMS2:
       - 'softmax+ce'
       - 'softmax+ce'
-      - 'dis'
     WEIGHTS2:
       - 1.0
       - 1.0
-      - -1.0
     ITEMS3:
-      - 'dis'
+      - 'softmax+ce'
+      - 'softmax+ce'
     WEIGHTS3:
+      - 1.0
       - 1.0
     ITEMS4:
       - 'softmax+ce'
@@ -38,8 +38,13 @@ CRITERION:
     KERNEL_NUM: 1
 
 OPTIMIZER:
-    NAME: 'adam'
-    LR: 0.001
+    NAME1: 'adam'
+    LR1: 0.001
+    NAME2: 'adam'
+    LR2: 0.001
+    NAME3: 'sgd'
+    LR3: 0.01
+    MOMENTUM: 0.9
 
 SCHEDULER:
     NAME: 'plateau'
@@ -49,4 +54,3 @@ SCHEDULER:
 
 EPOCHS: 10
 
-EPOCHFE: 4

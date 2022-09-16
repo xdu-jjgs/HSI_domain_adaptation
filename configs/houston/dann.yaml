@@ -28,8 +28,8 @@ CRITERION:
     KERNEL_NUM: 1
 
 OPTIMIZER:
-    NAME: 'adam'
-    LR: 0.001
+    NAME1: 'adam'
+    LR1: 0.001
 
 SCHEDULER:
     NAME: 'plateau'
