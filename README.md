@@ -2,14 +2,24 @@
 
 ## 目录
 
-- [数据集描述](#a-namedatasetsa-)
-- [数据预处理](#a-namepreprocessa-)
-- [支持的模型](#a-namemodelsa-)
-- [用法](#a-nameusagea-)
-    - [训练](#a-nameusage-traina-)
-    - [测试](#a-nameusage-testa-)
-- [结果](#a-nameresulta-)
-- [许可证](#a-namelicensea-)
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [HSI域自适应](#hsi%E5%9F%9F%E8%87%AA%E9%80%82%E5%BA%94)
+  - [目录](#%E7%9B%AE%E5%BD%95)
+  - [<a name="datasets"></a> 数据集描述](#a-namedatasetsa-%E6%95%B0%E6%8D%AE%E9%9B%86%E6%8F%8F%E8%BF%B0)
+    - [<a name="datasets-houston"></a> Houston数据集](#a-namedatasets-houstona-houston%E6%95%B0%E6%8D%AE%E9%9B%86)
+    - [<a name="datasets-hyrank"></a> HyRANK数据集](#a-namedatasets-hyranka-hyrank%E6%95%B0%E6%8D%AE%E9%9B%86)
+    - [<a name="datasets-shanghang"></a> ShanghaiHangzhou数据集](#a-namedatasets-shanghanga-shanghaihangzhou%E6%95%B0%E6%8D%AE%E9%9B%86)
+  - [<a name="preprocess"></a> 数据预处理](#a-namepreprocessa-%E6%95%B0%E6%8D%AE%E9%A2%84%E5%A4%84%E7%90%86)
+  - [<a name="models"></a> 支持的模型](#a-namemodelsa-%E6%94%AF%E6%8C%81%E7%9A%84%E6%A8%A1%E5%9E%8B)
+  - [<a name="usage"></a> 用法](#a-nameusagea-%E7%94%A8%E6%B3%95)
+    - [<a name="usage-train"></a> 训练](#a-nameusage-traina-%E8%AE%AD%E7%BB%83)
+    - [<a name="usage-test"></a> 测试](#a-nameusage-testa-%E6%B5%8B%E8%AF%95)
+  - [<a name="result"></a> 结果](#a-nameresulta-%E7%BB%93%E6%9E%9C)
+  - [<a name="license"></a> 结果](#a-namelicensea-%E7%BB%93%E6%9E%9C)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 ## <a name="datasets"></a> 数据集描述
 
@@ -86,6 +96,7 @@ python preprocess/preprocess.py configs/preprocess/shanghang.yaml ^
 - [x] DDC
 - [x] DAN
 - [ ] DeepCORAL
+- [x] JAN
 - [x] DSAN
 - [ ] DANN
 - [ ] ADAA
@@ -129,6 +140,11 @@ python train/ddc/train.py configs/houston/ddc.yaml ^
 | Houston          | DAN    | softmax+ce, mmd loss           | 1:1        | g5     | 64         | 0.722   | 0.655    |
 | Houston          | DAN    | softmax+ce, mmd loss           | 1:2        | g5     | 64         | 0.731   | 0.595    |
 | Houston          | DAN    | softmax+ce, mmd loss           | 1:3        | g5     | 64         | 0.683   | 0.670    |
+| Houston          | JAN    | softmax+ce, joint mmd loss     | 1:1        | g5     | 64         | 0.742   | -        | 
+| Houston          | JAN    | softmax+ce, joint mmd loss     | 1:0.5      | g5     | 64         | 0.700   | -        | 
+| Houston          | JAN    | softmax+ce, joint mmd loss     | 1:2        | g5     | 64         | 0.676   | -        | 
+| Houston          | JAN    | softmax+ce, joint mmd loss     | 1:3        | g5     | 64         | 0.700   | -        | 
+| Houston          | JAN    | softmax+ce, joint mmd loss     | 1:5        | g5     | 64         | 0.638   | -        | 
 | Houston          | DSAN   | softmax+ce, local mmd loss     | 1:1        | g5     | 64         | 0.738   | -        | 
 | Houston          | DSAN   | softmax+ce, local mmd loss     | 1:0.5      | g5     | 64         | 0.699   | -        | 
 | Houston          | DSAN   | softmax+ce, local mmd loss     | 1:2        | g5     | 64         | 0.633   | -        | 
@@ -141,15 +157,25 @@ python train/ddc/train.py configs/houston/ddc.yaml ^
 | HyRANK           | DDC    | softmax+ce, mmd loss           | 1:3        | g1     | 64         | 0.513   | 0.496    |   
 | HyRANK           | DAN    | softmax+ce, mmd loss           | 1:1        | g5     | 64         | 0.524   | 0.517    |   
 | HyRANK           | DAN    | softmax+ce, mmd loss           | 1:2        | g5     | 64         | 0.507   | 0.487    |   
-| HyRANK           | DAN    | softmax+ce, mmd loss           | 1:3        | g5     | 64         | 0.507   | 0.487    |   
-| HyRANK           | TSTNet | softmax+ce, mmd loss, got loss | 1:1:0.1    | l      | 100        | 0.633   | 0.608    |  
+| HyRANK           | DAN    | softmax+ce, mmd loss           | 1:3        | g5     | 64         | 0.507   | 0.487    |  
+| HyRANK           | JAN    | softmax+ce, joint mmd loss     | 1:1        | g5     | 64         | 0.528   | -        | 
+| HyRANK           | JAN    | softmax+ce, joint mmd loss     | 1:0.5      | g5     | 64         | 0.499   | -        | 
+| HyRANK           | JAN    | softmax+ce, joint mmd loss     | 1:2        | g5     | 64         | 0.511   | -        | 
+| HyRANK           | JAN    | softmax+ce, joint mmd loss     | 1:3        | g5     | 64         | 0.507   | -        | 
+| HyRANK           | JAN    | softmax+ce, joint mmd loss     | 1:5        | g5     | 64         | 0.490   | -        | 
+| HyRANK           | TSTNet | softmax+ce, mmd loss, got loss | 1:1:0.1    | l      | 100        | 0.633   | 0.608    |
 | ShanghaiHangzhou | DNN    | softmax+ce                     | 1          | -      | 64         | 0.921   | -        |   
 | ShanghaiHangzhou | DDC    | softmax+ce, mmd loss           | 1:1        | g1     | 64         | 0.929   | -        |   
 | ShanghaiHangzhou | DDC    | softmax+ce, mmd loss           | 1:2        | g1     | 64         | 0.942   | -        |   
 | ShanghaiHangzhou | DDC    | softmax+ce, mmd loss           | 1:3        | g1     | 64         | 0.924   | -        |   
 | ShanghaiHangzhou | DAN    | softmax+ce, mmd loss           | 1:1        | g5     | 64         | 0.928   | -        |   
 | ShanghaiHangzhou | DAN    | softmax+ce, mmd loss           | 1:2        | g5     | 64         | 0.910   | -        |   
-| ShanghaiHangzhou | DAN    | softmax+ce, mmd loss           | 1:3        | g5     | 64         | 0.910   | -        |   
+| ShanghaiHangzhou | DAN    | softmax+ce, mmd loss           | 1:3        | g5     | 64         | 0.910   | -        |  
+| ShanghaiHangzhou | JAN    | softmax+ce, joint mmd loss     | 1:1        | g5     | 64         | 0.920   | -        | 
+| ShanghaiHangzhou | JAN    | softmax+ce, joint mmd loss     | 1:0.5      | g5     | 64         | 0.922   | -        | 
+| ShanghaiHangzhou | JAN    | softmax+ce, joint mmd loss     | 1:2        | g5     | 64         | 0.931   | -        | 
+| ShanghaiHangzhou | JAN    | softmax+ce, joint mmd loss     | 1:3        | g5     | 64         | 0.923   | -        | 
+| ShanghaiHangzhou | JAN    | softmax+ce, joint mmd loss     | 1:5        | g5     | 64         | 0.937   | -        | 
 | ShanghaiHangzhou | DSAN   | softmax+ce, local mmd loss     | 1:1        | g5     | 64         | 0.908   | -        |    
 | ShanghaiHangzhou | DSAN   | softmax+ce, local mmd loss     | 1:0.5      | g5     | 64         | 0.931   | -        |   
 | ShanghaiHangzhou | DSAN   | softmax+ce, local mmd loss     | 1:2        | g5     | 64         | 0.933   | -        |   
