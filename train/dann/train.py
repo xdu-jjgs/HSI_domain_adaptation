@@ -274,7 +274,7 @@ def worker(rank_gpu, args):
                 x_t, label = x_t.to(device), label.to(device)
                 y_t, _ = model(x_t, alpha=0)  # val阶段网络不需要反传，所以alpha=0
 
-                loss = val_criterion(y_t, label)
+                loss = val_criterion(y_s=y_t, label_s=label)
                 val_loss += loss.item()
 
                 pred = y_t.argmax(axis=1)
