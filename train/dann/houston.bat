@@ -1,8 +1,8 @@
-call "C:\Users\zzy\anaconda3\Scripts\activate.bat" base
-cd E:\zzy\GAN\HSI_domain_adaptation
+call "E:\zts\software\Anaconda\Scripts\activate.bat" zts
+cd E:\zts\HSI_domain_adaption
 set PYTHONPATH=%cd%
 
-rem ddc
+rem dann
 python train/dann/train.py configs/houston/dann.yaml ^
         --path ./runs/houston/dann-train ^
         --nodes 1 ^
@@ -10,6 +10,6 @@ python train/dann/train.py configs/houston/dann.yaml ^
         --rank-node 0 ^
         --backend gloo ^
         --master-ip localhost ^
-        --master-port 8886 ^
+        --master-port 8890 ^
         --seed 30 ^
-        --opt-level O2
+        --opt-level O1
