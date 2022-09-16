@@ -2,24 +2,14 @@
 
 ## 目录
 
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [HSI域自适应](#hsi%E5%9F%9F%E8%87%AA%E9%80%82%E5%BA%94)
-  - [目录](#%E7%9B%AE%E5%BD%95)
-  - [<a name="datasets"></a> 数据集描述](#a-namedatasetsa-%E6%95%B0%E6%8D%AE%E9%9B%86%E6%8F%8F%E8%BF%B0)
-    - [<a name="datasets-houston"></a> Houston数据集](#a-namedatasets-houstona-houston%E6%95%B0%E6%8D%AE%E9%9B%86)
-    - [<a name="datasets-hyrank"></a> HyRANK数据集](#a-namedatasets-hyranka-hyrank%E6%95%B0%E6%8D%AE%E9%9B%86)
-    - [<a name="datasets-shanghang"></a> ShanghaiHangzhou数据集](#a-namedatasets-shanghanga-shanghaihangzhou%E6%95%B0%E6%8D%AE%E9%9B%86)
-  - [<a name="preprocess"></a> 数据预处理](#a-namepreprocessa-%E6%95%B0%E6%8D%AE%E9%A2%84%E5%A4%84%E7%90%86)
-  - [<a name="models"></a> 支持的模型](#a-namemodelsa-%E6%94%AF%E6%8C%81%E7%9A%84%E6%A8%A1%E5%9E%8B)
-  - [<a name="usage"></a> 用法](#a-nameusagea-%E7%94%A8%E6%B3%95)
-    - [<a name="usage-train"></a> 训练](#a-nameusage-traina-%E8%AE%AD%E7%BB%83)
-    - [<a name="usage-test"></a> 测试](#a-nameusage-testa-%E6%B5%8B%E8%AF%95)
-  - [<a name="result"></a> 结果](#a-nameresulta-%E7%BB%93%E6%9E%9C)
-  - [<a name="license"></a> 结果](#a-namelicensea-%E7%BB%93%E6%9E%9C)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+- [数据集描述](#datasets)
+- [数据预处理](#preprocess)
+- [支持的模型](#models)
+- [用法](#usage)
+  - [训练](#train)
+  - [测试](#test)
+- [结果](#result)
+- [许可证](#license)
 
 ## <a name="datasets"></a> 数据集描述
 
