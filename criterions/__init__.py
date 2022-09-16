@@ -2,6 +2,7 @@ from typing import List
 from configs import CFG
 from .focal import FocalLoss
 from .coral import CoralLoss
+from .dis import Discrepancy
 from .compose import LossComposer
 from .ce import CELoss, SoftmaxCELoss
 from .bce import BCELoss, SigmoidBCELoss
@@ -32,6 +33,8 @@ def build_loss(name):
         criterion = JointMMDLoss(kernel_num=CFG.CRITERION.KERNEL_NUM)
     elif name == 'coral':
         criterion = CoralLoss()
+    elif name == 'dis':
+        criterion = Discrepancy()
     else:
         raise NotImplementedError('invalid criterion: {}'.format(name))
     return criterion
