@@ -4,10 +4,10 @@
 
 - [数据集描述](#datasets)
 - [数据预处理](#preprocess)
-- [支持的模型](#models)
+- [支持的模型](#modelsgh)
 - [用法](#usage)
-  - [训练](#train)
-  - [测试](#test)
+  - [训练](#usage-train)
+  - [测试](#usage-test)
 - [结果](#result)
 - [许可证](#license)
 

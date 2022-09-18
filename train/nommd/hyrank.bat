@@ -1,5 +1,5 @@
 call "E:\zts\software\Anaconda\Scripts\activate.bat" zts
-cd E:\zts\HSI_domain_adaption
+cd E:\zts\HSI_domain_adaptation
 set PYTHONPATH=%cd%
 
 rem nommd
