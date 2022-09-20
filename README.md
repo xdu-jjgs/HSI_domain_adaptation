@@ -88,12 +88,12 @@ python preprocess/preprocess.py configs/preprocess/shanghang.yaml ^
 - [ ] DeepCORAL
 - [x] JAN
 - [x] DSAN
-- [ ] DANN
+- [x] DANN
 - [ ] ADAA
 - [ ] CDAN
 - [ ] MCD
 - [ ] ParetoDA
-- [ ] TSTNet
+- [x] TSTNet
 
 ## <a name="usage"></a> 用法
 
