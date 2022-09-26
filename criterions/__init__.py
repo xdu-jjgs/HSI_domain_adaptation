@@ -8,6 +8,7 @@ from .ce import CELoss, SoftmaxCELoss
 from .bce import BCELoss, SigmoidBCELoss
 from .dice import DiceLoss, SigmoidDiceLoss
 from .dis import Discrepancy
+from .class_weight_ce import ClassWeightCE
 
 
 def build_loss(name):
@@ -33,6 +34,8 @@ def build_loss(name):
         criterion = CoralLoss()
     elif name == 'dis':
         criterion = Discrepancy()
+    elif name == 'class_weight_ce':
+        criterion = ClassWeightCE()
     else:
         raise NotImplementedError('invalid criterion: {}'.format(name))
     return criterion

@@ -1,7 +1,7 @@
 from configs import CFG
 from .ddc import DDC
 from .dann import DANN
-from models.backbone.generator import Generator
+from models.backbone.generator import *
 from models.backbone.extractor import FeatureExtractor
 from models.backbone.classifier import ImageClassifier
 from models.backbone.discriminator import Discriminator
@@ -19,9 +19,14 @@ def build_model(num_channels, num_classes):
         return FE, C1, C2
     elif CFG.MODEL.NAME == 'dann':
         return DANN(num_channels, num_classes)
-    elif CFG.MODEL.NAME == 'pixelda':
+    elif CFG.MODEL.NAME == 'pixelda-image':
+        G = GeneratorImage(num_channels, num_classes)
+        domain_discriminator = DDC(num_channels, num_classes=2)
+        class_dicriminator = ResNet(num_channels, num_classes, depth=18, pretrained=False)
+        return G, domain_discriminator, class_dicriminator
+    elif CFG.MODEL.NAME == 'pixelda-baseline':
         G = Generator(num_channels, num_classes)
         domain_discriminator = DDC(num_channels, num_classes=2)
-        class_dicriminator = ResNet(num_channels, num_classes+1, depth=18, pretrained=False)
+        class_dicriminator = ResNet(num_channels, num_classes, depth=18, pretrained=False)
         return G, domain_discriminator, class_dicriminator
     raise NotImplementedError('invalid model: {}'.format(CFG.MODEL.NAME))

@@ -10,7 +10,7 @@ DATALOADER:
     NUM_WORKERS: 0
 
 MODEL:
-    NAME: 'pixelda'
+    NAME: 'pixelda-image'
 
 CRITERION:
     ITEMS1:
@@ -30,7 +30,7 @@ CRITERION:
       - 'softmax+ce'
     WEIGHTS3:
       - 1.0
-      - 1.0
+      - 1.2
     ITEMS4:
       - 'softmax+ce'
     WEIGHTS4:
@@ -42,8 +42,8 @@ OPTIMIZER:
     LR1: 0.001
     NAME2: 'adam'
     LR2: 0.001
-    NAME3: 'sgd'
-    LR3: 0.01
+    NAME3: 'adam'
+    LR3: 0.001
     MOMENTUM: 0.9
 
 SCHEDULER:
@@ -52,5 +52,5 @@ SCHEDULER:
     FACTOR: 0.1
     PATIENCE: 2
 
-EPOCHS: 10
+EPOCHS: 20
 

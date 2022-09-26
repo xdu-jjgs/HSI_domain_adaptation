@@ -244,14 +244,14 @@ def worker(rank_gpu, args):
             x_s, label = x_s.to(device), label.to(device)
             x_t = x_t.to(device)
             z, z_info = z.to(device), z_info.to(device)
-            label_fake = label_fake.to(device)
+            # label_fake = label_fake.to(device)
             domain_label_fake, domain_label_t = domain_label_fake.to(device), domain_label_t.to(device)
 
             optimizer_g.zero_grad()
             optimizer_d.zero_grad()
             optimizer_c.zero_grad()
             # train D maximize log(D(x)) + log(1 - D(G(z)))
-            x_fake = G(z, z_info)
+            x_fake = G(z, z_info, x_s)
             _, d_fake = D(x_fake)
             _, d_t = D(x_t)
             loss_d = train_criterion1(d_t, domain_label_t, d_fake, domain_label_fake)
@@ -262,10 +262,10 @@ def worker(rank_gpu, args):
 
             optimizer_c.zero_grad()
             # train C
-            x_fake = G(z, z_info)
+            x_fake = G(z, z_info, x_s)
             c_fake = C(x_fake)
             c_s = C(x_s)
-            loss_c = train_criterion2(c_s, label, c_fake, label_fake)
+            loss_c = train_criterion2(c_s, label, c_fake, label)
             epoch_c_loss += loss_c.item()
             with amp.scale_loss(loss_c, optimizer_c) as scaled_loss:
                 scaled_loss.backward()
@@ -273,7 +273,7 @@ def worker(rank_gpu, args):
 
             optimizer_g.zero_grad()
             # train g
-            x_fake = G(z, z_info)
+            x_fake = G(z, z_info, x_s)
             c_fake = C(x_fake)
             _, d_fake = D(x_fake)
             loss_g = train_criterion3(c_fake, label, d_fake, domain_label_t)
