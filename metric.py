@@ -36,7 +36,7 @@ class Metric:
 
     def Rs(self):
         # recall of each class
-        rs = np.diag(self.matrix) / self.matrix.sum(axis=1)
+        rs = np.diag(self.matrix) / self.matrix.sum(axis=1)  # 沿着1求和，相当于excel求到最右侧的单元格
         return rs
 
     def F1s(self):
@@ -45,3 +45,11 @@ class Metric:
         rs = self.Ps()
         f1s = 2 * ps * rs / (ps + rs)
         return f1s
+
+    def KC(self):
+        # Kappa Coefficient
+        p0 = self.PA()
+        pe = np.sum(np.diag(self.matrix) * self.matrix.sum(axis=1)) / np.sum(self.matrix)**2
+        kc = (p0 - pe) / (1 - pe)
+        return kc
+

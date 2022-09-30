@@ -250,14 +250,15 @@ def worker(rank_gpu, args):
                 'epoch': epoch,
                 'loss': f'{loss.item():.3f}',
                 'mP': f'{metric.mPA():.3f}',
-                'PA': f'{metric.PA():.3f}'
+                'PA': f'{metric.PA():.3f}',
+                'KC': f'{metric.KC():.3f}'
             })
 
         train_loss /= len(train_dataloader)
         train_loss_cls /= len(train_dataloader)
         train_loss_domain_s /= len(train_dataloader)
         train_loss_domain_t /= len(train_dataloader)
-        PA, mPA, Ps, Rs, F1S = metric.PA(), metric.mPA(), metric.Ps(), metric.Rs(), metric.F1s()
+        PA, mPA, Ps, Rs, F1S, KC = metric.PA(), metric.mPA(), metric.Ps(), metric.Rs(), metric.F1s(), metric.KC()
         if dist.get_rank() == 0:
             writer.add_scalar('train/loss_total-epoch', train_loss, epoch)
             writer.add_scalar('train/loss_cls-epoch', train_loss_cls, epoch)
@@ -265,6 +266,7 @@ def worker(rank_gpu, args):
             writer.add_scalar('train/loss_domain_t-epoch', train_loss_domain_t, epoch)
             writer.add_scalar('train/PA-epoch', PA, epoch)
             writer.add_scalar('train/mPA-epoch', mPA, epoch)
+            writer.add_scalar('train/KC-epoch', KC, epoch)
         logging.info(
             'rank{} train epoch={} | loss_total={:.3f} loss_cls={:.3f} loss_domain_s={:.3f} loss_domain_t={:.3f}'.format(
                 dist.get_rank() + 1, epoch, train_loss, train_loss_cls, train_loss_domain_s, train_loss_domain_t))
@@ -295,24 +297,27 @@ def worker(rank_gpu, args):
                     'epoch': epoch,
                     'loss': f'{loss["total"].item():.3f}',
                     'mP': f'{metric.mPA():.3f}',
-                    'PA': f'{metric.PA():.3f}'
+                    'PA': f'{metric.PA():.3f}',
+                    'KC': f'{metric.KC():.3f}'
                 })
         val_loss /= len(val_dataloader)
 
-        PA, mPA, Ps, Rs, F1S = metric.PA(), metric.mPA(), metric.Ps(), metric.Rs(), metric.F1s()
+        PA, mPA, Ps, Rs, F1S, KC = metric.PA(), metric.mPA(), metric.Ps(), metric.Rs(), metric.F1s(), metric.KC()
         if dist.get_rank() == 0:
             writer.add_scalar('val/loss-epoch', val_loss, epoch)
             writer.add_scalar('val/PA-epoch', PA, epoch)
             writer.add_scalar('val/mPA-epoch', mPA, epoch)
+            writer.add_scalar('val/KC-epoch', KC, epoch)
         if PA > best_PA:
             best_epoch = epoch
 
         logging.info('rank{} val epoch={} | loss={:.3f}'.format(dist.get_rank() + 1, epoch, val_loss))
-        logging.info('rank{} val epoch={} | PA={:.3f} mPA={:.3f}'.format(dist.get_rank() + 1, epoch, PA, mPA))
+        logging.info(
+            'rank{} val epoch={} | PA={:.3f} mPA={:.3f} KC={:.3f}'.format(dist.get_rank() + 1, epoch, PA, mPA, KC))
         for c in range(NUM_CLASSES):
             logging.info(
                 'rank{} val epoch={} | class={}- P={:.3f} R={:.3f} F1={:.3f}'.format(dist.get_rank() + 1, epoch, c,
-                                                                                      Ps[c], Rs[c], F1S[c]))
+                                                                                     Ps[c], Rs[c], F1S[c]))
 
         # adjust learning rate if specified
         if scheduler is not None:
@@ -338,7 +343,8 @@ def worker(rank_gpu, args):
                     'mPA': mPA,
                     'Ps': Ps,
                     'Rs': Rs,
-                    'F1S': F1S
+                    'F1S': F1S,
+                    'KC': KC
                 },
             }
             torch.save(checkpoint, os.path.join(args.path, 'last.pth'))
