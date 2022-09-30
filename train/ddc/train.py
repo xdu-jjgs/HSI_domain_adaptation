@@ -235,7 +235,8 @@ def worker(rank_gpu, args):
                 'epoch': epoch,
                 'loss': f'{loss["total"].item():.3f}',
                 'mP': f'{metric.mPA():.3f}',
-                'PA': f'{metric.PA():.3f}'
+                'PA': f'{metric.PA():.3f}',
+                'KC':f'{metric.KC():.3f}',
             })
 
         info_loss = ''
@@ -243,14 +244,16 @@ def worker(rank_gpu, args):
             item /= len(train_dataloader)
             info_loss += 'loss_{}={:.3f} '.format(k, item)
 
-        PA, mPA, Ps, Rs, F1S = metric.PA(), metric.mPA(), metric.Ps(), metric.Rs(), metric.F1s()
+        PA, mPA, Ps, Rs, F1S, KC = metric.PA(), metric.mPA(), metric.Ps(), metric.Rs(), metric.F1s(), metric.KC()
         if dist.get_rank() == 0:
             for k, v in loss.items():
                 writer.add_scalar('train/loss_{}-epoch'.format(k), v.item(), epoch)
             writer.add_scalar('train/PA-epoch', PA, epoch)
             writer.add_scalar('train/mPA-epoch', mPA, epoch)
+            writer.add_scalar('train/KC-epoch', KC, epoch)
         logging.info('rank{} train epoch={} | {}'.format(dist.get_rank() + 1, epoch, info_loss))
-        logging.info('rank{} train epoch={} | PA={:.3f} mPA={:.3f}'.format(dist.get_rank() + 1, epoch, PA, mPA))
+        logging.info(
+            'rank{} train epoch={} | PA={:.3f} mPA={:.3f} KC={:.3f}'.format(dist.get_rank() + 1, epoch, PA, mPA, KC))
         for c in range(NUM_CLASSES):
             logging.info(
                 'rank{} train epoch={} | class={} P={:.3f} R={:.3f} F1={:.3f}'.format(dist.get_rank() + 1, epoch, c,
@@ -278,20 +281,23 @@ def worker(rank_gpu, args):
                     'epoch': epoch,
                     'loss': f'{loss["total"].item():.3f}',
                     'mP': f'{metric.mPA():.3f}',
-                    'PA': f'{metric.PA():.3f}'
+                    'PA': f'{metric.PA():.3f}',
+                    'KC': f'{metric.KC():.3f}'
                 })
         val_loss /= len(val_dataloader)
 
-        PA, mPA, Ps, Rs, F1S = metric.PA(), metric.mPA(), metric.Ps(), metric.Rs(), metric.F1s()
+        PA, mPA, Ps, Rs, F1S, KC = metric.PA(), metric.mPA(), metric.Ps(), metric.Rs(), metric.F1s(), metric.KC()
         if dist.get_rank() == 0:
             writer.add_scalar('val/loss-epoch', val_loss, epoch)
             writer.add_scalar('val/PA-epoch', PA, epoch)
             writer.add_scalar('val/mPA-epoch', mPA, epoch)
+            writer.add_scalar('val/KC-epoch', KC, epoch)
         if PA > best_PA:
             best_epoch = epoch
 
         logging.info('rank{} val epoch={} | loss={:.3f}'.format(dist.get_rank() + 1, epoch, val_loss))
-        logging.info('rank{} val epoch={} | PA={:.3f} mPA={:.3f}'.format(dist.get_rank() + 1, epoch, PA, mPA))
+        logging.info(
+            'rank{} val epoch={} | PA={:.3f} mPA={:.3f} KC={:.3f}'.format(dist.get_rank() + 1, epoch, PA, mPA, KC))
         for c in range(NUM_CLASSES):
             logging.info(
                 'rank{} val epoch={} | class={}- P={:.3f} R={:.3f} F1={:.3f}'.format(dist.get_rank() + 1, epoch, c,
@@ -321,7 +327,8 @@ def worker(rank_gpu, args):
                     'mPA': mPA,
                     'Ps': Ps,
                     'Rs': Rs,
-                    'F1S': F1S
+                    'F1S': F1S,
+                    'KC': KC
                 },
             }
             torch.save(checkpoint, os.path.join(args.path, 'last.pth'))
