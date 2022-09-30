@@ -202,7 +202,7 @@ def worker(rank_gpu, args):
         model.train()  # set model to training mode
         metric.reset()  # reset metric
         train_bar = tqdm(train_dataloader, desc='training', ascii=True)
-        train_loss = 0.
+        train_loss_items = [0.] * len(train_criterion.items)
         for train_item, test_item in zip(train_bar, test_dataloader):
             iteration += 1
             x_s, label = train_item
@@ -217,9 +217,11 @@ def worker(rank_gpu, args):
             model.train()
 
             loss = train_criterion(f_s=f_s, y_s=y_s, label_s=label, f_t=f_t, y_t=y_t)
-            train_loss += loss.item()
+            for k,v in loss.items():
+                train_loss_items += v.item()
             if dist.get_rank() == 0:
-                writer.add_scalar('train/loss-iteration', loss.item(), iteration)
+                for k, v in loss.items():
+                    writer.add_scalar('train/loss-{}'.format(k), v.item(), iteration)
 
             optimizer.zero_grad()
             with amp.scale_loss(loss, optimizer) as scaled_loss:
@@ -228,9 +230,6 @@ def worker(rank_gpu, args):
 
             pred = y_s.argmax(axis=1)
             metric.add(pred.data.cpu().numpy(), label.data.cpu().numpy())
-            # metric.add(pred, label)
-            # TypeError: can't convert cuda:0 device type tensor to numpy.
-            # Use Tensor.cpu() to copy the tensor to host memory first.
 
             train_bar.set_postfix({
                 'epoch': epoch,
@@ -239,16 +238,18 @@ def worker(rank_gpu, args):
                 'PA': f'{metric.PA():.3f}'
             })
 
-        train_loss /= len(train_dataloader)
+        info_loss = ''
+        for k, item in zip(loss.keys(), train_loss_items):
+            item /= len(train_dataloader)
+            info_loss += 'loss_{}={:.3f} '.format(k, item)
         PA, mPA, Ps, Rs, F1S = metric.PA(), metric.mPA(), metric.Ps(), metric.Rs(), metric.F1s()
         if dist.get_rank() == 0:
-            writer.add_scalar('train/loss-epoch', train_loss, epoch)
+            for k, v in loss.items():
+                writer.add_scalar('train/loss_{}-epoch'.format(k), v.item(), epoch)
             writer.add_scalar('train/PA-epoch', PA, epoch)
             writer.add_scalar('train/mPA-epoch', mPA, epoch)
-        logging.info(
-            'rank{} train epoch={} | loss={:.3f} PA={:.3f} mPA={:.3f}'.format(dist.get_rank() + 1, epoch, train_loss,
-                                                                              PA,
-                                                                              mPA))
+        logging.info('rank{} train epoch={} | {}'.format(dist.get_rank() + 1, epoch, info_loss))
+        logging.info('rank{} train epoch={} | PA={:.3f} mPA={:.3f}'.format(dist.get_rank() + 1, epoch, PA, mPA))
         for c in range(NUM_CLASSES):
             logging.info(
                 'rank{} train epoch={} | class={} P={:.3f} R={:.3f} F1={:.3f}'.format(dist.get_rank() + 1, epoch, c,
@@ -267,14 +268,14 @@ def worker(rank_gpu, args):
                 _, y_t = model(x_t)
 
                 loss = val_criterion(y_s=y_t, label_s=label)
-                val_loss += loss.item()
+                val_loss += loss['total'].item()
 
                 pred = y_t.argmax(axis=1)
                 metric.add(pred.data.cpu().numpy(), label.data.cpu().numpy())
 
                 val_bar.set_postfix({
                     'epoch': epoch,
-                    'loss': f'{loss.item():.3f}',
+                    'loss': f'{loss["total"].item():.3f}',
                     'mP': f'{metric.mPA():.3f}',
                     'PA': f'{metric.PA():.3f}'
                 })
@@ -288,13 +289,12 @@ def worker(rank_gpu, args):
         if PA > best_PA:
             best_epoch = epoch
 
-        logging.info(
-            'rank{} val epoch={} | loss={:.3f} PA={:.3f} mPA={:.3f}'.format(dist.get_rank() + 1, epoch, val_loss, PA,
-                                                                            mPA))
+        logging.info('rank{} val epoch={} | {}'.format(dist.get_rank() + 1, epoch, val_loss))
+        logging.info('rank{} val epoch={} | PA={:.3f} mPA={:.3f}'.format(dist.get_rank() + 1, epoch, PA, mPA))
         for c in range(NUM_CLASSES):
             logging.info(
-                'rank{} val epoch={} |  class={}- P={:.3f} R={:.3f} F1={:.3f}'.format(dist.get_rank() + 1, epoch, c,
-                                                                                      Ps[c], Rs[c], F1S[c]))
+                'rank{} val epoch={} | class={}- P={:.3f} R={:.3f} F1={:.3f}'.format(dist.get_rank() + 1, epoch, c,
+                                                                                     Ps[c], Rs[c], F1S[c]))
 
         # adjust learning rate if specified
         if scheduler is not None:

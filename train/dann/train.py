@@ -204,7 +204,7 @@ def worker(rank_gpu, args):
         model.train()  # set model to training mode
         metric.reset()  # reset metric
         train_bar = tqdm(train_dataloader, desc='training', ascii=True)
-        train_loss = 0.
+        train_loss, train_loss_cls, train_loss_domain_s, train_loss_domain_t = 0., 0., 0., 0.
         for train_item, test_item in zip(train_bar, test_dataloader):
             iteration += 1
             p = float(iteration + epoch * len(train_dataloader)) / CFG.EPOCHS / len(train_dataloader)
@@ -222,14 +222,21 @@ def worker(rank_gpu, args):
             domain_label_t = torch.ones(len(label))
             domain_label_s, domain_label_t = domain_label_s.to(device), domain_label_t.to(device)
 
-            loss_classify = train_criterion(y_s=y_s, label_s=label)
-            loss_domain_s = train_criterion(y_s=domain_out_s, label_s=domain_label_s)
-            loss_domain_t = train_criterion(y_s=domain_out_t, label_s=domain_label_t)
-            loss = loss_classify + loss_domain_s + loss_domain_t
+            loss_cls = train_criterion(y_s=y_s, label_s=label)['total']
+            loss_domain_s = train_criterion(y_s=domain_out_s, label_s=domain_label_s)['total']
+            loss_domain_t = train_criterion(y_s=domain_out_t, label_s=domain_label_t)['total']
+            loss = loss_cls + loss_domain_s + loss_domain_t
 
             train_loss += loss.item()
+            train_loss_cls += loss_cls.item()
+            train_loss_domain_s += loss_domain_s.item()
+            train_loss_domain_t += loss_domain_t.item()
+
             if dist.get_rank() == 0:
-                writer.add_scalar('train/loss_pretrain-iteration', loss.item(), iteration)
+                writer.add_scalar('train/loss_total-iteration', loss.item(), iteration)
+                writer.add_scalar('train/loss_cls-iteration', loss_cls.item(), iteration)
+                writer.add_scalar('train/loss_domain_s-iteration', loss_domain_s.item(), iteration)
+                writer.add_scalar('train/loss_domain_t-iteration', loss_domain_t.item(), iteration)
 
             optimizer.zero_grad()
             with amp.scale_loss(loss, optimizer) as scaled_loss:
@@ -241,22 +248,27 @@ def worker(rank_gpu, args):
 
             train_bar.set_postfix({
                 'epoch': epoch,
-                'loss_cls': f'{loss_classify.item():.3f}',
-                'loss_domain_s': f'{loss_domain_s.item():.3f}',
-                'loss_domain_t': f'{loss_domain_t.item():.3f}',
+                'loss_total': f'{loss.item():.3f}',
                 'loss': f'{loss.item():.3f}',
                 'mP': f'{metric.mPA():.3f}',
                 'PA': f'{metric.PA():.3f}'
             })
 
         train_loss /= len(train_dataloader)
+        train_loss_cls /= len(train_dataloader)
+        train_loss_domain_s /= len(train_dataloader)
+        train_loss_domain_t /= len(train_dataloader)
         PA, mPA, Ps, Rs, F1S = metric.PA(), metric.mPA(), metric.Ps(), metric.Rs(), metric.F1s()
         if dist.get_rank() == 0:
-            writer.add_scalar('train/pretrain_loss-epoch', train_loss, epoch)
+            writer.add_scalar('train/loss_total-epoch', train_loss, epoch)
+            writer.add_scalar('train/loss_cls-epoch', train_loss_cls, epoch)
+            writer.add_scalar('train/loss_domain_s-iteration', train_loss_domain_s, epoch)
+            writer.add_scalar('train/loss_domain_t-iteration', train_loss_domain_t, epoch)
             writer.add_scalar('train/PA-epoch', PA, epoch)
             writer.add_scalar('train/mPA-epoch', mPA, epoch)
         logging.info(
-            'rank{} train epoch={} | loss={:.3f} '.format(dist.get_rank() + 1, epoch, train_loss))
+            'rank{} train epoch={} | loss_total={:.3f} loss_cls={:.3f} loss_domain_s={:.3f} loss_domain_t={:.3f}'.format(
+                dist.get_rank() + 1, epoch, train_loss, train_loss_cls, train_loss_domain_s, train_loss_domain_t))
         for c in range(NUM_CLASSES):
             logging.info(
                 'rank{} train epoch={} | class={} P={:.3f} R={:.3f} F1={:.3f}'.format(dist.get_rank() + 1, epoch, c,
@@ -296,9 +308,8 @@ def worker(rank_gpu, args):
         if PA > best_PA:
             best_epoch = epoch
 
-        logging.info(
-            'rank{} val epoch={} | loss={:.3f} PA={:.3f} mPA={:.3f}'.format(dist.get_rank() + 1, epoch, val_loss, PA,
-                                                                            mPA))
+        logging.info('rank{} val epoch={} | {}'.format(dist.get_rank() + 1, epoch, val_loss))
+        logging.info('rank{} val epoch={} | PA={:.3f} mPA={:.3f}'.format(dist.get_rank() + 1, epoch, PA, mPA))
         for c in range(NUM_CLASSES):
             logging.info(
                 'rank{} val epoch={} |  class={}- P={:.3f} R={:.3f} F1={:.3f}'.format(dist.get_rank() + 1, epoch, c,
