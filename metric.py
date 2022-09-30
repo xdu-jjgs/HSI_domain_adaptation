@@ -51,5 +51,5 @@ class Metric:
         p0 = self.PA()
         pe = np.sum(np.diag(self.matrix) * self.matrix.sum(axis=1)) / np.sum(self.matrix)**2
         kc = (p0 - pe) / (1 - pe)
-        pass
+        return kc
 
