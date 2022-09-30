@@ -248,7 +248,6 @@ def worker(rank_gpu, args):
 
             train_bar.set_postfix({
                 'epoch': epoch,
-                'loss_total': f'{loss.item():.3f}',
                 'loss': f'{loss.item():.3f}',
                 'mP': f'{metric.mPA():.3f}',
                 'PA': f'{metric.PA():.3f}'
@@ -287,14 +286,14 @@ def worker(rank_gpu, args):
                 y_t, _ = model(x_t, alpha=0)  # val阶段网络不需要反传，所以alpha=0
 
                 loss = val_criterion(y_s=y_t, label_s=label)
-                val_loss += loss.item()
+                val_loss += loss['total'].item()
 
                 pred = y_t.argmax(axis=1)
                 metric.add(pred.data.cpu().numpy(), label.data.cpu().numpy())
 
                 val_bar.set_postfix({
                     'epoch': epoch,
-                    'loss': f'{loss.item():.3f}',
+                    'loss': f'{loss["total"].item():.3f}',
                     'mP': f'{metric.mPA():.3f}',
                     'PA': f'{metric.PA():.3f}'
                 })
@@ -308,11 +307,11 @@ def worker(rank_gpu, args):
         if PA > best_PA:
             best_epoch = epoch
 
-        logging.info('rank{} val epoch={} | {}'.format(dist.get_rank() + 1, epoch, val_loss))
+        logging.info('rank{} val epoch={} | loss={:.3f}'.format(dist.get_rank() + 1, epoch, val_loss))
         logging.info('rank{} val epoch={} | PA={:.3f} mPA={:.3f}'.format(dist.get_rank() + 1, epoch, PA, mPA))
         for c in range(NUM_CLASSES):
             logging.info(
-                'rank{} val epoch={} |  class={}- P={:.3f} R={:.3f} F1={:.3f}'.format(dist.get_rank() + 1, epoch, c,
+                'rank{} val epoch={} | class={}- P={:.3f} R={:.3f} F1={:.3f}'.format(dist.get_rank() + 1, epoch, c,
                                                                                       Ps[c], Rs[c], F1S[c]))
 
         # adjust learning rate if specified

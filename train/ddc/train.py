@@ -202,7 +202,7 @@ def worker(rank_gpu, args):
         model.train()  # set model to training mode
         metric.reset()  # reset metric
         train_bar = tqdm(train_dataloader, desc='training', ascii=True)
-        train_loss_items = [0.] * len(train_criterion.items)
+        train_loss_items = [0.] * (len(train_criterion.items) + 1)
         for train_item, test_item in zip(train_bar, test_dataloader):
             iteration += 1
             x_s, label = train_item
@@ -217,14 +217,14 @@ def worker(rank_gpu, args):
             model.train()
 
             loss = train_criterion(f_s=f_s, y_s=y_s, label_s=label, f_t=f_t, y_t=y_t)
-            for k,v in loss.items():
-                train_loss_items += v.item()
-            if dist.get_rank() == 0:
-                for k, v in loss.items():
+            for ind, item in enumerate(loss.items()):
+                k, v = item
+                train_loss_items[ind] += v
+                if dist.get_rank() == 0:
                     writer.add_scalar('train/loss-{}'.format(k), v.item(), iteration)
 
             optimizer.zero_grad()
-            with amp.scale_loss(loss, optimizer) as scaled_loss:
+            with amp.scale_loss(loss['total'], optimizer) as scaled_loss:
                 scaled_loss.backward()
             optimizer.step()
 
@@ -233,7 +233,7 @@ def worker(rank_gpu, args):
 
             train_bar.set_postfix({
                 'epoch': epoch,
-                'loss': f'{loss.item():.3f}',
+                'loss': f'{loss["total"].item():.3f}',
                 'mP': f'{metric.mPA():.3f}',
                 'PA': f'{metric.PA():.3f}'
             })
@@ -242,6 +242,7 @@ def worker(rank_gpu, args):
         for k, item in zip(loss.keys(), train_loss_items):
             item /= len(train_dataloader)
             info_loss += 'loss_{}={:.3f} '.format(k, item)
+
         PA, mPA, Ps, Rs, F1S = metric.PA(), metric.mPA(), metric.Ps(), metric.Rs(), metric.F1s()
         if dist.get_rank() == 0:
             for k, v in loss.items():
@@ -289,7 +290,7 @@ def worker(rank_gpu, args):
         if PA > best_PA:
             best_epoch = epoch
 
-        logging.info('rank{} val epoch={} | {}'.format(dist.get_rank() + 1, epoch, val_loss))
+        logging.info('rank{} val epoch={} | loss={:.3f}'.format(dist.get_rank() + 1, epoch, val_loss))
         logging.info('rank{} val epoch={} | PA={:.3f} mPA={:.3f}'.format(dist.get_rank() + 1, epoch, PA, mPA))
         for c in range(NUM_CLASSES):
             logging.info(
