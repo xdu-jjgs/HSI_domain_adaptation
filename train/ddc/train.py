@@ -236,7 +236,7 @@ def worker(rank_gpu, args):
                 'loss': f'{loss["total"].item():.3f}',
                 'mP': f'{metric.mPA():.3f}',
                 'PA': f'{metric.PA():.3f}',
-                'KC':f'{metric.KC():.3f}',
+                'KC': f'{metric.KC():.3f}',
             })
 
         info_loss = ''
