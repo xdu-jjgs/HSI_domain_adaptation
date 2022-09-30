@@ -261,8 +261,8 @@ def worker(rank_gpu, args):
         if dist.get_rank() == 0:
             writer.add_scalar('train/loss_total-epoch', train_loss, epoch)
             writer.add_scalar('train/loss_cls-epoch', train_loss_cls, epoch)
-            writer.add_scalar('train/loss_domain_s-iteration', train_loss_domain_s, epoch)
-            writer.add_scalar('train/loss_domain_t-iteration', train_loss_domain_t, epoch)
+            writer.add_scalar('train/loss_domain_s-epoch', train_loss_domain_s, epoch)
+            writer.add_scalar('train/loss_domain_t-epoch', train_loss_domain_t, epoch)
             writer.add_scalar('train/PA-epoch', PA, epoch)
             writer.add_scalar('train/mPA-epoch', mPA, epoch)
         logging.info(
