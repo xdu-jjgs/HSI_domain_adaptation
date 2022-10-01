@@ -236,7 +236,7 @@ def worker(rank_gpu, args):
 
             # step1: train FE、C1 and C2
             f_s = FE(x_s)
-            p1_s, p2_s = C1(f_s), C2(f_s)
+            p1_s, p2_s = C1(f_s)[-1], C2(f_s)[-1]
             step1_loss = cls_criterion(p1_s, label) + cls_criterion(p2_s, label)
             step1_loss_epoch += step1_loss.item()
 
@@ -253,8 +253,8 @@ def worker(rank_gpu, args):
             FE.eval()
             with torch.no_grad():
                 f_s, f_t = FE(x_s), FE(x_t)
-            p1_s, p2_s = C1(f_s), C2(f_s)
-            p1_t, p2_t = C1(f_t), C2(f_t)
+            p1_s, p2_s = C1(f_s)[-1], C2(f_s)[-1]
+            p1_t, p2_t = C1(f_t)[-1], C2(f_t)[-1]
             cls_loss = cls_criterion(p1_s, label) + cls_criterion(p2_s, label)
             dis_loss = -1 * dis_criterion(p1_t, p2_t)
             step2_loss_epoch += dis_loss.item()
@@ -274,8 +274,7 @@ def worker(rank_gpu, args):
             C2.eval()
             for i in range(CFG.EPOCHFE):
                 f_t = FE(x_t)
-                with torch.no_grad():
-                    p1_t, p2_t = C1(f_t), C2(f_t)
+                p1_t, p2_t = C1(f_t)[-1], C2(f_t)[-1]
                 step3_loss = dis_criterion(p1_t, p2_t)
                 step3_loss_epoch += step3_loss.item()
 
@@ -334,7 +333,7 @@ def worker(rank_gpu, args):
             for x_t, label in val_bar:
                 x_t, label = x_t.to(device), label.to(device)
                 f_t = FE(x_t)
-                p1_t, p2_t = C1(f_t), C2(f_t)
+                p1_t, p2_t = C1(f_t)[-1], C2(f_t)[-1]
                 y_t = (p1_t + p2_t) / 2
 
                 cls_loss = val_criterion(y_t, label)

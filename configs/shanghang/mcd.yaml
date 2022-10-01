@@ -1,12 +1,16 @@
 DATASET:
-    NAME: 'PREPROCESSED_Houston'
-    ROOT: 'E:/zzy/GAN/HSI_domain_adaptation/dataset/houston_preprocessed'
+    NAME: 'PREPROCESSED_ShangHang'
+    ROOT: 'E:/zts/dataset/shanghaihangzhou_preprocessed'
     AUGMENT:
-      RATIO: 21
+      RATIO: 1
       TRANS: ''
+    PATCH:
+      HEIGHT: 27
+      WIDTH: 27
+      PAD_MODE: 'symmetric'
 
 DATALOADER:
-    BATCH_SIZE: 64
+    BATCH_SIZE: 16
     NUM_WORKERS: 0
 
 MODEL:
@@ -20,6 +24,7 @@ CRITERION:
       - 1.0
       - 1.0
 
+
 OPTIMIZER:
     NAME: 'adam'
     LR: 0.001
@@ -30,6 +35,6 @@ SCHEDULER:
     FACTOR: 0.1
     PATIENCE: 2
 
-EPOCHS: 10
+EPOCHS: 5
 
 EPOCHFE: 2

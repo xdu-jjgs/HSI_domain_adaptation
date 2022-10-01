@@ -17,7 +17,7 @@ class L1Distance(nn.Module):
         # target: tensor(b, c, h, w); prediction: same as target
         if not p1.shape == p2.shape:
             raise ValueError('Input images must have the same dimensions.')
-        loss = torch.mean(torch.abs(F.softmax(p1) - F.softmax(p2)))
+        loss = torch.mean(torch.abs(F.softmax(p1, dim=1) - F.softmax(p2, dim=1)))
         return loss
 
 

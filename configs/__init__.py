@@ -39,6 +39,7 @@ _C.SCHEDULER.FACTOR = 0.
 _C.SCHEDULER.PATIENCE = 0
 
 _C.EPOCHS = 0
+_C.EPOCHFE = 0
 
 CFG = _C.clone()
 CFG.freeze()
