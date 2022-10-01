@@ -8,7 +8,7 @@ from .dice import DiceLoss, SigmoidDiceLoss
 from .mmd import MMDLoss, LocalMMDLoss, JointMMDLoss
 
 
-def build_loss(name):
+def build_criterion(name):
     if name == 'ce':
         criterion = CELoss()
     elif name == 'softmax+ce':

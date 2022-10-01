@@ -15,12 +15,9 @@ MODEL:
 CRITERION:
     ITEMS:
       - 'softmax+ce'
-    WEIGHTS:
-      - 1.0
-AUXILIARY:
-    ITEMS:
       - 'l1dis'
     WEIGHTS:
+      - 1.0
       - 1.0
 
 OPTIMIZER:

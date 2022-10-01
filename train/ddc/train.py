@@ -17,7 +17,7 @@ from torch.utils.data.distributed import DistributedSampler
 from configs import CFG
 from metric import Metric
 from models import build_model
-from criterions import build_loss
+from criterions import build_criterion
 from optimizers import build_optimizer
 from schedulers import build_scheduler
 from datas import build_dataset, build_dataloader
@@ -150,11 +150,11 @@ def worker(rank_gpu, args):
     loss_names = CFG.CRITERION.ITEMS
     loss_weights = CFG.CRITERION.WEIGHTS
     assert len(loss_names) == len(loss_weights)
-    cls_criterion = build_loss(loss_names[0])
-    trans_criterion = build_loss(loss_names[1])
+    cls_criterion = build_criterion(loss_names[0])
+    trans_criterion = build_criterion(loss_names[1])
     cls_criterion.to(device)
     trans_criterion.to(device)
-    val_criterion = build_loss('softmax+ce')
+    val_criterion = build_criterion('softmax+ce')
     val_criterion.to(device)
     # build metric
     metric = Metric(NUM_CLASSES)

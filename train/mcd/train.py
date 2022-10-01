@@ -150,11 +150,14 @@ def worker(rank_gpu, args):
     C2.to(device)
 
     # build criterion
-    train_criterion = build_criterion()
-    train_criterion.to(device)
-    discrepancy_criterion = build_criterion(CFG.AUXLIARY.ITEMS, CFG.AUXLIARY.WEIGHTS)
-    discrepancy_criterion.to(device)
-    val_criterion = build_criterion(['softmax+ce'], [1.0])
+    loss_names = CFG.CRITERION.ITEMS
+    loss_weights = CFG.CRITERION.WEIGHTS
+    assert len(loss_names) == len(loss_weights)
+    cls_criterion = build_criterion(loss_names[0])
+    cls_criterion.to(device)
+    dis_criterion = build_criterion(loss_names[1])
+    dis_criterion.to(device)
+    val_criterion = build_criterion('softmax+ce')
     val_criterion.to(device)
     # build metric
     metric = Metric(NUM_CLASSES)
@@ -222,9 +225,8 @@ def worker(rank_gpu, args):
         C2.train()
         metric.reset()  # reset metric
         train_bar = tqdm(train_dataloader, desc='training', ascii=True)
-        train_loss_cls = 0.
-        c_loss = 0.
-        fe_loss = 0.
+
+        step1_loss_epoch, step2_loss_epoch, step3_loss_epoch = 0., 0., 0.
         for train_item, test_item in zip(train_bar, test_dataloader):
             iteration += 1
             x_s, label = train_item
@@ -232,84 +234,87 @@ def worker(rank_gpu, args):
             x_s, label = x_s.to(device), label.to(device)
             x_t = x_t.to(device)
 
+            # step1: train FE、C1 and C2
+            f_s = FE(x_s)
+            p1_s, p2_s = C1(f_s), C2(f_s)
+            step1_loss = cls_criterion(p1_s, label) + cls_criterion(p2_s, label)
+            step1_loss_epoch += step1_loss.item()
+
             optimizer_fe.zero_grad()
             optimizer_c1.zero_grad()
             optimizer_c2.zero_grad()
-
-            f_s = FE(x_s)
-            p1_s = C1(f_s)
-            p2_s = C2(f_s)
-            loss_cls = train_criterion(p1_s, label, p2_s, label)
-            train_loss_cls += loss_cls.item()
-            with amp.scale_loss(loss_cls, [optimizer_fe, optimizer_c1, optimizer_c2]) as scaled_loss:
+            with amp.scale_loss(step1_loss, [optimizer_fe, optimizer_c1, optimizer_c2]) as scaled_loss:
                 scaled_loss.backward()
             optimizer_fe.step()
             optimizer_c1.step()
             optimizer_c2.step()
+
+            # step2: fix FE then train C1 and C2
+            FE.eval()
+            with torch.no_grad():
+                f_s, f_t = FE(x_s), FE(x_t)
+            p1_s, p2_s = C1(f_s), C2(f_s)
+            p1_t, p2_t = C1(f_t), C2(f_t)
+            cls_loss = cls_criterion(p1_s, label) + cls_criterion(p2_s, label)
+            dis_loss = -1 * dis_criterion(p1_t, p2_t)
+            step2_loss_epoch += dis_loss.item()
+            step2_loss = cls_loss + dis_loss
+
             optimizer_fe.zero_grad()
             optimizer_c1.zero_grad()
             optimizer_c2.zero_grad()
-
-            f_s = FE(x_s)
-            p1_s = C1(f_s)
-            p2_s = C2(f_s)
-            f_t = FE(x_t)
-            p1_t = C1(f_t)
-            p2_t = C2(f_t)
-            loss_c = train_criterion2(p1_s, label, p2_s, label, p1_t, p2_t)
-            c_loss += loss_c.item()
-            with amp.scale_loss(loss_c, [optimizer_c1, optimizer_c2]) as scaled_loss:
+            with amp.scale_loss(step2_loss, [optimizer_c1, optimizer_c2]) as scaled_loss:
                 scaled_loss.backward()
             optimizer_c1.step()
             optimizer_c2.step()
-            optimizer_fe.zero_grad()
-            optimizer_c1.zero_grad()
-            optimizer_c2.zero_grad()
 
+            # step2: fix C1 and C2 then train FE
+            FE.train()
+            C1.eval()
+            C2.eval()
             for i in range(CFG.EPOCHFE):
                 f_t = FE(x_t)
-                p1_t = C1(f_t)
-                p2_t = C2(f_t)
-                loss_fe = train_criterion3(p1_t, p2_t)
-                fe_loss += loss_fe.item()
-                with amp.scale_loss(loss_fe, optimizer_fe) as scaled_loss:
+                with torch.no_grad():
+                    p1_t, p2_t = C1(f_t), C2(f_t)
+                step3_loss = dis_criterion(p1_t, p2_t)
+                step3_loss_epoch += step3_loss.item()
+
+                if dist.get_rank() == 0:
+                    writer.add_scalar('train/loss_step1', step1_loss.item(), iteration)
+                    writer.add_scalar('train/loss_step2', step2_loss.item(), iteration)
+                    writer.add_scalar('train/loss_step3', step3_loss.item(), (iteration - 1) * CFG.EPOCHFE + i + 1)
+                optimizer_fe.zero_grad()
+                with amp.scale_loss(step3_loss, optimizer_fe) as scaled_loss:
                     scaled_loss.backward()
                 optimizer_fe.step()
-                optimizer_fe.zero_grad()
-                optimizer_c1.zero_grad()
-                optimizer_c2.zero_grad()
-
-            if dist.get_rank() == 0:
-                writer.add_scalar('train/loss_cls-iteration', loss_cls.item(), iteration)
-                writer.add_scalar('train/loss_c-iteration', loss_c.item(), iteration)
-                writer.add_scalar('train/loss_fe-iteration', loss_fe.item(), iteration)
 
             pred = ((p1_s + p2_s) / 2).argmax(axis=1)
             metric.add(pred.data.cpu().numpy(), label.data.cpu().numpy())
 
             train_bar.set_postfix({
                 'epoch': epoch,
-                'loss_pre': f'{loss_cls.item():.3f}',
-                'loss_c': f'{loss_c.item():.3f}',
-                'loss_fe': f'{loss_fe.item():.3f}',
+                'loss_step1': f'{step1_loss.item():.3f}',
+                'loss_step2': f'{step2_loss.item():.3f}',
+                'loss_step3': f'{step3_loss.item():.3f}',
                 'mP': f'{metric.mPA():.3f}',
-                'PA': f'{metric.PA():.3f}'
+                'PA': f'{metric.PA():.3f}',
+                'KC': f'{metric.KC():.3f}'
             })
 
-        train_loss_cls /= len(train_dataloader)
-        c_loss /= len(train_dataloader)
-        fe_loss /= len(train_dataloader)
-        PA, mPA, Ps, Rs, F1S = metric.PA(), metric.mPA(), metric.Ps(), metric.Rs(), metric.F1s()
+        step1_loss_epoch /= len(train_dataloader)
+        step2_loss_epoch /= len(train_dataloader)
+        step3_loss_epoch /= len(train_dataloader)
+        PA, mPA, Ps, Rs, F1S, KC = metric.PA(), metric.mPA(), metric.Ps(), metric.Rs(), metric.F1s(), metric.KC()
         if dist.get_rank() == 0:
-            writer.add_scalar('train/train_loss_cls-epoch', train_loss_cls, epoch)
-            writer.add_scalar('train/c_loss-epoch', c_loss, epoch)
-            writer.add_scalar('train/fe_loss-epoch', fe_loss, epoch)
+            writer.add_scalar('train/loss_step1-epoch', step1_loss_epoch, epoch)
+            writer.add_scalar('train/loss_step2-epoch', step2_loss_epoch, epoch)
+            writer.add_scalar('train/loss_step3-epoch', step3_loss_epoch, epoch)
             writer.add_scalar('train/PA-epoch', PA, epoch)
             writer.add_scalar('train/mPA-epoch', mPA, epoch)
+            writer.add_scalar('train/KC-epoch', KC, epoch)
         logging.info(
-            'rank{} train epoch={} | train_loss_cls={:.3f} c_loss={:.3f} fe_loss={:.3f}'.format(dist.get_rank() + 1,
-                                                                                                epoch, train_loss_cls,
-                                                                                                c_loss, fe_loss))
+            'rank{} train epoch={} | loss_step1={:.3f} loss_step2={:.3f} loss_step3={:.3f}'.format(
+                dist.get_rank() + 1, epoch, step1_loss_epoch, step2_loss_epoch, step3_loss_epoch))
         for c in range(NUM_CLASSES):
             logging.info(
                 'rank{} train epoch={} | class={} P={:.3f} R={:.3f} F1={:.3f}'.format(dist.get_rank() + 1, epoch, c,
@@ -318,9 +323,9 @@ def worker(rank_gpu, args):
         # validate
         if args.no_validate:
             continue
-        # FE.eval()  # set model to evaluation mode
-        # C1.eval()  # set model to evaluation mode
-        # C2.eval()  # set model to evaluation mode
+        FE.eval()  # set model to evaluation mode
+        C1.eval()  # set model to evaluation mode
+        C2.eval()  # set model to evaluation mode
         # TODO attention:由于 retain graph = true 此处不能用eval() 否则计算图会被free掉 导致模型失效
         metric.reset()  # reset metric
         val_bar = tqdm(val_dataloader, desc='validating', ascii=True)
@@ -329,29 +334,30 @@ def worker(rank_gpu, args):
             for x_t, label in val_bar:
                 x_t, label = x_t.to(device), label.to(device)
                 f_t = FE(x_t)
-                p1_t = C1(f_t)
-                p2_t = C2(f_t)
+                p1_t, p2_t = C1(f_t), C2(f_t)
                 y_t = (p1_t + p2_t) / 2
 
-                loss = val_criterion(y_t, label)
-                val_loss += loss.item()
+                cls_loss = val_criterion(y_t, label)
+                val_loss += cls_loss.item()
 
                 pred = y_t.argmax(axis=1)
                 metric.add(pred.data.cpu().numpy(), label.data.cpu().numpy())
 
                 val_bar.set_postfix({
                     'epoch': epoch,
-                    'loss': f'{loss.item():.3f}',
+                    'loss': f'{cls_loss.item():.3f}',
                     'mP': f'{metric.mPA():.3f}',
-                    'PA': f'{metric.PA():.3f}'
+                    'PA': f'{metric.PA():.3f}',
+                    'KC': f'{metric.KC():.3f}'
                 })
         val_loss /= len(val_dataloader)
 
-        PA, mPA, Ps, Rs, F1S = metric.PA(), metric.mPA(), metric.Ps(), metric.Rs(), metric.F1s()
+        PA, mPA, Ps, Rs, F1S, KC = metric.PA(), metric.mPA(), metric.Ps(), metric.Rs(), metric.F1s(), metric.KC()
         if dist.get_rank() == 0:
             writer.add_scalar('val/loss-epoch', val_loss, epoch)
             writer.add_scalar('val/PA-epoch', PA, epoch)
             writer.add_scalar('val/mPA-epoch', mPA, epoch)
+            writer.add_scalar('val/KC-epoch', KC, epoch)
         if PA > best_PA:
             best_epoch = epoch
 
@@ -364,15 +370,12 @@ def worker(rank_gpu, args):
                                                                                       Ps[c], Rs[c], F1S[c]))
 
         # adjust learning rate if specified
-        if scheduler1 is not None:
-            try:
-                scheduler1.step()
-                scheduler2.step()
-                scheduler3.step()
-            except TypeError:
-                scheduler1.step(val_loss)
-                scheduler2.step(val_loss)
-                scheduler3.step(val_loss)
+        for s in [scheduler1, scheduler2, scheduler3]:
+            if s is not None:
+                try:
+                    s.step()
+                except TypeError:
+                    s.step(val_loss)
 
         # save checkpoint
         if dist.get_rank() == 0:
@@ -409,7 +412,8 @@ def worker(rank_gpu, args):
                     'mPA': mPA,
                     'Ps': Ps,
                     'Rs': Rs,
-                    'F1S': F1S
+                    'F1S': F1S,
+                    'KC': KC
                 },
             }
             torch.save(checkpoint, os.path.join(args.path, 'last.pth'))
