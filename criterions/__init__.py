@@ -1,9 +1,7 @@
-from typing import List
 from configs import CFG
 from .focal import FocalLoss
 from .coral import CoralLoss
-from .dis import Discrepancy
-from .compose import LossComposer
+from .dis import L1Distance
 from .ce import CELoss, SoftmaxCELoss
 from .bce import BCELoss, SigmoidBCELoss
 from .dice import DiceLoss, SigmoidDiceLoss
@@ -33,18 +31,8 @@ def build_loss(name):
         criterion = JointMMDLoss(kernel_num=CFG.CRITERION.KERNEL_NUM)
     elif name == 'coral':
         criterion = CoralLoss()
-    elif name == 'dis':
-        criterion = Discrepancy()
+    elif name == 'l1dis':
+        criterion = L1Distance()
     else:
         raise NotImplementedError('invalid criterion: {}'.format(name))
     return criterion
-
-
-def build_criterion(loss_names: List[str] = None, weights: List[float] = None):
-    if not loss_names:
-        loss_names = CFG.CRITERION.ITEMS
-    if not weights:
-        weights = CFG.CRITERION.WEIGHTS
-    items = list(map(lambda x: build_loss(x), loss_names))
-    composer = LossComposer(items, weights)
-    return composer

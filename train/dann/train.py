@@ -17,7 +17,7 @@ from torch.utils.data.distributed import DistributedSampler
 from configs import CFG
 from metric import Metric
 from models import build_model
-from criterions import build_criterion
+from criterions import build_loss
 from optimizers import build_optimizer
 from schedulers import build_scheduler
 from datas import build_dataset, build_dataloader
@@ -149,9 +149,14 @@ def worker(rank_gpu, args):
 
     # print(model)
     # build criterion
-    train_criterion = build_criterion(CFG.CRITERION.ITEMS, CFG.CRITERION.WEIGHTS)
-    train_criterion.to(device)
-    val_criterion = build_criterion(['softmax+ce'], [1.0])
+    loss_names = CFG.CRITERION.ITEMS
+    loss_weights = CFG.CRITERION.WEIGHTS
+    assert len(loss_names) == len(loss_weights)
+    cls_criterion = build_loss(loss_names[0])
+    cls_criterion.to(device)
+    domain_criterion = build_loss(loss_names[1])
+    domain_criterion.to(device)
+    val_criterion = build_loss('softmax+ce')
     val_criterion.to(device)
     # build metric
     metric = Metric(NUM_CLASSES)
@@ -204,7 +209,8 @@ def worker(rank_gpu, args):
         model.train()  # set model to training mode
         metric.reset()  # reset metric
         train_bar = tqdm(train_dataloader, desc='training', ascii=True)
-        train_loss, train_loss_cls, train_loss_domain_s, train_loss_domain_t = 0., 0., 0., 0.
+
+        total_loss_epoch, cls_loss_epoch, domain_s_loss_epoch, domain_t_loss_epoch = 0., 0., 0., 0.
         for train_item, test_item in zip(train_bar, test_dataloader):
             iteration += 1
             p = float(iteration + epoch * len(train_dataloader)) / CFG.EPOCHS / len(train_dataloader)
@@ -222,24 +228,23 @@ def worker(rank_gpu, args):
             domain_label_t = torch.ones(len(label))
             domain_label_s, domain_label_t = domain_label_s.to(device), domain_label_t.to(device)
 
-            loss_cls = train_criterion(y_s=y_s, label_s=label)['total']
-            loss_domain_s = train_criterion(y_s=domain_out_s, label_s=domain_label_s)['total']
-            loss_domain_t = train_criterion(y_s=domain_out_t, label_s=domain_label_t)['total']
-            loss = loss_cls + loss_domain_s + loss_domain_t
+            cls_loss = cls_criterion(y_s=y_s, label_s=label) * loss_weights[0]
+            domain_s_loss = domain_criterion(y_s=domain_out_s, label_s=domain_label_s) * loss_weights[1]
+            domain_t_loss = domain_criterion(y_s=domain_out_t, label_s=domain_label_t) * loss_weights[1]
+            total_loss = cls_loss + domain_s_loss + domain_t_loss
 
-            train_loss += loss.item()
-            train_loss_cls += loss_cls.item()
-            train_loss_domain_s += loss_domain_s.item()
-            train_loss_domain_t += loss_domain_t.item()
-
+            cls_loss_epoch += cls_loss.item()
+            domain_s_loss_epoch += domain_s_loss.item()
+            domain_t_loss_epoch += domain_t_loss.item()
+            total_loss_epoch += total_loss.item()
             if dist.get_rank() == 0:
-                writer.add_scalar('train/loss_total-iteration', loss.item(), iteration)
-                writer.add_scalar('train/loss_cls-iteration', loss_cls.item(), iteration)
-                writer.add_scalar('train/loss_domain_s-iteration', loss_domain_s.item(), iteration)
-                writer.add_scalar('train/loss_domain_t-iteration', loss_domain_t.item(), iteration)
+                writer.add_scalar('train/loss_total', total_loss.item(), iteration)
+                writer.add_scalar('train/loss_cls', cls_loss.item(), iteration)
+                writer.add_scalar('train/loss_domain_s', domain_s_loss.item(), iteration)
+                writer.add_scalar('train/loss_domain_t', domain_t_loss.item(), iteration)
 
             optimizer.zero_grad()
-            with amp.scale_loss(loss, optimizer) as scaled_loss:
+            with amp.scale_loss(total_loss, optimizer) as scaled_loss:
                 scaled_loss.backward()
             optimizer.step()
 
@@ -248,28 +253,28 @@ def worker(rank_gpu, args):
 
             train_bar.set_postfix({
                 'epoch': epoch,
-                'loss': f'{loss.item():.3f}',
+                'loss': f'{total_loss.item():.3f}',
                 'mP': f'{metric.mPA():.3f}',
                 'PA': f'{metric.PA():.3f}',
                 'KC': f'{metric.KC():.3f}'
             })
 
-        train_loss /= len(train_dataloader)
-        train_loss_cls /= len(train_dataloader)
-        train_loss_domain_s /= len(train_dataloader)
-        train_loss_domain_t /= len(train_dataloader)
+        total_loss_epoch /= len(train_dataloader)
+        cls_loss_epoch /= len(train_dataloader)
+        domain_s_loss_epoch /= len(train_dataloader)
+        domain_t_loss_epoch /= len(train_dataloader)
         PA, mPA, Ps, Rs, F1S, KC = metric.PA(), metric.mPA(), metric.Ps(), metric.Rs(), metric.F1s(), metric.KC()
         if dist.get_rank() == 0:
-            writer.add_scalar('train/loss_total-epoch', train_loss, epoch)
-            writer.add_scalar('train/loss_cls-epoch', train_loss_cls, epoch)
-            writer.add_scalar('train/loss_domain_s-epoch', train_loss_domain_s, epoch)
-            writer.add_scalar('train/loss_domain_t-epoch', train_loss_domain_t, epoch)
+            writer.add_scalar('train/loss_total-epoch', total_loss_epoch, epoch)
+            writer.add_scalar('train/loss_cls-epoch', cls_loss_epoch, epoch)
+            writer.add_scalar('train/loss_domain_s-epoch', domain_s_loss_epoch, epoch)
+            writer.add_scalar('train/loss_domain_t-epoch', domain_t_loss_epoch, epoch)
             writer.add_scalar('train/PA-epoch', PA, epoch)
             writer.add_scalar('train/mPA-epoch', mPA, epoch)
             writer.add_scalar('train/KC-epoch', KC, epoch)
         logging.info(
             'rank{} train epoch={} | loss_total={:.3f} loss_cls={:.3f} loss_domain_s={:.3f} loss_domain_t={:.3f}'.format(
-                dist.get_rank() + 1, epoch, train_loss, train_loss_cls, train_loss_domain_s, train_loss_domain_t))
+                dist.get_rank() + 1, epoch, total_loss_epoch, cls_loss_epoch, domain_s_loss_epoch, domain_t_loss_epoch))
         for c in range(NUM_CLASSES):
             logging.info(
                 'rank{} train epoch={} | class={} P={:.3f} R={:.3f} F1={:.3f}'.format(dist.get_rank() + 1, epoch, c,
@@ -287,15 +292,15 @@ def worker(rank_gpu, args):
                 x_t, label = x_t.to(device), label.to(device)
                 y_t, _ = model(x_t, alpha=0)  # val阶段网络不需要反传，所以alpha=0
 
-                loss = val_criterion(y_s=y_t, label_s=label)
-                val_loss += loss['total'].item()
+                cls_loss = val_criterion(y_s=y_t, label_s=label)
+                val_loss += cls_loss.item()
 
                 pred = y_t.argmax(axis=1)
                 metric.add(pred.data.cpu().numpy(), label.data.cpu().numpy())
 
                 val_bar.set_postfix({
                     'epoch': epoch,
-                    'loss': f'{loss["total"].item():.3f}',
+                    'loss': f'{cls_loss.item():.3f}',
                     'mP': f'{metric.mPA():.3f}',
                     'PA': f'{metric.PA():.3f}',
                     'KC': f'{metric.KC():.3f}'

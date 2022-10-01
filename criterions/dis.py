@@ -4,9 +4,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-class Discrepancy(nn.Module):
+class L1Distance(nn.Module):
     def __init__(self):
-        super(Discrepancy, self).__init__()
+        super(L1Distance, self).__init__()
         # self.eps = eps
 
     @property

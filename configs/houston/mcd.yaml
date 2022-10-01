@@ -1,6 +1,6 @@
 DATASET:
     NAME: 'PREPROCESSED_Houston'
-    ROOT: 'E:/zts/dataset/houston_preprocessed'
+    ROOT: 'E:/zzy/GAN/HSI_domain_adaptation/dataset/houston_preprocessed'
     AUGMENT:
       RATIO: 21
       TRANS: ''
@@ -10,14 +10,17 @@ DATALOADER:
     NUM_WORKERS: 0
 
 MODEL:
-    NAME: 'dann'
+    NAME: 'mcd'
 
 CRITERION:
     ITEMS:
       - 'softmax+ce'
-      - 'softmax+ce'
     WEIGHTS:
       - 1.0
+AUXILIARY:
+    ITEMS:
+      - 'l1dis'
+    WEIGHTS:
       - 1.0
 
 OPTIMIZER:
@@ -31,3 +34,5 @@ SCHEDULER:
     PATIENCE: 2
 
 EPOCHS: 10
+
+EPOCHFE: 4

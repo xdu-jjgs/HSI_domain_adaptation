@@ -17,7 +17,7 @@ from torch.utils.data.distributed import DistributedSampler
 from configs import CFG
 from metric import Metric
 from models import build_model
-from criterions import build_loss
+from criterions import build_criterion
 from optimizers import build_optimizer
 from schedulers import build_scheduler
 from datas import build_dataset, build_dataloader
@@ -142,31 +142,40 @@ def worker(rank_gpu, args):
     train_dataloader = build_dataloader(train_dataset, sampler=train_sampler)
     val_dataloader = build_dataloader(val_dataset, sampler=val_sampler)
     test_dataloader = build_dataloader(test_dataset, sampler=test_sampler)
+
     # build model
-    model = build_model(NUM_CHANNELS, NUM_CLASSES)
-    model.to(device)
-    # print(model)
+    FE, C1, C2 = build_model(NUM_CHANNELS, NUM_CLASSES)
+    FE.to(device)
+    C1.to(device)
+    C2.to(device)
+
     # build criterion
-    loss_names = CFG.CRITERION.ITEMS
-    loss_weights = CFG.CRITERION.WEIGHTS
-    assert len(loss_names) == len(loss_weights)
-    cls_criterion = build_loss(loss_names[0])
-    trans_criterion = build_loss(loss_names[1])
-    cls_criterion.to(device)
-    trans_criterion.to(device)
-    val_criterion = build_loss('softmax+ce')
+    train_criterion = build_criterion()
+    train_criterion.to(device)
+    discrepancy_criterion = build_criterion(CFG.AUXLIARY.ITEMS, CFG.AUXLIARY.WEIGHTS)
+    discrepancy_criterion.to(device)
+    val_criterion = build_criterion(['softmax+ce'], [1.0])
     val_criterion.to(device)
     # build metric
     metric = Metric(NUM_CLASSES)
     # build optimizer
-    optimizer = build_optimizer(model)
+    optimizer_fe = build_optimizer(FE)
+    optimizer_c1 = build_optimizer(C1)
+    optimizer_c2 = build_optimizer(C2)
     # build scheduler
-    scheduler = build_scheduler(optimizer)
+    scheduler1 = build_scheduler(optimizer_fe)
+    scheduler2 = build_scheduler(optimizer_c1)
+    scheduler3 = build_scheduler(optimizer_c2)
 
     # mixed precision
-    model, optimizer = amp.initialize(model, optimizer, opt_level=args.opt_level)
+    [FE, C1, C2], [optimizer_fe, optimizer_c1, optimizer_c2] = amp.initialize([FE, C1, C2],
+                                                                              [optimizer_fe, optimizer_c1,
+                                                                               optimizer_c2],
+                                                                              opt_level=args.opt_level)
     # DDP
-    model = DistributedDataParallel(model)
+    FE = DistributedDataParallel(FE)
+    C1 = DistributedDataParallel(C1)
+    C2 = DistributedDataParallel(C2)
 
     epoch = 0
     iteration = 0
@@ -178,8 +187,12 @@ def worker(rank_gpu, args):
         if not os.path.isfile(args.checkpoint):
             raise RuntimeError('checkpoint {} not found'.format(args.checkpoint))
         checkpoint = torch.load(args.checkpoint)
-        model.load_state_dict(checkpoint['model']['state_dict'])
-        optimizer.load_state_dict(checkpoint['optimizer']['state_dict'])
+        FE.load_state_dict(checkpoint['FE']['state_dict'])
+        C1.load_state_dict(checkpoint['C1']['state_dict'])
+        C2.load_state_dict(checkpoint['C2']['state_dict'])
+        optimizer_fe.load_state_dict(checkpoint['optimizer_fe']['state_dict'])
+        optimizer_c1.load_state_dict(checkpoint['optimizer_c1']['state_dict'])
+        optimizer_c2.load_state_dict(checkpoint['optimizer_c2']['state_dict'])
         epoch = checkpoint['optimizer']['epoch']
         iteration = checkpoint['optimizer']['iteration']
         best_PA = checkpoint['metric']['PA']
@@ -200,70 +213,103 @@ def worker(rank_gpu, args):
         train_dataloader.sampler.set_epoch(epoch)
 
         if dist.get_rank() == 0:
-            lr = optimizer.param_groups[0]['lr']
+            lr = optimizer_fe.param_groups[0]['lr']
             writer.add_scalar('lr-epoch', lr, epoch)
 
         # train
-        model.train()  # set model to training mode
+        FE.train()  # set model to training mode
+        C1.train()
+        C2.train()
         metric.reset()  # reset metric
         train_bar = tqdm(train_dataloader, desc='training', ascii=True)
-        total_loss_epoch, cls_loss_epoch, trans_loss_epoch = 0., 0., 0.
+        train_loss_cls = 0.
+        c_loss = 0.
+        fe_loss = 0.
         for train_item, test_item in zip(train_bar, test_dataloader):
             iteration += 1
             x_s, label = train_item
-            x_s, label = x_s.to(device), label.to(device)
-            f_s, y_s = model(x_s)
-
-            model.eval()
             x_t, _ = test_item
+            x_s, label = x_s.to(device), label.to(device)
             x_t = x_t.to(device)
-            with torch.no_grad():
-                f_t, y_t = model(x_t)
-            model.train()
-            cls_loss = cls_criterion(label_s=label, y_s=y_s) * loss_weights[0]
-            trans_loss = trans_criterion(f_s=f_s, f_t=f_t) * loss_weights[1]
-            total_loss = cls_loss + trans_loss
 
-            cls_loss_epoch += cls_loss.item()
-            trans_loss_epoch += trans_loss.item()
-            total_loss_epoch += total_loss.item()
-            if dist.get_rank() == 0:
-                writer.add_scalar('train/loss_total', total_loss.item(), iteration)
-                writer.add_scalar('train/loss_cls', cls_loss.item(), iteration)
-                writer.add_scalar('train/loss_trans', trans_loss.item(), iteration)
+            optimizer_fe.zero_grad()
+            optimizer_c1.zero_grad()
+            optimizer_c2.zero_grad()
 
-            optimizer.zero_grad()
-            with amp.scale_loss(total_loss, optimizer) as scaled_loss:
+            f_s = FE(x_s)
+            p1_s = C1(f_s)
+            p2_s = C2(f_s)
+            loss_cls = train_criterion(p1_s, label, p2_s, label)
+            train_loss_cls += loss_cls.item()
+            with amp.scale_loss(loss_cls, [optimizer_fe, optimizer_c1, optimizer_c2]) as scaled_loss:
                 scaled_loss.backward()
-            optimizer.step()
+            optimizer_fe.step()
+            optimizer_c1.step()
+            optimizer_c2.step()
+            optimizer_fe.zero_grad()
+            optimizer_c1.zero_grad()
+            optimizer_c2.zero_grad()
 
-            pred = y_s.argmax(axis=1)
+            f_s = FE(x_s)
+            p1_s = C1(f_s)
+            p2_s = C2(f_s)
+            f_t = FE(x_t)
+            p1_t = C1(f_t)
+            p2_t = C2(f_t)
+            loss_c = train_criterion2(p1_s, label, p2_s, label, p1_t, p2_t)
+            c_loss += loss_c.item()
+            with amp.scale_loss(loss_c, [optimizer_c1, optimizer_c2]) as scaled_loss:
+                scaled_loss.backward()
+            optimizer_c1.step()
+            optimizer_c2.step()
+            optimizer_fe.zero_grad()
+            optimizer_c1.zero_grad()
+            optimizer_c2.zero_grad()
+
+            for i in range(CFG.EPOCHFE):
+                f_t = FE(x_t)
+                p1_t = C1(f_t)
+                p2_t = C2(f_t)
+                loss_fe = train_criterion3(p1_t, p2_t)
+                fe_loss += loss_fe.item()
+                with amp.scale_loss(loss_fe, optimizer_fe) as scaled_loss:
+                    scaled_loss.backward()
+                optimizer_fe.step()
+                optimizer_fe.zero_grad()
+                optimizer_c1.zero_grad()
+                optimizer_c2.zero_grad()
+
+            if dist.get_rank() == 0:
+                writer.add_scalar('train/loss_cls-iteration', loss_cls.item(), iteration)
+                writer.add_scalar('train/loss_c-iteration', loss_c.item(), iteration)
+                writer.add_scalar('train/loss_fe-iteration', loss_fe.item(), iteration)
+
+            pred = ((p1_s + p2_s) / 2).argmax(axis=1)
             metric.add(pred.data.cpu().numpy(), label.data.cpu().numpy())
 
             train_bar.set_postfix({
                 'epoch': epoch,
-                'loss': f'{total_loss.item():.3f}',
+                'loss_pre': f'{loss_cls.item():.3f}',
+                'loss_c': f'{loss_c.item():.3f}',
+                'loss_fe': f'{loss_fe.item():.3f}',
                 'mP': f'{metric.mPA():.3f}',
-                'PA': f'{metric.PA():.3f}',
-                'KC': f'{metric.KC():.3f}',
+                'PA': f'{metric.PA():.3f}'
             })
 
-        total_loss_epoch /= len(train_dataloader)
-        cls_loss_epoch /= len(train_dataloader)
-        trans_loss_epoch /= len(train_dataloader)
-        PA, mPA, Ps, Rs, F1S, KC = metric.PA(), metric.mPA(), metric.Ps(), metric.Rs(), metric.F1s(), metric.KC()
+        train_loss_cls /= len(train_dataloader)
+        c_loss /= len(train_dataloader)
+        fe_loss /= len(train_dataloader)
+        PA, mPA, Ps, Rs, F1S = metric.PA(), metric.mPA(), metric.Ps(), metric.Rs(), metric.F1s()
         if dist.get_rank() == 0:
-            writer.add_scalar('train/loss_total-epoch', total_loss_epoch, epoch)
-            writer.add_scalar('train/loss_cls-epoch', cls_loss_epoch, epoch)
-            writer.add_scalar('train/loss_trans-epoch', trans_loss_epoch, epoch)
+            writer.add_scalar('train/train_loss_cls-epoch', train_loss_cls, epoch)
+            writer.add_scalar('train/c_loss-epoch', c_loss, epoch)
+            writer.add_scalar('train/fe_loss-epoch', fe_loss, epoch)
             writer.add_scalar('train/PA-epoch', PA, epoch)
             writer.add_scalar('train/mPA-epoch', mPA, epoch)
-            writer.add_scalar('train/KC-epoch', KC, epoch)
         logging.info(
-            'rank{} train epoch={} | loss_total={:.3f} loss_cls={:.3f} loss_trans={:.3f}'.format(
-                dist.get_rank() + 1, epoch, total_loss_epoch, cls_loss_epoch, trans_loss_epoch))
-        logging.info(
-            'rank{} train epoch={} | PA={:.3f} mPA={:.3f} KC={:.3f}'.format(dist.get_rank() + 1, epoch, PA, mPA, KC))
+            'rank{} train epoch={} | train_loss_cls={:.3f} c_loss={:.3f} fe_loss={:.3f}'.format(dist.get_rank() + 1,
+                                                                                                epoch, train_loss_cls,
+                                                                                                c_loss, fe_loss))
         for c in range(NUM_CLASSES):
             logging.info(
                 'rank{} train epoch={} | class={} P={:.3f} R={:.3f} F1={:.3f}'.format(dist.get_rank() + 1, epoch, c,
@@ -272,62 +318,88 @@ def worker(rank_gpu, args):
         # validate
         if args.no_validate:
             continue
-        model.eval()  # set model to evaluation mode
+        # FE.eval()  # set model to evaluation mode
+        # C1.eval()  # set model to evaluation mode
+        # C2.eval()  # set model to evaluation mode
+        # TODO attention:由于 retain graph = true 此处不能用eval() 否则计算图会被free掉 导致模型失效
         metric.reset()  # reset metric
         val_bar = tqdm(val_dataloader, desc='validating', ascii=True)
         val_loss = 0.
         with torch.no_grad():  # disable gradient back-propagation
             for x_t, label in val_bar:
                 x_t, label = x_t.to(device), label.to(device)
-                _, y_t = model(x_t)
+                f_t = FE(x_t)
+                p1_t = C1(f_t)
+                p2_t = C2(f_t)
+                y_t = (p1_t + p2_t) / 2
 
-                cls_loss = val_criterion(y_s=y_t, label_s=label)
-                val_loss += cls_loss.item()
+                loss = val_criterion(y_t, label)
+                val_loss += loss.item()
 
                 pred = y_t.argmax(axis=1)
                 metric.add(pred.data.cpu().numpy(), label.data.cpu().numpy())
 
                 val_bar.set_postfix({
                     'epoch': epoch,
-                    'loss': f'{cls_loss.item():.3f}',
+                    'loss': f'{loss.item():.3f}',
                     'mP': f'{metric.mPA():.3f}',
-                    'PA': f'{metric.PA():.3f}',
-                    'KC': f'{metric.KC():.3f}'
+                    'PA': f'{metric.PA():.3f}'
                 })
         val_loss /= len(val_dataloader)
 
-        PA, mPA, Ps, Rs, F1S, KC = metric.PA(), metric.mPA(), metric.Ps(), metric.Rs(), metric.F1s(), metric.KC()
+        PA, mPA, Ps, Rs, F1S = metric.PA(), metric.mPA(), metric.Ps(), metric.Rs(), metric.F1s()
         if dist.get_rank() == 0:
             writer.add_scalar('val/loss-epoch', val_loss, epoch)
             writer.add_scalar('val/PA-epoch', PA, epoch)
             writer.add_scalar('val/mPA-epoch', mPA, epoch)
-            writer.add_scalar('val/KC-epoch', KC, epoch)
         if PA > best_PA:
             best_epoch = epoch
 
-        logging.info('rank{} val epoch={} | loss={:.3f}'.format(dist.get_rank() + 1, epoch, val_loss))
         logging.info(
-            'rank{} val epoch={} | PA={:.3f} mPA={:.3f} KC={:.3f}'.format(dist.get_rank() + 1, epoch, PA, mPA, KC))
+            'rank{} val epoch={} | loss={:.3f} PA={:.3f} mPA={:.3f}'.format(dist.get_rank() + 1, epoch, val_loss, PA,
+                                                                            mPA))
         for c in range(NUM_CLASSES):
             logging.info(
-                'rank{} val epoch={} | class={}- P={:.3f} R={:.3f} F1={:.3f}'.format(dist.get_rank() + 1, epoch, c,
-                                                                                     Ps[c], Rs[c], F1S[c]))
+                'rank{} val epoch={} |  class={}- P={:.3f} R={:.3f} F1={:.3f}'.format(dist.get_rank() + 1, epoch, c,
+                                                                                      Ps[c], Rs[c], F1S[c]))
 
         # adjust learning rate if specified
-        if scheduler is not None:
+        if scheduler1 is not None:
             try:
-                scheduler.step()
+                scheduler1.step()
+                scheduler2.step()
+                scheduler3.step()
             except TypeError:
-                scheduler.step(val_loss)
+                scheduler1.step(val_loss)
+                scheduler2.step(val_loss)
+                scheduler3.step(val_loss)
 
         # save checkpoint
         if dist.get_rank() == 0:
             checkpoint = {
-                'model': {
-                    'state_dict': model.state_dict(),
+                'FE': {
+                    'state_dict': FE.state_dict(),
                 },
-                'optimizer': {
-                    'state_dict': optimizer.state_dict(),
+                'C1': {
+                    'state_dict': C1.state_dict(),
+                },
+                'C2': {
+                    'state_dict': C2.state_dict(),
+                },
+                'optimizer_fe': {
+                    'state_dict': optimizer_fe.state_dict(),
+                    'epoch': epoch,
+                    'best_epoch': best_epoch,
+                    'iteration': iteration
+                },
+                'optimizer_c1': {
+                    'state_dict': optimizer_c1.state_dict(),
+                    'epoch': epoch,
+                    'best_epoch': best_epoch,
+                    'iteration': iteration
+                },
+                'optimizer_c2': {
+                    'state_dict': optimizer_c2.state_dict(),
                     'epoch': epoch,
                     'best_epoch': best_epoch,
                     'iteration': iteration
@@ -337,8 +409,7 @@ def worker(rank_gpu, args):
                     'mPA': mPA,
                     'Ps': Ps,
                     'Rs': Rs,
-                    'F1S': F1S,
-                    'KC': KC
+                    'F1S': F1S
                 },
             }
             torch.save(checkpoint, os.path.join(args.path, 'last.pth'))
