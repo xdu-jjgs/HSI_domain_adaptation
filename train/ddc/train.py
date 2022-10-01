@@ -221,7 +221,7 @@ def worker(rank_gpu, args):
                 f_t, y_t = model(x_t)
             model.train()
             cls_loss = cls_criterion(label_s=label, y_s=y_s) * loss_weights[0]
-            trans_loss = trans_criterion(f_s=f_s, f_t=f_t) * loss_weights[1]
+            trans_loss = trans_criterion(f_s=f_s, f_t=f_t, label_s=label, y_s=y_s, y_t=y_t) * loss_weights[1]
             total_loss = cls_loss + trans_loss
 
             cls_loss_epoch += cls_loss.item()

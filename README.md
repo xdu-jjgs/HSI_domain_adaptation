@@ -140,7 +140,7 @@ python train/ddc/train.py configs/houston/ddc.yaml ^
 | Houston          | DSAN   | softmax+ce, local mmd loss     | 1:2        | g5     | 64         | 0.633   | -        | 
 | Houston          | DSAN   | softmax+ce, local mmd loss     | 1:3        | g5     | 64         | 0.619   | -        | 
 | Houston          | DSAN   | softmax+ce, local mmd loss     | 1:5        | g5     | 64         | 0.615   | -        | 
-| Houston          | DANN   | softmax+ce                     | 1          | -      | 64         | 0.552   | -        |
+| Houston          | DANN   | softmax+ce                     | 1          | -      | 64         | 0.581   | -        |
 | Houston          | TSTNet | softmax+ce, mmd loss, got loss | 1:1:0.1    | g5     | 100        | 0.762   | -        |       
 | HyRANK           | DNN    | softmax+ce                     | 1          | l      | 64         | 0.506   | 0.504    |   
 | HyRANK           | DDC    | softmax+ce, mmd loss           | 1:1        | g1     | 64         | 0.507   | 0.503    |   
@@ -154,7 +154,7 @@ python train/ddc/train.py configs/houston/ddc.yaml ^
 | HyRANK           | JAN    | softmax+ce, joint mmd loss     | 1:2        | g5     | 64         | 0.511   | -        | 
 | HyRANK           | JAN    | softmax+ce, joint mmd loss     | 1:3        | g5     | 64         | 0.507   | -        | 
 | HyRANK           | JAN    | softmax+ce, joint mmd loss     | 1:5        | g5     | 64         | 0.490   | -        | 
-| HyRANK           | DANN   | softmax+ce                     | 1          | -      | 64         | 0.597   | -        |
+| HyRANK           | DANN   | softmax+ce                     | 1          | -      | 64         | 0.625   | -        |
 | HyRANK           | TSTNet | softmax+ce, mmd loss, got loss | 1:1:0.1    | l      | 100        | 0.633   | 0.608    |
 | ShanghaiHangzhou | DNN    | softmax+ce                     | 1          | -      | 64         | 0.921   | -        |   
 | ShanghaiHangzhou | DDC    | softmax+ce, mmd loss           | 1:1        | g1     | 64         | 0.929   | -        |   
@@ -173,7 +173,7 @@ python train/ddc/train.py configs/houston/ddc.yaml ^
 | ShanghaiHangzhou | DSAN   | softmax+ce, local mmd loss     | 1:2        | g5     | 64         | 0.933   | -        |   
 | ShanghaiHangzhou | DSAN   | softmax+ce, local mmd loss     | 1:3        | g5     | 64         | 0.916   | -        |   
 | ShanghaiHangzhou | DSAN   | softmax+ce, local mmd loss     | 1:5        | g5     | 64         | 0.925   | -        |
-| ShanghaiHangzhou          | DANN   | softmax+ce            | 1          | -      | 64         | 0.901   | -        |
+| ShanghaiHangzhou | DANN   | softmax+ce                     | 1          | -      | 64         | 0.      | -        |
 | ShanghaiHangzhou | TSTNet | softmax+ce, mmd loss, got loss | 1:1:0.1    | l      | 100        | 0.801   | -        | 
 
 ## <a name="license"></a> 结果
