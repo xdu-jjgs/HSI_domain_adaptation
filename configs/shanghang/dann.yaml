@@ -19,7 +19,9 @@ MODEL:
 CRITERION:
     ITEMS:
       - 'softmax+ce'
+      - 'softmax+ce'
     WEIGHTS:
+      - 1.0
       - 1.0
 
 OPTIMIZER:
