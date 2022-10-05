@@ -9,6 +9,7 @@ from .bce import BCELoss, SigmoidBCELoss
 from .dice import DiceLoss, SigmoidDiceLoss
 from .dis import Discrepancy
 from .class_weight_ce import ClassWeightCE
+from .confid_weight_ce import ConfidWeightCE
 
 
 def build_loss(name):
@@ -36,6 +37,8 @@ def build_loss(name):
         criterion = Discrepancy()
     elif name == 'class_weight_ce':
         criterion = ClassWeightCE()
+    elif name == 'confid_weight_ce':
+        criterion = ConfidWeightCE()
     else:
         raise NotImplementedError('invalid criterion: {}'.format(name))
     return criterion

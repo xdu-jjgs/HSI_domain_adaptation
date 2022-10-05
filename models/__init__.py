@@ -1,5 +1,5 @@
 from configs import CFG
-from .ddc import DDC
+from models.ddc.ddc import *
 from .dann import DANN
 from models.backbone.generator import *
 from models.backbone.extractor import FeatureExtractor
@@ -27,6 +27,11 @@ def build_model(num_channels, num_classes):
     elif CFG.MODEL.NAME == 'pixelda-baseline':
         G = Generator(num_channels, num_classes)
         domain_discriminator = DDC(num_channels, num_classes=2)
+        class_dicriminator = ResNet(num_channels, num_classes, depth=18, pretrained=False)
+        return G, domain_discriminator, class_dicriminator
+    elif CFG.MODEL.NAME == 'pixelda-condition':
+        G = GeneratorImage(num_channels, num_classes)
+        domain_discriminator = DDCondition(num_channels, num_classes=2, condition_l=num_classes)
         class_dicriminator = ResNet(num_channels, num_classes, depth=18, pretrained=False)
         return G, domain_discriminator, class_dicriminator
     raise NotImplementedError('invalid model: {}'.format(CFG.MODEL.NAME))

@@ -1,0 +1,56 @@
+DATASET:
+    NAME: 'PREPROCESSED_Houston'
+    ROOT: 'E:/zzy/GAN/HSI_domain_adaptation/dataset/houston_preprocessed'
+    AUGMENT:
+      RATIO: 21
+      TRANS: ''
+
+DATALOADER:
+    BATCH_SIZE: 64
+    NUM_WORKERS: 0
+
+MODEL:
+    NAME: 'pixelda-condition'
+
+CRITERION:
+    ITEMS1:
+      - 'softmax+ce'
+      - 'softmax+ce'
+    WEIGHTS1:
+      - 1.0
+      - 1.0
+    ITEMS2:
+      - 'confid_weight_ce'
+      - 'confid_weight_ce'
+    WEIGHTS2:
+      - 1.0
+      - 1.0
+    ITEMS3:
+      - 'softmax+ce'
+      - 'class_weight_ce'
+    WEIGHTS3:
+      - 1.0
+      - 1.0
+    ITEMS4:
+      - 'softmax+ce'
+    WEIGHTS4:
+      - 1.0
+    KERNEL_NUM: 1
+
+OPTIMIZER:
+    NAME1: 'adam'
+    LR1: 0.001
+    NAME2: 'adam'
+    LR2: 0.001
+    NAME3: 'adam'
+    LR3: 0.001
+    MOMENTUM: 0.9
+
+SCHEDULER:
+    NAME: 'plateau'
+    MODE: 'min'
+    FACTOR: 0.1
+    PATIENCE: 2
+
+EPOCHS: 15
+

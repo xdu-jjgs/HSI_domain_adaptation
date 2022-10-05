@@ -29,3 +29,39 @@ class ImageClassifier(nn.Module):
         x = self.layer2(x)
         out = self.head(x)
         return x, out
+
+
+class ImageClassifierCondition(nn.Module):
+    def __init__(self, in_nodes: int, num_classes: int, condition_l: int, dropout: bool = False, embedding: bool = False):
+        super(ImageClassifierCondition, self).__init__()
+        self.relu = nn.ReLU()
+        self.eb = embedding
+        if self.eb:
+            self.embedding = nn.Linear(condition_l, 64)
+            condition_l = 64
+        self.layer1 = nn.Sequential(
+            nn.Linear(in_nodes + condition_l, 256),
+            self.relu,
+        )
+        self.layer2 = nn.Sequential(
+            nn.Linear(256, 100),
+            self.relu
+        )
+        self.head = nn.Sequential(
+            nn.Linear(100, num_classes)
+        )
+        if dropout:
+            self.dropout = nn.Dropout(0.5)
+            self.layer1.append(self.dropout)
+            self.layer2.append(self.dropout)
+
+    def forward(self, x, condition):
+        x = torch.squeeze(x, 2)
+        x = torch.squeeze(x, 2)
+        if self.eb:
+            condition = self.embedding(condition)
+        x = torch.cat((x, condition), dim=1)
+        x = self.layer1(x)
+        x = self.layer2(x)
+        out = self.head(x)
+        return x, out

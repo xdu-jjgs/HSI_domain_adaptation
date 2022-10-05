@@ -10,6 +10,7 @@ class ResNet(nn.Module):
                  replace_stride_with_dilation=None):
         super(ResNet, self).__init__()
         self.model_name = 'resnet{}'.format(depth)
+        print(self.model_name)
         model = getattr(models, self.model_name)(replace_stride_with_dilation=replace_stride_with_dilation)
         depth2channels = {
             18: 512,
