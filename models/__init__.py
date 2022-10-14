@@ -6,6 +6,8 @@ from models.backbone.extractor import FeatureExtractor
 from models.backbone.classifier import ImageClassifier
 from models.backbone.discriminator import Discriminator
 from models.backbone.resnet import ResNet
+from models.backbone.capsnet import CapsuleNet
+from models.backbone.rescaps import ResCaps
 
 
 def build_model(num_channels, num_classes):
@@ -33,5 +35,11 @@ def build_model(num_channels, num_classes):
         G = GeneratorImage(num_channels, num_classes)
         domain_discriminator = DDCondition(num_channels, num_classes=2, condition_l=num_classes)
         class_dicriminator = ResNet(num_channels, num_classes, depth=18, pretrained=False)
+        return G, domain_discriminator, class_dicriminator
+    elif CFG.MODEL.NAME == 'pixelda-caps':
+        G = GeneratorImage(num_channels, num_classes)
+        domain_discriminator = DDC(num_channels, num_classes=2)
+        # class_dicriminator = CapsuleNet(num_channels, num_classes)
+        class_dicriminator = ResCaps(num_channels, num_classes, depth=18, pretrained=False)
         return G, domain_discriminator, class_dicriminator
     raise NotImplementedError('invalid model: {}'.format(CFG.MODEL.NAME))

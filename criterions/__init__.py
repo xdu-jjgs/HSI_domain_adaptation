@@ -10,6 +10,7 @@ from .dice import DiceLoss, SigmoidDiceLoss
 from .dis import Discrepancy
 from .class_weight_ce import ClassWeightCE
 from .confid_weight_ce import ConfidWeightCE
+from .capsuleloss import MarginLoss
 
 
 def build_loss(name):
@@ -39,6 +40,8 @@ def build_loss(name):
         criterion = ClassWeightCE()
     elif name == 'confid_weight_ce':
         criterion = ConfidWeightCE()
+    elif name == 'margin':
+        criterion = MarginLoss()
     else:
         raise NotImplementedError('invalid criterion: {}'.format(name))
     return criterion

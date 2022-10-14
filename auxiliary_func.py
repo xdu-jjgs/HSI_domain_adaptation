@@ -1,4 +1,4 @@
-from torch import argmax
+# from torch import argmax
 import numpy as np
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import recall_score
@@ -12,6 +12,7 @@ def one_hot(lable, class_number):
         one_hot_array[i, lable[i]] = 1
     one_hot_array = one_hot_array.astype(np.float32)
     return one_hot_array
+    # return torch.eye(class_number)[label, :]
 
 
 def get_criteria(y_pred, y_real, class_num):

@@ -31,6 +31,9 @@ class PreprocessedHouston(Dataset):
     def __len__(self):
         return len(self.data)
 
+    def get_labels(self):
+        return self.gt
+
     def name2label(self, name):
         return self.names.index(name)
 
