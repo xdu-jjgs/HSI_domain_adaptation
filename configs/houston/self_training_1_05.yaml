@@ -1,0 +1,35 @@
+DATASET:
+    NAME: 'PREPROCESSED_Houston'
+    ROOT: 'E:/zts/dataset/self_training_preprocessed'
+    AUGMENT:
+      RATIO: 21
+      TRANS: ''
+
+DATALOADER:
+    BATCH_SIZE: 64
+    NUM_WORKERS: 0
+
+MODEL:
+    NAME: 'self_training'
+
+CRITERION:
+    ITEMS:
+      - 'softmax+ce'
+      - 'softmax+ce+ls'
+    WEIGHTS:
+      - 1.0
+      - 1.0
+    threshold:
+      - 0.5
+
+OPTIMIZER:
+    NAME: 'adam'
+    LR: 0.0005
+
+SCHEDULER:
+    NAME: 'plateau'
+    MODE: 'min'
+    FACTOR: 0.1
+    PATIENCE: 2
+
+EPOCHS: 10
