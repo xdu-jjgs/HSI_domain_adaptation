@@ -222,7 +222,9 @@ def worker(rank_gpu, args):
             model.train()
 
             cls_s_loss = cls_criterion(label_s=label, y_s=y_s) * loss_weights[0]
-            cls_t_loss = cls_ls_criterion(y_t, y_t) * loss_weights[1]
+            # TODO: Add metric for mask?
+            cls_t_loss, mask, pseudo_labels = cls_ls_criterion(y_t, y_t)
+            cls_t_loss *= loss_weights[1]
             total_loss = cls_s_loss + cls_t_loss
 
             cls_s_loss_epoch += cls_s_loss.item()

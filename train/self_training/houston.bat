@@ -3,8 +3,8 @@ cd E:\zts\HSI_domain_adaptation
 set PYTHONPATH=%cd%
 
 rem self_training
-python train/self_training/train.py configs/houston/self_training.yaml ^
-        --path ./runs/houston/self_training-train ^
+python train/self_training/train.py configs/houston/self_training_2_03.yaml ^
+        --path ./runs/houston/self_training_2_03-train ^
         --nodes 1 ^
         --gpus 1 ^
         --rank-node 0 ^

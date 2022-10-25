@@ -19,7 +19,7 @@ CRITERION:
     WEIGHTS:
       - 1.0
       - 1.0
-    THRESHOLD: 0.5
+    THRESHOLD: 0.3
 
 OPTIMIZER:
     NAME: 'adam'
