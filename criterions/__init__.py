@@ -6,6 +6,7 @@ from .ce import CELoss, SoftmaxCELoss
 from .bce import BCELoss, SigmoidBCELoss
 from .dice import DiceLoss, SigmoidDiceLoss
 from .mmd import MMDLoss, LocalMMDLoss, JointMMDLoss
+from tllib.self_training.pseudo_label import ConfidenceBasedSelfTrainingLoss
 
 
 def build_criterion(name):
@@ -33,6 +34,8 @@ def build_criterion(name):
         criterion = CoralLoss()
     elif name == 'l1dis':
         criterion = L1Distance()
+    elif name == 'softmax+ce+ls':
+        criterion = ConfidenceBasedSelfTrainingLoss(threshold=CFG.CRITERION.THRESHOLD)
     else:
         raise NotImplementedError('invalid criterion: {}'.format(name))
     return criterion
