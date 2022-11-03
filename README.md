@@ -3,7 +3,6 @@
 ## 目录
 
 - [数据集描述](#datasets)
-- [数据预处理](#preprocess)
 - [支持的模型](#modelsgh)
 - [用法](#usage)
   - [训练](#usage-train)
@@ -56,30 +55,6 @@
 | total | total         | 135700           | 368000          |  
 | shape | N * H * C     | 1600 * 260 * 198 | 590 * 230 * 198 |
 
-## <a name="preprocess"></a> 数据预处理
-
-包括Z-Score归一化、图像裁剪、筛选类别和调整标签等
-
-1. Houston数据集
-
-```shell
-python preprocess/preprocess.py configs/preprocess/houston.yaml ^
-      --path E:/zzy/GAN/data/Houston
-```
-
-2. HyRANK数据集
-
-```shell
-python preprocess/preprocess.py configs/preprocess/hyrank.yaml ^
-      --path E:/zzy/GAN/data/HyRANK
-```
-
-3. ShanghaiHangzhou数据集
-
-```shell
-python preprocess/preprocess.py configs/preprocess/shanghang.yaml ^
-      --path E:/zzy/GAN/data/ShanghaiHangzhou
-```
 
 ## <a name="models"></a> 支持的模型
 
@@ -103,8 +78,8 @@ python preprocess/preprocess.py configs/preprocess/shanghang.yaml ^
 2. 或者运行如下命令
 
  ```shell
-python train/ddc/train.py configs/houston/ddc.yaml ^
-        --path ./runs/houston/ddc-train ^
+python train/ddc/train.py configs/houston/dan.yaml ^
+        --path ./runs/houston/dan-train ^
         --nodes 1 ^
         --gpus 1 ^
         --rank-node 0 ^
@@ -120,6 +95,7 @@ python train/ddc/train.py configs/houston/ddc.yaml ^
 验证集等于测试集，无需再另行测试
 
 ## <a name="result"></a> 结果
+实验要重新跑。。。
 
 | Dataset          | Model  | loss                           | loss-ratio | kernel | batch-size | OA-best | OA-worst |
 |------------------|--------|--------------------------------|------------|--------|------------|---------|----------|

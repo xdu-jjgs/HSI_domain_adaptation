@@ -87,7 +87,7 @@ python train/mcd/train.py configs/houston/mcd.yaml ^
         --opt-level O2
 
 rem self_training
-python train/self_training/train.py configs/houston/self_training_2_03.yaml ^
+python train/self_training/train.py configs/houston/self_training_1_05.yaml ^
         --path ./runs/houston/self_training_1_05-train ^
         --nodes 1 ^
         --gpus 1 ^
