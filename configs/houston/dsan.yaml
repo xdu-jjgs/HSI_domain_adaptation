@@ -1,9 +1,10 @@
 DATASET:
-    NAME: 'PREPROCESSED_Houston'
-    ROOT: 'E:/zts/dataset/houston_preprocessed'
-    AUGMENT:
-      RATIO: 21
-      TRANS: ''
+    NAME: 'Houston'
+    ROOT: 'E:/zzy/GAN/data/Houston'
+    PATCH:
+        HEIGHT: 27
+        WIDTH: 27
+        PAD_MODE: 'symmetric'
 
 DATALOADER:
     BATCH_SIZE: 64
