@@ -1,6 +1,4 @@
 import os
-import torch
-import numpy as np
 import scipy.io as sio
 
 from typing import Tuple
@@ -21,11 +19,12 @@ class HoustonDataset(Dataset):
             data_filename = 'Houston18.mat'
             gt_filename = 'Houston18_7gt.mat'
         self.data_path = os.path.join(root, data_filename)
+        # N*W*C
         self.data = sio.loadmat(self.data_path)['ori_data'].astype('float32')
         self.gt_path = os.path.join(root, gt_filename)
         self.gt = sio.loadmat(self.gt_path)['map'].astype('int')
         self.selector = lambda x, y: y != 0
-        self.coordinates = self.get_coordinates()
+        self.coordinates, self.gt = self.cube_image()
 
         if self.transform is not None:
             self.data, self.gt = self.transform(self.data, self.gt)
@@ -36,7 +35,6 @@ class HoustonDataset(Dataset):
 
     @property
     def names(self):
-        # e.g. ['background', 'road', 'building']
         return [
             'Healthy grass',
             'Stressed grass',
@@ -63,6 +61,7 @@ class HyRankDataset(Dataset):
         self.gt_path = os.path.join(root, gt_filename)
         self.gt = sio.loadmat(self.gt_path)['map'].astype('int')
         self.selector = lambda x, y: y not in [0, 6, 8]
+        self.coordinates, self.gt = self.cube_image()
 
         self.transform = transform
         if self.transform is not None:
@@ -74,7 +73,6 @@ class HyRankDataset(Dataset):
 
     @property
     def names(self):
-        # e.g. ['background', 'road', 'building']
         return [
             'Dense urban fabric',
             'Mineral extraction sites',
@@ -104,8 +102,7 @@ class ShangHangDataset(HoustonDataset):
         else:
             self.data = raw['DataCube1'].astype('float32')
             self.gt = raw['gt1'].astype('int')
-
-        self.coordinates = self.get_coordinates()
+        self.coordinates, self.gt = self.cube_image()
 
         self.transform = transform
         if self.transform is not None:
@@ -117,7 +114,6 @@ class ShangHangDataset(HoustonDataset):
 
     @property
     def names(self):
-        # e.g. ['background', 'road', 'building']
         return [
             'Water',
             'Land/ Building',

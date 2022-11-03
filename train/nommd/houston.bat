@@ -3,7 +3,7 @@ cd E:\zts\HSI_domain_adaptation
 set PYTHONPATH=%cd%
 
 rem nommd
-python train/ddc/train.py configs/houston/nommd.yaml ^
+python train/nommd/train.py configs/houston/nommd.yaml ^
         --path ./runs/houston/nommd-train ^
         --nodes 1 ^
         --gpus 1 ^

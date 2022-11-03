@@ -3,7 +3,7 @@ import numpy as np
 import torch.nn as nn
 import torchvision.transforms as transforms
 
-from typing import List, Tuple
+from typing import List
 
 
 class Compose(nn.Module):
@@ -100,6 +100,7 @@ class LabelRenumber(nn.Module):
 class ZScoreNormalize(nn.Module):
     # 整体
     def forward(self, image, label):
+        print(image.shape)
         h, w, c = image.shape
         data_type = image.dtype
         image = image.reshape(h * w, c).astype('float32')

@@ -3,7 +3,7 @@ cd E:\zts\HSI_domain_adaptation
 set PYTHONPATH=%cd%
 
 rem nommd
-python train/ddc/train.py configs/houston/nommd.yaml ^
+python train/nommd/train.py configs/houston/nommd.yaml ^
         --path ./runs/houston/nommd-train ^
         --nodes 1 ^
         --gpus 1 ^
@@ -13,6 +13,7 @@ python train/ddc/train.py configs/houston/nommd.yaml ^
         --master-port 8890 ^
         --seed 30 ^
         --opt-level O2
+
 rem ddc
 python train/ddc/train.py configs/houston/ddc.yaml ^
         --path ./runs/houston/ddc-train ^
@@ -24,6 +25,7 @@ python train/ddc/train.py configs/houston/ddc.yaml ^
         --master-port 8886 ^
         --seed 30 ^
         --opt-level O2
+
 rem dan
 python train/ddc/train.py configs/houston/dan.yaml ^
         --path ./runs/houston/dan-train ^

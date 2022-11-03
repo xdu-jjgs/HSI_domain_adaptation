@@ -16,22 +16,26 @@ class Dataset(utils.data.Dataset):
         self.data = None
         self.gt = None
         self.selector = None
+        self.coordinates = None
         self.transform = transform
 
-    def get_coordinates(self):
+    def cube_image(self):
         h, w, c = self.data.shape
         patch = ((self.window_size[0] - 1) // 2, (self.window_size[1] - 1) // 2)
         self.data = np.pad(self.data, (patch, patch, (0, 0)), self.pad_mode)
         coordinates = []
+        gts = []
         for i in range(h):
             for j in range(w):
                 if self.selector is None or self.selector(self.data[i, j], self.gt[i, j]):
                     coordinates.append([i, j])
-            coordinates = np.array(coordinates)
-        return coordinates
+                    gts.append(self.gt[i, j])
+        coordinates = np.array(coordinates)
+        gts = np.array(gts)
+        return coordinates, gts
 
     def __len__(self):
-        return len(self.data)
+        return len(self.coordinates)
 
     def __getitem__(self, item):
         x1 = self.coordinates[item][0]
