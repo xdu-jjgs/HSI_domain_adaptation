@@ -1,9 +1,10 @@
 DATASET:
-    NAME: 'PREPROCESSED_ShangHang'
+    NAME: 'ShangHang'
     ROOT: 'E:/zts/dataset/shanghaihangzhou_preprocessed'
-    AUGMENT:
-      RATIO: 1
-      TRANS: ''
+    PATCH:
+        HEIGHT: 27
+        WIDTH: 27
+        PAD_MODE: 'symmetric'
     PATCH:
       HEIGHT: 27
       WIDTH: 27

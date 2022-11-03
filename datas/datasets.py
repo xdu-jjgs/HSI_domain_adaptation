@@ -1,13 +1,18 @@
 import os
+import torch
+import numpy as np
 import scipy.io as sio
+
+from typing import Tuple
 
 from datas.base import Dataset
 
 
-class RawHouston(Dataset):
-    def __init__(self, root, split: str, transform=None):
-        super(RawHouston, self).__init__()
-        assert split in ['train', 'val', 'test']
+class HoustonDataset(Dataset):
+    def __init__(self, root, split: str, window_size: Tuple[int, int], pad_mode: str, transform=None):
+        super(HoustonDataset, self).__init__(root, split, window_size, pad_mode, transform)
+        data_filename = 'DataCube_ShanghaiHangzhou.mat'
+        self.data_path = os.path.join(root, data_filename)
         if split == 'train':
             data_filename = 'Houston13.mat'
             gt_filename = 'Houston13_7gt.mat'
@@ -19,49 +24,33 @@ class RawHouston(Dataset):
         self.data = sio.loadmat(self.data_path)['ori_data'].astype('float32')
         self.gt_path = os.path.join(root, gt_filename)
         self.gt = sio.loadmat(self.gt_path)['map'].astype('int')
+        self.selector = lambda x, y: y != 0
+        self.coordinates = self.get_coordinates()
 
-        self.transform = transform
         if self.transform is not None:
             self.data, self.gt = self.transform(self.data, self.gt)
 
-    def name2label(self, name):
-        return self.names.index(name)
-
-    def label2name(self, label):
-        return self.names[label]
-
-    @property
-    def num_classes(self):
-        return len(self.labels)
-
     @property
     def num_channels(self):
-        raise NotImplementedError('num_channels() not implemented')
-
-    @property
-    def labels(self):
-        # e.g. [0, 1, 2]
-        return list(range(len(self.names)))
+        return 48
 
     @property
     def names(self):
         # e.g. ['background', 'road', 'building']
         return [
-            'Unclassified',
             'Healthy grass',
             'Stressed grass',
-            'Synthetic grass',
             'Trees',
-            'Soil',
             'Water',
-            'Residential'
+            'Residential buildings',
+            'Non-residential buildings',
+            'Road'
         ]
 
 
-class RawHyRANK(Dataset):
-    def __init__(self, root, split: str, transform=None):
-        super(RawHyRANK, self).__init__()
-        assert split in ['train', 'val', 'test']
+class HyRankDataset(Dataset):
+    def __init__(self, root, split: str, window_size: Tuple[int, int], pad_mode: str, transform=None):
+        super(HyRankDataset, self).__init__(root, split, window_size, pad_mode, transform)
         if split == 'train':
             data_filename = 'Dioni.mat'
             gt_filename = 'Dioni_gt.mat'
@@ -73,43 +62,26 @@ class RawHyRANK(Dataset):
         self.data = sio.loadmat(self.data_path)['ori_data'].astype('float32')
         self.gt_path = os.path.join(root, gt_filename)
         self.gt = sio.loadmat(self.gt_path)['map'].astype('int')
+        self.selector = lambda x, y: y not in [0, 6, 8]
 
         self.transform = transform
         if self.transform is not None:
             self.data, self.gt = self.transform(self.data, self.gt)
 
-    def name2label(self, name):
-        return self.names.index(name)
-
-    def label2name(self, label):
-        return self.names[label]
-
-    @property
-    def num_classes(self):
-        return len(self.labels)
-
     @property
     def num_channels(self):
-        raise NotImplementedError('num_channels() not implemented')
-
-    @property
-    def labels(self):
-        # e.g. [0, 1, 2]
-        return list(range(len(self.names)))
+        return 176
 
     @property
     def names(self):
         # e.g. ['background', 'road', 'building']
         return [
-            'Unused',
             'Dense urban fabric',
             'Mineral extraction sites',
             'Non irrigated land',
             'Fruit trees',
             'Olive Groves',
-            'Broad-leaved Forest',
             'Coniferous Forest',
-            'Mixed Forest',
             'Dense Vegetation',
             'Sparce Vegetation',
             'Sparce Areas',
@@ -119,12 +91,11 @@ class RawHyRANK(Dataset):
         ]
 
 
-class RawShangHang(Dataset):
-    def __init__(self, root, split: str, transform=None):
-        super(RawShangHang, self).__init__()
-        assert split in ['train', 'val', 'test']
-        data_filename = 'DataCube_ShanghaiHangzhou.mat'
+class ShangHangDataset(HoustonDataset):
+    def __init__(self, root, split: str, window_size: Tuple[int, int], pad_mode: str, transform=None):
+        super(ShangHangDataset, self).__init__(root, split, window_size, pad_mode, transform)
 
+        data_filename = 'DataCube_ShanghaiHangzhou.mat'
         self.data_path = os.path.join(root, data_filename)
         raw = sio.loadmat(self.data_path)
         if split == 'train':
@@ -134,28 +105,15 @@ class RawShangHang(Dataset):
             self.data = raw['DataCube1'].astype('float32')
             self.gt = raw['gt1'].astype('int')
 
+        self.coordinates = self.get_coordinates()
+
         self.transform = transform
         if self.transform is not None:
             self.data, self.gt = self.transform(self.data, self.gt)
 
-    def name2label(self, name):
-        return self.names.index(name)
-
-    def label2name(self, label):
-        return self.names[label]
-
-    @property
-    def num_classes(self):
-        return len(self.labels)
-
     @property
     def num_channels(self):
-        raise NotImplementedError('num_channels() not implemented')
-
-    @property
-    def labels(self):
-        # e.g. [0, 1, 2]
-        return list(range(len(self.names)))
+        return 198
 
     @property
     def names(self):

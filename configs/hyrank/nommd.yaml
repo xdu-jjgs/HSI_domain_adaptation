@@ -1,9 +1,10 @@
 DATASET:
-    NAME: 'PREPROCESSED_HyRANK'
+    NAME: 'HyRANK'
     ROOT: 'E:/zts/dataset/hyrank_preprocessed'
-    AUGMENT:
-      RATIO: 1
-      TRANS: ''
+    PATCH:
+        HEIGHT: 27
+        WIDTH: 27
+        PAD_MODE: 'symmetric'
 
 DATALOADER:
     BATCH_SIZE: 16
