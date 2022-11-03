@@ -4,4 +4,4 @@ set PYTHONPATH=%cd%
 
 rem preprocess
 python preprocess/preprocess.py configs/preprocess/hyrank.yaml ^
-      --path E:/zts/dataset/hyrank_preprocessed
+      --path E:/zzy/GAN/data/HyRANK

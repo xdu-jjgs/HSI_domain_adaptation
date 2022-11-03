@@ -1,6 +1,6 @@
 DATASET:
     NAME: 'Houston'
-    ROOT: 'E:/zts/dataset/houston_preprocessed'
+    ROOT: 'E:/zzy/GAN/data/Houston'
     PATCH:
         HEIGHT: 27
         WIDTH: 27

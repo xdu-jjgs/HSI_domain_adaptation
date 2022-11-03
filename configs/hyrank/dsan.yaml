@@ -1,6 +1,6 @@
 DATASET:
     NAME: 'HyRANK'
-    ROOT: 'E:/zts/dataset/hyrank_preprocessed'
+    ROOT: 'E:/zzy/GAN/data/HyRANK'
     PATCH:
         HEIGHT: 27
         WIDTH: 27

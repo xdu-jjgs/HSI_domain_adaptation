@@ -4,4 +4,4 @@ set PYTHONPATH=%cd%
 
 rem preprocess
 python preprocess/preprocess.py configs/preprocess/houston.yaml ^
-      --path E:/zts/dataset/houston_preprocessed
+      --path E:/zzy/GAN/data/Houston

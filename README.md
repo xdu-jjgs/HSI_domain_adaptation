@@ -64,21 +64,21 @@
 
 ```shell
 python preprocess/preprocess.py configs/preprocess/houston.yaml ^
-      --path E:/zts/dataset/houston_preprocessed
+      --path E:/zzy/GAN/data/Houston
 ```
 
 2. HyRANK数据集
 
 ```shell
 python preprocess/preprocess.py configs/preprocess/hyrank.yaml ^
-      --path E:/zts/dataset/hyrank_preprocessed
+      --path E:/zzy/GAN/data/HyRANK
 ```
 
 3. ShanghaiHangzhou数据集
 
 ```shell
 python preprocess/preprocess.py configs/preprocess/shanghang.yaml ^
-      --path E:/zts/dataset/shanghaihangzhou_preprocessed
+      --path E:/zzy/GAN/data/ShanghaiHangzhou
 ```
 
 ## <a name="models"></a> 支持的模型
