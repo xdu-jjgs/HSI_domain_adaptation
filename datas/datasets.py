@@ -89,7 +89,7 @@ class HyRankDataset(Dataset):
         ]
 
 
-class ShangHangDataset(HoustonDataset):
+class ShangHangDataset(Dataset):
     def __init__(self, root, split: str, window_size: Tuple[int, int], pad_mode: str, transform=None):
         super(ShangHangDataset, self).__init__(root, split, window_size, pad_mode, transform)
 
