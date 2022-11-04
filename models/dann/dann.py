@@ -5,12 +5,11 @@ from models.modules.reverselayer import ReverseLayerF
 
 
 class DANN(nn.Module):
-    def __init__(self, in_channels: int, num_classes: int):
+    def __init__(self, in_channels: int, num_classes: int, backbone: nn.Module):
         super(DANN, self).__init__()
-        self.out_channels = 512
-        self.feature_extractor = FeatureExtractor(in_channels, self.out_channels)
-        self.classifier = ImageClassifier(self.out_channels, num_classes)
-        self.domain_discriminator = ImageClassifier(self.out_channels, 2)
+        self.feature_extractor = backbone
+        self.classifier = ImageClassifier(in_channels, num_classes)
+        self.domain_discriminator = ImageClassifier(in_channels, 2)
 
     def forward(self, x, alpha):
         features = self.feature_extractor(x)

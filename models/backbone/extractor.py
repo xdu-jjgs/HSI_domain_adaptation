@@ -2,8 +2,10 @@ import torch.nn as nn
 
 
 class FeatureExtractor(nn.Module):
-    def __init__(self, in_channels: int, out_channels: int):
+    def __init__(self, in_channels: int, out_channels: int = 512):
         super(FeatureExtractor, self).__init__()
+        self.out_channels = out_channels
+
         self.relu = nn.ReLU()
         self.model = nn.Sequential(
             nn.Conv2d(in_channels, 64, 3, 2, 1),  # 27*27==>14*14
