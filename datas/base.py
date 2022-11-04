@@ -9,8 +9,8 @@ class Dataset(utils.data.Dataset):
                  sample_order: str = None, transform=None):
         super(Dataset, self).__init__()
         assert split in ['train', 'val', 'test']
-        assert sample_num is None or sample_num > 0
-        assert sample_order is None or sample_order in ['sequence', 'average']
+        assert sample_num is None or sample_num >= 0
+        assert sample_order is None or sample_order in ['', 'sequence', 'average']
         assert window_size[0] % 2 == 1 and window_size[1] % 2 == 1, 'window size should be odd!'
         self.root = root
         self.split = split
@@ -49,6 +49,7 @@ class Dataset(utils.data.Dataset):
             shuffle_index = np.random.permutation(np.arange(len(self.gt)))
             self.coordinates = self.coordinates[shuffle_index]
             self.gt = self.gt[shuffle_index]
+
         coordinates = []
         gts = []
         for ind, ele in enumerate(self.gt):
@@ -63,13 +64,14 @@ class Dataset(utils.data.Dataset):
         else:
             if count_all < self.sample_num:
                 if self.sample_order == 'average':
-                    for i in count:
-                        if i < num_pre_class:
+                    for ind, ele in enumerate(count):
+                        if ele < num_pre_class:
                             print(
                                 "Insufficient sample number for class {} in {} dataset,"
-                                " expect {} but actually {}.".format(self.names[i], self.split, num_pre_class, i))
+                                " expect {} but actually {}.".format(self.names[ind], self.split, num_pre_class, ele))
                 raise IndexError(
                     "Insufficient sample number, expect total {}, actually {}".format(self.sample_num, count_all))
+        return coordinates, gts
 
     def __len__(self):
         return len(self.coordinates)

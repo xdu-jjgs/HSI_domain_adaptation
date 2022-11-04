@@ -2,6 +2,7 @@ import os
 import scipy.io as sio
 
 from typing import Tuple
+from collections import Counter
 
 from datas.base import Dataset
 
@@ -24,12 +25,15 @@ class HoustonDataset(Dataset):
         self.data = sio.loadmat(self.data_path)['ori_data'].astype('float32')
         self.gt_path = os.path.join(root, gt_filename)
         self.gt = sio.loadmat(self.gt_path)['map'].astype('int')
+
         self.selector = lambda x, y: y != 0
         self.coordinates, self.gt = self.cube_data()
-        self.coordinates, self.gt = self.sample_data()
 
         if self.transform is not None:
             self.data, self.gt = self.transform(self.data, self.gt)
+
+        if self.sample_order:
+            self.coordinates, self.gt = self.sample_data()
 
     @property
     def num_channels(self):
@@ -63,13 +67,15 @@ class HyRankDataset(Dataset):
         self.data = sio.loadmat(self.data_path)['ori_data'].astype('float32')
         self.gt_path = os.path.join(root, gt_filename)
         self.gt = sio.loadmat(self.gt_path)['map'].astype('int')
+
         self.selector = lambda x, y: y not in [0, 6, 8]
         self.coordinates, self.gt = self.cube_data()
-        self.coordinates, self.gt = self.sample_data()
 
-        self.transform = transform
         if self.transform is not None:
             self.data, self.gt = self.transform(self.data, self.gt)
+
+        if self.sample_order:
+            self.coordinates, self.gt = self.sample_data()
 
     @property
     def num_channels(self):
@@ -107,12 +113,16 @@ class ShangHangDataset(Dataset):
         else:
             self.data = raw['DataCube1'].astype('float32')
             self.gt = raw['gt1'].astype('int')
-        self.coordinates, self.gt = self.cube_data()
-        self.coordinates, self.gt = self.sample_data()
 
-        self.transform = transform
+        self.coordinates, self.gt = self.cube_data()
+
         if self.transform is not None:
             self.data, self.gt = self.transform(self.data, self.gt)
+
+        if self.sample_order:
+            self.coordinates, self.gt = self.sample_data()
+
+        print(Counter(self.data))
 
     @property
     def num_channels(self):
