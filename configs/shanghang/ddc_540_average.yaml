@@ -1,11 +1,12 @@
 DATASET:
-    NAME: 'HyRANK'
-    ROOT: 'E:/zzy/GAN/data/HyRANK'
+    NAME: 'ShangHang'
+    ROOT: 'E:/zzy/GAN/data/ShanghaiHangzhou'
     PATCH:
         HEIGHT: 27
         WIDTH: 27
         PAD_MODE: 'symmetric'
-
+    SAMPLE_NUM: 540
+    SAMPLE_ORDER: 'average'
 
 DATALOADER:
     BATCH_SIZE: 16
@@ -18,10 +19,11 @@ MODEL:
 CRITERION:
     ITEMS:
       - 'softmax+ce'
-      - 'coral'
+      - 'mmd'
     WEIGHTS:
       - 1.0
       - 1.0
+    KERNEL_NUM: 1
 
 OPTIMIZER:
     NAME: 'adam'
@@ -33,4 +35,4 @@ SCHEDULER:
     FACTOR: 0.1
     PATIENCE: 2
 
-EPOCHS: 35
+EPOCHS: 5

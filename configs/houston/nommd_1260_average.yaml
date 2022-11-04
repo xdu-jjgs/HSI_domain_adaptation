@@ -1,14 +1,15 @@
 DATASET:
-    NAME: 'HyRANK'
-    ROOT: 'E:/zzy/GAN/data/HyRANK'
+    NAME: 'Houston'
+    ROOT: 'E:/zzy/GAN/data/Houston'
     PATCH:
         HEIGHT: 27
         WIDTH: 27
         PAD_MODE: 'symmetric'
-
+    SAMPLE_NUM: 1260
+    SAMPLE_ORDER: 'average'
 
 DATALOADER:
-    BATCH_SIZE: 16
+    BATCH_SIZE: 64
     NUM_WORKERS: 0
 
 MODEL:
@@ -18,9 +19,7 @@ MODEL:
 CRITERION:
     ITEMS:
       - 'softmax+ce'
-      - 'coral'
     WEIGHTS:
-      - 1.0
       - 1.0
 
 OPTIMIZER:
@@ -33,4 +32,4 @@ SCHEDULER:
     FACTOR: 0.1
     PATIENCE: 2
 
-EPOCHS: 35
+EPOCHS: 30

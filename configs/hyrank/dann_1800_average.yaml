@@ -5,20 +5,21 @@ DATASET:
         HEIGHT: 27
         WIDTH: 27
         PAD_MODE: 'symmetric'
-
+    SAMPLE_NUM: 1800
+    SAMPLE_ORDER: 'average'
 
 DATALOADER:
     BATCH_SIZE: 16
     NUM_WORKERS: 0
 
 MODEL:
-    NAME: 'ddc'
+    NAME: 'dann'
     BACKBONE: 'fe'
 
 CRITERION:
     ITEMS:
       - 'softmax+ce'
-      - 'coral'
+      - 'softmax+ce'
     WEIGHTS:
       - 1.0
       - 1.0
