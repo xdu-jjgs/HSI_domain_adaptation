@@ -5,12 +5,12 @@ from models.backbone import ImageClassifier
 
 
 class DDC(nn.Module):
-    def __init__(self, in_channels: int, num_classes: int, backbone: nn.Module):
+    def __init__(self, num_classes: int, backbone: nn.Module):
         super(DDC, self).__init__()
-        self.feature_extractor = backbone
-        self.classifier = ImageClassifier(in_channels, num_classes)
+        self.backbone = backbone
+        self.classifier = ImageClassifier(backbone.out_channels, num_classes)
 
     def forward(self, x):
-        features = self.feature_extractor(x)
+        features = self.backbone(x)
         x, out = self.classifier(features)
         return x, out

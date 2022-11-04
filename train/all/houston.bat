@@ -86,15 +86,15 @@ python train/mcd/train.py configs/houston/mcd.yaml ^
         --seed 30 ^
         --opt-level O2
 
-rem self_training
-python train/self_training/train.py configs/houston/self_training_1_05.yaml ^
-        --path ./runs/houston/self_training_1_05-train ^
+rem dann
+python train/dann/train.py configs/houston/dann.yaml ^
+        --path ./runs/houston/dann-train ^
         --nodes 1 ^
         --gpus 1 ^
         --rank-node 0 ^
         --backend gloo ^
         --master-ip localhost ^
-        --master-port 8886 ^
+        --master-port 8890 ^
         --seed 30 ^
         --opt-level O2
 

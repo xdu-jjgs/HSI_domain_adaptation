@@ -12,7 +12,7 @@ DATALOADER:
 
 MODEL:
     NAME: 'dann'
-    BACKBONE: 'resnet50'
+    BACKBONE: 'fe'
 
 CRITERION:
     ITEMS:

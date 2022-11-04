@@ -12,7 +12,7 @@ DATALOADER:
 
 MODEL:
     NAME: 'ddc'
-    BACKBONE: 'resnet50'
+    BACKBONE: 'fe'
 
 CRITERION:
     ITEMS:

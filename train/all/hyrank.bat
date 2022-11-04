@@ -24,6 +24,7 @@ python train/ddc/train.py configs/hyrank/ddc.yaml ^
         --master-port 8886 ^
         --seed 30 ^
         --opt-level O2
+
 rem dan
 python train/ddc/train.py configs/hyrank/dan.yaml ^
         --path ./runs/hyrank/dan-train ^
