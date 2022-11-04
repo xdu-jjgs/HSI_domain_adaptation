@@ -12,6 +12,7 @@ DATALOADER:
 
 MODEL:
     NAME: 'mcd'
+    BACKBONE: 'resnet50'
 
 CRITERION:
     ITEMS:

@@ -1,4 +1,3 @@
-import torch
 import torch.nn as nn
 import torchvision.models as models
 
@@ -6,7 +5,7 @@ from models.utils.download import load_pretrained_models
 
 
 class ResNet(nn.Module):
-    def __init__(self, in_channels: int, num_classes: int, depth: int, pretrained=True,
+    def __init__(self, in_channels: int, depth: int, pretrained=True,
                  replace_stride_with_dilation=None):
         super(ResNet, self).__init__()
         self.model_name = 'resnet{}'.format(depth)
@@ -17,7 +16,7 @@ class ResNet(nn.Module):
             50: 2048,
             101: 2048,
         }
-        out_channels = depth2channels[depth]
+        self.out_channels = depth2channels[depth]
 
         if pretrained:
             model = load_pretrained_models(model, self.model_name)
@@ -32,8 +31,6 @@ class ResNet(nn.Module):
         self.layer2 = model.layer2
         self.layer3 = model.layer3
         self.layer4 = model.layer4
-        self.avgpool = model.avgpool
-        self.fc = nn.Linear(out_channels, num_classes)
 
     def forward(self, x):
         x = self.layer0(x)
@@ -41,7 +38,4 @@ class ResNet(nn.Module):
         x = self.layer2(x)
         x = self.layer3(x)
         x = self.layer4(x)
-        x = self.avgpool(x)
-        x = torch.flatten(x, 1)
-        x = self.fc(x)
         return x
