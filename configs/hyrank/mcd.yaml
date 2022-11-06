@@ -6,6 +6,7 @@ DATASET:
         WIDTH: 27
         PAD_MODE: 'symmetric'
 
+
 DATALOADER:
     BATCH_SIZE: 16
     NUM_WORKERS: 0
@@ -32,6 +33,6 @@ SCHEDULER:
     FACTOR: 0.1
     PATIENCE: 2
 
-EPOCHS: 20
+EPOCHS: 35
 
 EPOCHFE: 2

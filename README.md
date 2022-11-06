@@ -78,7 +78,7 @@
 2. 或者运行如下命令
 
  ```shell
-python train/ddc/train.py configs/houston/dan.yaml ^
+python train/ddc/train.py configs/houston/dan_1800_average.yaml ^
         --path ./runs/houston/dan-train ^
         --nodes 1 ^
         --gpus 1 ^

@@ -2,13 +2,15 @@ import os
 import scipy.io as sio
 
 from typing import Tuple
+from collections import Counter
 
 from datas.base import Dataset
 
 
 class HoustonDataset(Dataset):
-    def __init__(self, root, split: str, window_size: Tuple[int, int], pad_mode: str, transform=None):
-        super(HoustonDataset, self).__init__(root, split, window_size, pad_mode, transform)
+    def __init__(self, root, split: str, window_size: Tuple[int, int], pad_mode: str, sample_num: int = None,
+                 sample_order: str = None, transform=None):
+        super(HoustonDataset, self).__init__(root, split, window_size, pad_mode, sample_num, sample_order, transform)
         data_filename = 'DataCube_ShanghaiHangzhou.mat'
         self.data_path = os.path.join(root, data_filename)
         if split == 'train':
@@ -23,11 +25,15 @@ class HoustonDataset(Dataset):
         self.data = sio.loadmat(self.data_path)['ori_data'].astype('float32')
         self.gt_path = os.path.join(root, gt_filename)
         self.gt = sio.loadmat(self.gt_path)['map'].astype('int')
+
         self.selector = lambda x, y: y != 0
-        self.coordinates, self.gt = self.cube_image()
+        self.coordinates, self.gt = self.cube_data()
 
         if self.transform is not None:
             self.data, self.gt = self.transform(self.data, self.gt)
+
+        if self.sample_order:
+            self.coordinates, self.gt = self.sample_data()
 
     @property
     def num_channels(self):
@@ -47,8 +53,9 @@ class HoustonDataset(Dataset):
 
 
 class HyRankDataset(Dataset):
-    def __init__(self, root, split: str, window_size: Tuple[int, int], pad_mode: str, transform=None):
-        super(HyRankDataset, self).__init__(root, split, window_size, pad_mode, transform)
+    def __init__(self, root, split: str, window_size: Tuple[int, int], pad_mode: str, sample_num: int = None,
+                 sample_order: str = None, transform=None):
+        super(HyRankDataset, self).__init__(root, split, window_size, pad_mode, sample_num, sample_order, transform)
         if split == 'train':
             data_filename = 'Dioni.mat'
             gt_filename = 'Dioni_gt.mat'
@@ -60,12 +67,15 @@ class HyRankDataset(Dataset):
         self.data = sio.loadmat(self.data_path)['ori_data'].astype('float32')
         self.gt_path = os.path.join(root, gt_filename)
         self.gt = sio.loadmat(self.gt_path)['map'].astype('int')
-        self.selector = lambda x, y: y not in [0, 6, 8]
-        self.coordinates, self.gt = self.cube_image()
 
-        self.transform = transform
+        self.selector = lambda x, y: y not in [0, 6, 8]
+        self.coordinates, self.gt = self.cube_data()
+
         if self.transform is not None:
             self.data, self.gt = self.transform(self.data, self.gt)
+
+        if self.sample_order:
+            self.coordinates, self.gt = self.sample_data()
 
     @property
     def num_channels(self):
@@ -90,8 +100,9 @@ class HyRankDataset(Dataset):
 
 
 class ShangHangDataset(Dataset):
-    def __init__(self, root, split: str, window_size: Tuple[int, int], pad_mode: str, transform=None):
-        super(ShangHangDataset, self).__init__(root, split, window_size, pad_mode, transform)
+    def __init__(self, root, split: str, window_size: Tuple[int, int], pad_mode: str, sample_num: int = None,
+                 sample_order: str = None, transform=None):
+        super(ShangHangDataset, self).__init__(root, split, window_size, pad_mode, sample_num, sample_order, transform)
 
         data_filename = 'DataCube_ShanghaiHangzhou.mat'
         self.data_path = os.path.join(root, data_filename)
@@ -102,11 +113,16 @@ class ShangHangDataset(Dataset):
         else:
             self.data = raw['DataCube1'].astype('float32')
             self.gt = raw['gt1'].astype('int')
-        self.coordinates, self.gt = self.cube_image()
 
-        self.transform = transform
+        self.coordinates, self.gt = self.cube_data()
+
         if self.transform is not None:
             self.data, self.gt = self.transform(self.data, self.gt)
+
+        if self.sample_order:
+            self.coordinates, self.gt = self.sample_data()
+
+        print(Counter(self.data))
 
     @property
     def num_channels(self):

@@ -5,7 +5,8 @@ DATASET:
         HEIGHT: 27
         WIDTH: 27
         PAD_MODE: 'symmetric'
-
+    SAMPLE_NUM: 1800
+    SAMPLE_ORDER: 'average'
 
 DATALOADER:
     BATCH_SIZE: 16
@@ -33,4 +34,4 @@ SCHEDULER:
     FACTOR: 0.1
     PATIENCE: 2
 
-EPOCHS: 35
+EPOCHS: 20
