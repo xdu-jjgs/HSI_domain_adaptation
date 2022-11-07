@@ -122,8 +122,6 @@ class ShangHangDataset(Dataset):
         if self.sample_order:
             self.coordinates, self.gt = self.sample_data()
 
-        print(Counter(self.data))
-
     @property
     def num_channels(self):
         return 198
