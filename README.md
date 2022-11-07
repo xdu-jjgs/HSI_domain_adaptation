@@ -64,7 +64,7 @@
 - [x] JAN
 - [x] DSAN
 - [x] DANN
-- [ ] ADAA
+- [ ] ADDA
 - [ ] CDAN
 - [x] MCD
 - [ ] ParetoDA
