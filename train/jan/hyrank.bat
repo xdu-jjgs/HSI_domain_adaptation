@@ -12,49 +12,16 @@ python train/ddc/train.py configs/hyrank/jan.yaml ^
         --master-ip localhost ^
         --master-port 8890 ^
         --seed 30 ^
-        --opt-level O1
+        --opt-level O2
 
-python train/ddc/train.py configs/hyrank/jan_2.yaml ^
-        --path ./runs/hyrank/jan_2-train ^
+rem jan
+python train/ddc/train.py configs/hyrank/jan_1800_average.yaml ^
+        --path ./runs/hyrank_sample/jan-train ^
         --nodes 1 ^
         --gpus 1 ^
         --rank-node 0 ^
         --backend gloo ^
         --master-ip localhost ^
-        --master-port 8890 ^
+        --master-port 8826 ^
         --seed 30 ^
-        --opt-level O1
-
-python train/ddc/train.py configs/hyrank/jan_3.yaml ^
-        --path ./runs/hyrank/jan_3-train ^
-        --nodes 1 ^
-        --gpus 1 ^
-        --rank-node 0 ^
-        --backend gloo ^
-        --master-ip localhost ^
-        --master-port 8890 ^
-        --seed 30 ^
-        --opt-level O1
-
-python train/ddc/train.py configs/hyrank/jan_5.yaml ^
-        --path ./runs/hyrank/jan_5-train ^
-        --nodes 1 ^
-        --gpus 1 ^
-        --rank-node 0 ^
-        --backend gloo ^
-        --master-ip localhost ^
-        --master-port 8890 ^
-        --seed 30 ^
-        --opt-level O1
-
-python train/ddc/train.py configs/hyrank/jan_05.yaml ^
-        --path ./runs/hyrank/jan_05-train ^
-        --nodes 1 ^
-        --gpus 1 ^
-        --rank-node 0 ^
-        --backend gloo ^
-        --master-ip localhost ^
-        --master-port 8890 ^
-        --seed 30 ^
-        --opt-level O1
-
+        --opt-level O2

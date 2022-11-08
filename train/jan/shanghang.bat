@@ -12,48 +12,16 @@ python train/ddc/train.py configs/shanghang/jan.yaml ^
         --master-ip localhost ^
         --master-port 8890 ^
         --seed 30 ^
-        --opt-level O1
+        --opt-level O2
 
-python train/ddc/train.py configs/shanghang/jan_2.yaml ^
-        --path ./runs/shanghang/jan_2-train ^
+rem jan
+python train/ddc/train.py configs/shanghang/jan_540_average.yaml ^
+        --path ./runs/shanghang_sample/jan-train ^
         --nodes 1 ^
         --gpus 1 ^
         --rank-node 0 ^
         --backend gloo ^
         --master-ip localhost ^
-        --master-port 8890 ^
+        --master-port 8826 ^
         --seed 30 ^
-        --opt-level O1
-
-python train/ddc/train.py configs/shanghang/jan_3.yaml ^
-        --path ./runs/shanghang/jan_3-train ^
-        --nodes 1 ^
-        --gpus 1 ^
-        --rank-node 0 ^
-        --backend gloo ^
-        --master-ip localhost ^
-        --master-port 8890 ^
-        --seed 30 ^
-        --opt-level O1
-
-python train/ddc/train.py configs/shanghang/jan_5.yaml ^
-        --path ./runs/shanghang/jan_5-train ^
-        --nodes 1 ^
-        --gpus 1 ^
-        --rank-node 0 ^
-        --backend gloo ^
-        --master-ip localhost ^
-        --master-port 8890 ^
-        --seed 30 ^
-        --opt-level O1
-
-python train/ddc/train.py configs/shanghang/jan_05.yaml ^
-        --path ./runs/shanghang/jan_05-train ^
-        --nodes 1 ^
-        --gpus 1 ^
-        --rank-node 0 ^
-        --backend gloo ^
-        --master-ip localhost ^
-        --master-port 8890 ^
-        --seed 30 ^
-        --opt-level O1
+        --opt-level O2

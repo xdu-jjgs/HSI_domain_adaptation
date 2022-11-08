@@ -13,3 +13,15 @@ python train/nommd/train.py configs/shanghang/nommd.yaml ^
         --master-port 8890 ^
         --seed 30 ^
         --opt-level O2
+
+rem nommd
+python train/nommd/train.py configs/shanghang/nommd_540_average.yaml ^
+        --path ./runs/shanghang_sample/nommd-train ^
+        --nodes 1 ^
+        --gpus 1 ^
+        --rank-node 0 ^
+        --backend gloo ^
+        --master-ip localhost ^
+        --master-port 8890 ^
+        --seed 30 ^
+        --opt-level O2

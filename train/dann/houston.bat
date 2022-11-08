@@ -12,4 +12,16 @@ python train/dann/train.py configs/houston/dann.yaml ^
         --master-ip localhost ^
         --master-port 8890 ^
         --seed 30 ^
-        --opt-level O1
+        --opt-level O2
+
+rem dann
+python train/dann/train.py configs/houston/dann_1260_average.yaml ^
+        --path ./runs/houston_sample/dann-train ^
+        --nodes 1 ^
+        --gpus 1 ^
+        --rank-node 0 ^
+        --backend gloo ^
+        --master-ip localhost ^
+        --master-port 8890 ^
+        --seed 30 ^
+        --opt-level O2
