@@ -1,17 +1,15 @@
 import os
-import numpy as np
+import scipy.io as sio
 
 from collections import Counter
 
-path = r'E:\zts\dataset\shanghaihangzhou_preprocessed'
-files = os.listdir(path)
-for file in files:
-    if file.split('.')[-1] == 'npy':
-        if '_gt'in file:
-            gt = np.load(os.path.join(path, file))
-            print(file, gt.shape, Counter(gt))
+file = r'E:/zzy/GAN/data/ShanghaiHangzhou/DataCube_ShanghaiHangzhou.mat'
+gt1 = sio.loadmat(file)['gt1'].flatten()
+print('gt1', Counter(gt1))
+gt2 = sio.loadmat(file)['gt2'].flatten()
+print('gt2', Counter(gt2))
 
 '''
-test_gt.npy (368000,) Counter({1: 161689, 0: 123123, 2: 83188})
-train_gt.npy (135700,) Counter({1: 77450, 2: 40207, 0: 18043})
+gt1 Counter({2: 161689, 1: 123123, 3: 83188})
+gt2 Counter({2: 77450, 3: 40207, 1: 18043})
 '''

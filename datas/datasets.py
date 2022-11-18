@@ -2,7 +2,6 @@ import os
 import scipy.io as sio
 
 from typing import Tuple
-from collections import Counter
 
 from datas.base import Dataset
 
