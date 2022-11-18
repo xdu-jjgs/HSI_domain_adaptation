@@ -1,28 +1,19 @@
 import os
-import torch
-import numpy as np
+import scipy.io as sio
 
 from collections import Counter
 
-path = r'E:\zts\dataset\hyrank_preprocessed'
+path = r'E:/zzy/GAN/data/HyRANK'
 files = os.listdir(path)
 for file in files:
-    if file.split('.')[-1] == 'pt':
-        data = torch.load(os.path.join(path, file)).float()
-        # NCHW -> CHWN
-        data = torch.permute(data, (1, 2, 3, 0))
-        c = data.size()[0]
-        data = torch.reshape(data, (c, -1))
-        print(torch.mean(data, dim=-1))
-        print(torch.std(data, dim=-1))
-    elif file.split('.')[-1] == 'npy':
-        gt = np.load(os.path.join(path, file))
-        print(gt.shape, Counter(gt))
+    if 'gt' in file:
+        gt = sio.loadmat(os.path.join(path, file))['map'].flatten()
+        print(file, Counter(gt))
 
 # TODO: Loukia的样本数与TSTNet中对不上
 """
-test - (12208,) Counter({6: 3793, 7: 2803, 4: 1401, 10: 1393, 2: 542, 5: 500, 9: 487, 11: 451, 8: 404, 0: 288, 
-3: 79, 1: 67}) 
-train - (20024,) Counter({7: 6374, 6: 5035, 4: 1768, 8: 1754, 10: 1612, 0: 1262, 2: 614, 9: 492, 11: 398, 5: 361, 
-1: 204, 3: 150})
+Dioni_gt.mat Counter({0: 323976, 10: 6374, 9: 5035, 5: 1768, 11: 1754, 13: 1612, 1: 1262, 3: 614, 12: 492, 14: 398, 7: 361, 2: 204, 4: 150})
+Dioni_gt_out68.mat Counter({0: 323976, 10: 6374, 9: 5035, 5: 1768, 11: 1754, 13: 1612, 1: 1262, 3: 614, 12: 492, 14: 398, 7: 361, 2: 204, 4: 150})
+Loukia_gt.mat Counter({0: 221802, 9: 3793, 10: 2803, 5: 1401, 13: 1393, 8: 1072, 3: 542, 7: 500, 12: 487, 14: 451, 11: 404, 1: 288, 6: 223, 4: 79, 2: 67})
+Loukia_gt_out68.mat Counter({0: 223097, 9: 3793, 10: 2803, 5: 1401, 13: 1393, 3: 542, 7: 500, 12: 487, 14: 451, 11: 404, 1: 288, 4: 79, 2: 67})
 """
