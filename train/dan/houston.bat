@@ -11,7 +11,7 @@ python train/ddc/train.py configs/houston/dan.yaml ^
         --backend gloo ^
         --master-ip localhost ^
         --master-port 8886 ^
-        --seed 30 ^
+        --seed %~1% ^
         --opt-level O2
 
 rem dan
@@ -23,17 +23,5 @@ python train/ddc/train.py configs/houston/dan_1260_average.yaml ^
         --backend gloo ^
         --master-ip localhost ^
         --master-port 8886 ^
-        --seed 30 ^
-        --opt-level O2
-
-rem dan
-python train/ddc/train.py configs/houston/dan_1260_average_5_resnet50.yaml ^
-        --path ./runs/houston_sample/dan_1260_average_5_resnet50-train ^
-        --nodes 1 ^
-        --gpus 1 ^
-        --rank-node 0 ^
-        --backend gloo ^
-        --master-ip localhost ^
-        --master-port 8886 ^
-        --seed 30 ^
+        --seed %~1% ^
         --opt-level O2

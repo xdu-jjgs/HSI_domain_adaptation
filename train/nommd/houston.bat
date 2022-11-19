@@ -11,7 +11,7 @@ python train/nommd/train.py configs/houston/nommd.yaml ^
         --backend gloo ^
         --master-ip localhost ^
         --master-port 8890 ^
-        --seed 30 ^
+        --seed %~1% ^
         --opt-level O2
 
 rem nommd
@@ -23,5 +23,5 @@ python train/nommd/train.py configs/houston/nommd_1260_average.yaml ^
         --backend gloo ^
         --master-ip localhost ^
         --master-port 8890 ^
-        --seed 30 ^
+        --seed %~1% ^
         --opt-level O2

@@ -11,7 +11,7 @@ python train/self_training/train.py configs/shanghang/self_training.yaml ^
         --backend gloo ^
         --master-ip localhost ^
         --master-port 8890 ^
-        --seed 30 ^
+        --seed %~1% ^
         --opt-level O2
 
 rem self_training
@@ -23,5 +23,5 @@ python train/self_training/train.py configs/shanghang/self_training_1_05_540_ave
         --backend gloo ^
         --master-ip localhost ^
         --master-port 8886 ^
-        --seed 30 ^
+        --seed %~1% ^
         --opt-level O2

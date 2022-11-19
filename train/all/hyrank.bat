@@ -1,14 +1,14 @@
 cd E:\zts\HSI_domain_adaptation
 
 for /l %%i in (1,1,10) do (
-    cd "train\dan\hyrank.bat"
-    cd "train\dann\hyrank.bat"
-    cd "train\ddc\hyrank.bat"
-    cd "train\deepcoral\hyrank.bat"
-    cd "train\dsan\hyrank.bat"
-    cd "train\jan\hyrank.bat"
-    cd "train\mcd\hyrank.bat"
-    cd "train\nommd\hyrank.bat"
-    cd "train\self_training\hyrank.bat"
+    call "train\dan\hyrank.bat" %%i
+    call "train\dann\hyrank.bat" %%i
+    call "train\ddc\hyrank.bat" %%i
+    call "train\deepcoral\hyrank.bat" %%i
+    call "train\dsan\hyrank.bat" %%i
+    call "train\jan\hyrank.bat" %%i
+    call "train\mcd\hyrank.bat" %%i
+    call "train\nommd\hyrank.bat" %%i
+    call "train\self_training\hyrank.bat" %%i
 )
 

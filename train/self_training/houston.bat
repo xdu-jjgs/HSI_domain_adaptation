@@ -11,7 +11,7 @@ python train/self_training/train.py configs/houston/self_training_1_05.yaml ^
         --backend gloo ^
         --master-ip localhost ^
         --master-port 8886 ^
-        --seed 30 ^
+        --seed %~1% ^
         --opt-level O2
 
 rem self_training
@@ -23,5 +23,5 @@ python train/self_training/train.py configs/houston/self_training_1_05_1260_aver
         --backend gloo ^
         --master-ip localhost ^
         --master-port 8886 ^
-        --seed 30 ^
+        --seed %~1% ^
         --opt-level O2

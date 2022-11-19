@@ -11,7 +11,7 @@ python train/dann/train.py configs/hyrank/dann.yaml ^
         --backend gloo ^
         --master-ip localhost ^
         --master-port 8890 ^
-        --seed 30 ^
+        --seed %~1% ^
         --opt-level O2
 
 rem dann
@@ -23,5 +23,5 @@ python train/dann/train.py configs/hyrank/dann_1800_average.yaml ^
         --backend gloo ^
         --master-ip localhost ^
         --master-port 8890 ^
-        --seed 30 ^
+        --seed %~1% ^
         --opt-level O2

@@ -1,13 +1,13 @@
 cd E:\zts\HSI_domain_adaptation
 
 for /l %%i in (1,1,10) do (
-    cd "train\dan\shanghang.bat"
-    cd "train\dann\shanghang.bat"
-    cd "train\ddc\shanghang.bat"
-    cd "train\deepcoral\shanghang.bat"
-    cd "train\dsan\shanghang.bat"
-    cd "train\jan\shanghang.bat"
-    cd "train\mcd\shanghang.bat"
-    cd "train\nommd\shanghang.bat"
-    cd "train\self_training\shanghang.bat"
+    call "train\dan\shanghang.bat" %%i
+    call "train\dann\shanghang.bat" %%i
+    call "train\ddc\shanghang.bat" %%i
+    call "train\deepcoral\shanghang.bat" %%i
+    call "train\dsan\shanghang.bat" %%i
+    call "train\jan\shanghang.bat" %%i
+    call "train\mcd\shanghang.bat" %%i
+    call "train\nommd\shanghang.bat" %%i
+    call "train\self_training\shanghang.bat" %%i
 )

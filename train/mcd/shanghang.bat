@@ -11,7 +11,7 @@ python train/mcd/train.py configs/shanghang/mcd.yaml ^
         --backend gloo ^
         --master-ip localhost ^
         --master-port 8890 ^
-        --seed 30 ^
+        --seed %~1% ^
         --opt-level O2
 
 rem mcd
@@ -23,5 +23,5 @@ python train/mcd/train.py configs/shanghang/mcd_540_average.yaml ^
         --backend gloo ^
         --master-ip localhost ^
         --master-port 8886 ^
-        --seed 30 ^
+        --seed %~1% ^
         --opt-level O2
