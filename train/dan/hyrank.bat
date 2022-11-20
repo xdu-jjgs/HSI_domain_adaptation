@@ -3,8 +3,8 @@ cd E:\zts\HSI_domain_adaptation
 set PYTHONPATH=%cd%
 
 rem dan
-python train/ddc/train.py configs/hyrank/dan_3.yaml ^
-        --path ./runs/hyrank/dan_3-train ^
+python train/ddc/train.py configs/hyrank/dan.yaml ^
+        --path ./runs/hyrank/dan-train ^
         --nodes 1 ^
         --gpus 1 ^
         --rank-node 0 ^
