@@ -137,17 +137,13 @@ def worker(rank_gpu, args):
     # build data sampler
     train_sampler = DistributedSampler(train_dataset, shuffle=True)
     val_sampler = DistributedSampler(val_dataset, shuffle=True)
-    test_sampler = DistributedSampler(test_dataset, shuffle=True)
-    static_sample = DistributedSampler(test_dataset, shuffle=False)
     # build data loader
     train_dataloader = build_dataloader(train_dataset, sampler=train_sampler)
     val_dataloader = build_dataloader(val_dataset, sampler=val_sampler)
-    test_dataloader = build_dataloader(test_dataset, sampler=test_sampler)
-    static_dataloader = build_dataloader(test_dataloader, sampler=static_sample, static=True)
     # build model
     model = build_model(NUM_CHANNELS, NUM_CLASSES)
     model.to(device)
-    dqn = DQN(len(static_dataloader), CFG.DATALOADER.BATCH_SIZE)
+    dqn = DQN(len(test_dataset), CFG.DATALOADER.BATCH_SIZE)
     dqn.to(device)
     # print(model)
     # build criterion
@@ -217,10 +213,10 @@ def worker(rank_gpu, args):
         if epoch % 2 == 0:
             dqn.train()
             model.eval()
-            state = torch.tensor([0] * len(static_dataloader))
-            state_ = torch.tensor([0] * len(static_dataloader))
+            state = torch.tensor([0] * len(test_dataset))
+            state_ = torch.tensor([0] * len(test_dataset))
             # update state and dqn
-            for ind, item in enumerate(static_dataloader):
+            for ind, item in enumerate(test_dataset):
                 action = dqn.choose_action(state)
                 state_[ind] = action
                 if action == 1:

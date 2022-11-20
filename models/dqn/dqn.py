@@ -30,7 +30,7 @@ class Net(nn.Module):
 
 class DQN(nn.Module):
     def __init__(self, len_states: int, batch_size: int):
-        super(DQN).__init__()
+        super(DQN, self).__init__()
         self.epsilon = 0.9
         self.gamma = 0.9
         self.batch_size = batch_size
