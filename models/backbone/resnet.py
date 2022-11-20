@@ -1,6 +1,7 @@
 import torch.nn as nn
 import torchvision.models as models
 
+from models.utils.init import initialize_weights
 from models.utils.download import load_pretrained_models
 
 
@@ -21,6 +22,8 @@ class ResNet(nn.Module):
         if pretrained:
             model = load_pretrained_models(model, self.model_name)
         model.conv1 = nn.Conv2d(in_channels, model.conv1.out_channels, 7, stride=2, padding=3, bias=False)
+        if not pretrained:
+            initialize_weights(model)
 
         self.layer0 = nn.Sequential(
             model.conv1,

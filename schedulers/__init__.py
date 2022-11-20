@@ -9,7 +9,7 @@ def build_scheduler(optimizer):
         scheduler = None
     elif CFG.SCHEDULER.NAME == 'poly':
         scheduler = optim.lr_scheduler.ExponentialLR(optimizer,
-                                                     gamma=CFG.SCHEDULER.GAMMA,
+                                                     gamma=CFG.SCHEDULER.gamma,
                                                      verbose=True)
     elif CFG.SCHEDULER.NAME == 'plateau':
         scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer,

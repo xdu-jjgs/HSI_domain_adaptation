@@ -7,11 +7,6 @@ import torch.nn.functional as F
 class L1Distance(nn.Module):
     def __init__(self):
         super(L1Distance, self).__init__()
-        # self.eps = eps
-
-    @property
-    def num_keys(self):
-        return 2
 
     def forward(self, p1, p2):
         # target: tensor(b, c, h, w); prediction: same as target
