@@ -38,9 +38,9 @@ def build_dataset(split: str):
     return dataset
 
 
-def build_dataloader(dataset, sampler=None, static: bool = False):
+def build_dataloader(dataset, sampler=None):
     return DataLoader(dataset,
-                      batch_size=1 if static else CFG.DATALOADER.BATCH_SIZE // dist.get_world_size(),
+                      batch_size=CFG.DATALOADER.BATCH_SIZE // dist.get_world_size(),
                       num_workers=CFG.DATALOADER.NUM_WORKERS,
                       pin_memory=True if CFG.DATALOADER.NUM_WORKERS > 0 else False,
                       sampler=sampler,
