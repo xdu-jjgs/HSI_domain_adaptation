@@ -4,7 +4,7 @@ set PYTHONPATH=%cd%
 
 rem nommd
 python train/dadqn/train_nommd.py configs/houston/nommd.yaml ^
-        --path ./runs/houston/nommd-train ^
+        --path ./runs/houston/dqn_nommd-train ^
         --nodes 1 ^
         --gpus 1 ^
         --rank-node 0 ^

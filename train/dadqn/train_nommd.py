@@ -170,6 +170,7 @@ def worker(rank_gpu, args):
                                                                  opt_level=args.opt_level)
     # DDP
     model = DistributedDataParallel(model)
+    # DistributedDataParallel不能有新方法？
     dqn = DistributedDataParallel(dqn)
 
     epoch = 0
@@ -210,26 +211,33 @@ def worker(rank_gpu, args):
             writer.add_scalar('lr-epoch', lr, epoch)
 
         # train DQN
-        if epoch % 2 == 0:
+        # TODO
+        k = 1
+        if epoch % k == 0:
             dqn.train()
             model.eval()
-            state = torch.tensor([0] * len(test_dataset))
-            state_ = torch.tensor([0] * len(test_dataset))
+            state = torch.HalfTensor([0] * len(test_dataset))
+            state_ = torch.HalfTensor([0] * len(test_dataset))
+            state = state.to(device)
+            state_ = state_.to(device)
             # update state and dqn
             for ind, item in enumerate(test_dataset):
-                action = dqn.choose_action(state)
+                action = dqn.module.choose_action(state)
                 state_[ind] = action
                 if action == 1:
                     x_t, y_t = item
-                    pred = model(x_t)
+                    x_t = torch.unsqueeze(x_t, 0)
+                    x_t = x_t.to(device)
+                    _, y_t = model(x_t)
                     threshold = 0.5
-                    reward = 1 if pred.max() > threshold else -1
+                    reward = 1. if y_t.max() > threshold else -1.
                 else:
-                    reward = 0
-                dqn.store_transition(state, state_[ind], reward, state_)
+                    reward = -0.1
+                reward = torch.tensor(reward).to(device)
+                dqn.module.store_transition(state, state_[ind], reward, state_)
                 state[ind] = action
 
-                if dqn.memory_counter > dqn.memory_capacit:
+                if dqn.module.memory_counter > dqn.module.memory_capacity:
                     q_eval, q_target = dqn()
                     q_loss = q_criterion(q_eval, q_target)
                     optimizer_dqn.zero_grad()
