@@ -13,10 +13,10 @@ class Net(nn.Module):
         # 可以单智能体/多智能体
         self.num_actions = num_actions
         self.model = nn.Sequential(
-            nn.Linear(len_states, 256),
+            nn.Linear(len_states, 100),
             nn.ReLU(),
 
-            nn.Linear(256, 100),
+            nn.Linear(100, 100),
             nn.ReLU(),
 
             nn.Linear(100, self.num_actions)
@@ -36,7 +36,7 @@ class DQN(nn.Module):
         self.num_actions = 2
         self.batch_size = batch_size
         self.memory_counter = 0
-        self.memory_capacity = 300
+        self.memory_capacity = 5000
         self.memory = deque(maxlen=self.memory_capacity)
         self.eval_net, self.target_net = Net(len_states, self.num_actions), Net(len_states, self.num_actions)
 
@@ -67,14 +67,13 @@ class DQN(nn.Module):
         b_actions = b_actions.long()
         # print(b_actions, b_actions.size())
         b_rewards = torch.stack([i[2] for i in b_memory], dim=0).unsqueeze(1)
-        print(b_rewards, b_rewards.size(), b_rewards.is_cuda)
+        # print(b_rewards, b_rewards.size())
         b_states_ = torch.stack([i[3] for i in b_memory], dim=0)
         # print(b_states_, b_states_.size())
         # print(torch.masked_select(b_states, b_states != 0).size())
         # print(torch.masked_select(b_states_, b_states_ != 0).size())
 
         q_eval = self.eval_net(b_states)
-        print(q_eval.size())
         q_eval = q_eval.gather(1, b_actions)
         q_next = self.target_net(b_states_).detach()
         q_target = b_rewards + self.gamma * q_next.max(1)[0].view(self.batch_size, 1)

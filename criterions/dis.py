@@ -16,6 +16,14 @@ class L1Distance(nn.Module):
         return loss
 
 
+class L2Distance(nn.MSELoss):
+    def __init__(self):
+        super(L2Distance, self).__init__()
+
+    def forward(self, y1, y2):
+        return super(L2Distance, self).forward(y1, y2)
+
+
 class ExpMinusMSE(nn.Module):
     def __init__(self):
         super(ExpMinusMSE, self).__init__()

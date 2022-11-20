@@ -1,7 +1,7 @@
 from configs import CFG
 from .focal import FocalLoss
 from .coral import CoralLoss
-from .dis import L1Distance, ExpMSE
+from .dis import L1Distance, L2Distance
 from .ce import CELoss, SoftmaxCELoss
 from .bce import BCELoss, SigmoidBCELoss
 from .dice import DiceLoss, SigmoidDiceLoss
@@ -35,7 +35,7 @@ def build_criterion(name):
     elif name == 'l1dis':
         criterion = L1Distance()
     elif name == 'l2dis':
-        criterion = ExpMSE()
+        criterion = L2Distance()
     elif name == 'softmax+ce+ls':
         criterion = ConfidenceBasedSelfTrainingLoss(threshold=CFG.CRITERION.THRESHOLD)
     else:

@@ -212,7 +212,7 @@ def worker(rank_gpu, args):
 
         # train DQN
         # TODO
-        k = 1
+        k = 3
         if epoch % k == 0:
             dqn.train()
             model.eval()
@@ -221,7 +221,8 @@ def worker(rank_gpu, args):
             state = state.to(device)
             state_ = state_.to(device)
             # update state and dqn
-            for ind, item in enumerate(test_dataset):
+            test_bar = tqdm(test_dataset, desc='training', ascii=True)
+            for ind, item in enumerate(test_bar):
                 action = dqn.module.choose_action(state)
                 state_[ind] = action
                 if action == 1:
