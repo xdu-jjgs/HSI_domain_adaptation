@@ -1,11 +1,11 @@
 from configs import CFG
 from .focal import FocalLoss
 from .coral import CoralLoss
-from .dis import L1Distance, L2Distance
 from .ce import CELoss, SoftmaxCELoss
 from .bce import BCELoss, SigmoidBCELoss
 from .dice import DiceLoss, SigmoidDiceLoss
 from .mmd import MMDLoss, LocalMMDLoss, JointMMDLoss
+from .dis import L1Distance, L2Distance, SoftmaxL1Distance
 from tllib.self_training.pseudo_label import ConfidenceBasedSelfTrainingLoss
 
 
@@ -36,6 +36,8 @@ def build_criterion(name):
         criterion = L1Distance()
     elif name == 'l2dis':
         criterion = L2Distance()
+    elif name == 'softmax+l1dis':
+        criterion = SoftmaxL1Distance()
     elif name == 'softmax+ce+ls':
         criterion = ConfidenceBasedSelfTrainingLoss(threshold=CFG.CRITERION.THRESHOLD)
     else:

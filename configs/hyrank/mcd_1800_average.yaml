@@ -19,7 +19,7 @@ MODEL:
 CRITERION:
     ITEMS:
       - 'softmax+ce'
-      - 'l1dis'
+      - 'softmax+l1dis'
     WEIGHTS:
       - 1.0
       - 1.0
@@ -36,4 +36,4 @@ SCHEDULER:
 
 EPOCHS: 20
 
-EPOCHFE: 2
+EPOCHK: 2

@@ -10,7 +10,7 @@ python train/mcd/train.py configs/houston/mcd.yaml ^
         --rank-node 0 ^
         --backend gloo ^
         --master-ip localhost ^
-        --master-port 8886 ^
+        --master-port 8882 ^
         --seed %~1% ^
         --opt-level O2
 
@@ -22,6 +22,6 @@ python train/mcd/train.py configs/houston/mcd_1260_average.yaml ^
         --rank-node 0 ^
         --backend gloo ^
         --master-ip localhost ^
-        --master-port 8886 ^
+        --master-port 8882 ^
         --seed %~1% ^
         --opt-level O2

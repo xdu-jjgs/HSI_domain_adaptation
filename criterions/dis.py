@@ -4,16 +4,12 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-class L1Distance(nn.Module):
+class L1Distance(nn.L1Loss):
     def __init__(self):
         super(L1Distance, self).__init__()
 
     def forward(self, p1, p2):
-        # target: tensor(b, c, h, w); prediction: same as target
-        if not p1.shape == p2.shape:
-            raise ValueError('Input images must have the same dimensions.')
-        loss = torch.mean(torch.abs(F.softmax(p1, dim=1) - F.softmax(p2, dim=1)))
-        return loss
+        return super(L1Distance, self).forward(p1, p2)
 
 
 class L2Distance(nn.MSELoss):
@@ -22,6 +18,18 @@ class L2Distance(nn.MSELoss):
 
     def forward(self, y1, y2):
         return super(L2Distance, self).forward(y1, y2)
+
+
+class SoftmaxL1Distance(nn.Module):
+    def __init__(self):
+        super(SoftmaxL1Distance, self).__init__()
+
+    def forward(self, p1, p2):
+        # target: tensor(b, c, h, w); prediction: same as target
+        if not p1.shape == p2.shape:
+            raise ValueError('Input images must have the same dimensions.')
+        loss = torch.mean(torch.abs(F.softmax(p1, dim=1) - F.softmax(p2, dim=1)))
+        return loss
 
 
 class ExpMinusMSE(nn.Module):
