@@ -20,7 +20,7 @@ from models import build_model
 from criterions import build_criterion
 from optimizers import build_optimizer
 from schedulers import build_scheduler
-from datas import build_dataset, build_dataloader
+from datas import build_dataset, build_dataloader, build_iterator
 
 
 def parse_args():
@@ -126,26 +126,30 @@ def worker(rank_gpu, args):
         writer = SummaryWriter(logdir=args.path)
 
     # build dataset
-    train_dataset = build_dataset('train')
-    test_dataset = build_dataset('test')
-    val_dataset = test_dataset
-    assert train_dataset.num_classes == val_dataset.num_classes
-    logging.info("Number of train {}, val {}, test {}".format(len(train_dataset), len(val_dataset), len(test_dataset)))
-    NUM_CHANNELS = train_dataset.num_channels
-    NUM_CLASSES = train_dataset.num_classes
+    source_dataset = build_dataset('train')
+    target_dataset = build_dataset('test')
+    val_dataset = target_dataset
+    assert source_dataset.num_classes == val_dataset.num_classes
+    logging.info("Number of train {}, val {}, test {}".format(len(source_dataset), len(val_dataset), len(target_dataset)))
+    NUM_CHANNELS = source_dataset.num_channels
+    NUM_CLASSES = source_dataset.num_classes
     logging.info("Number of class: {}".format(NUM_CLASSES))
     # build data sampler
-    train_sampler = DistributedSampler(train_dataset, shuffle=True)
+    source_sampler = DistributedSampler(source_dataset, shuffle=True)
     val_sampler = DistributedSampler(val_dataset, shuffle=True)
-    test_sampler = DistributedSampler(test_dataset, shuffle=True)
+    target_sampler = DistributedSampler(target_dataset, shuffle=True)
     # build data loader
-    train_dataloader = build_dataloader(train_dataset, sampler=train_sampler)
+    source_dataloader = build_dataloader(source_dataset, sampler=source_sampler)
     val_dataloader = build_dataloader(val_dataset, sampler=val_sampler)
-    test_dataloader = build_dataloader(test_dataset, sampler=test_sampler)
+    target_dataloader = build_dataloader(target_dataset, sampler=target_sampler)
+    # build data iteration
+    source_iterator = build_iterator(source_dataloader)
+    target_iterator = build_iterator(target_dataloader)
     # build model
     model = build_model(NUM_CHANNELS, NUM_CLASSES)
     model.to(device)
     # print(model)
+
     # build criterion
     loss_names = CFG.CRITERION.ITEMS
     loss_weights = CFG.CRITERION.WEIGHTS
@@ -197,7 +201,7 @@ def worker(rank_gpu, args):
                 writer.close()
             return
 
-        train_dataloader.sampler.set_epoch(epoch)
+        source_dataloader.sampler.set_epoch(epoch)
 
         if dist.get_rank() == 0:
             lr = optimizer.param_groups[0]['lr']
@@ -206,17 +210,18 @@ def worker(rank_gpu, args):
         # train
         model.train()  # set model to training mode
         metric.reset()  # reset metric
-        train_bar = tqdm(train_dataloader, desc='training', ascii=True)
+        train_bar = tqdm(range(1, CFG.DATALOADER.ITERATION + 1), desc='training', ascii=True)
         total_loss_epoch, cls_s_loss_epoch, cls_t_loss_epoch = 0., 0., 0.
-        for train_item, test_item in zip(train_bar, test_dataloader):
-            iteration += 1
-            x_s, label = train_item
+        for iteration in train_bar:
+            x_s, label = next(source_iterator)
+            x_t, _ = next(target_iterator)
             x_s, label = x_s.to(device), label.to(device)
+            x_t = x_t.to(device)
+
             f_s, y_s = model(x_s)
 
             model.eval()
-            x_t, _ = test_item
-            x_t = x_t.to(device)
+
             with torch.no_grad():
                 f_t, y_t = model(x_t)
             model.train()
@@ -251,9 +256,9 @@ def worker(rank_gpu, args):
                 'KC': f'{metric.KC():.3f}',
             })
 
-        total_loss_epoch /= len(train_dataloader)
-        cls_s_loss_epoch /= len(train_dataloader)
-        cls_t_loss_epoch /= len(train_dataloader)
+        total_loss_epoch /= len(source_dataloader)
+        cls_s_loss_epoch /= len(source_dataloader)
+        cls_t_loss_epoch /= len(source_dataloader)
         PA, mPA, Ps, Rs, F1S, KC = metric.PA(), metric.mPA(), metric.Ps(), metric.Rs(), metric.F1s(), metric.KC()
         if dist.get_rank() == 0:
             writer.add_scalar('train/loss_total-epoch', total_loss_epoch, epoch)
