@@ -1,6 +1,6 @@
 DATASET:
-    NAME: 'Houston'
-    ROOT: 'E:/zzy/GAN/data/Houston'
+    NAME: 'HyRANK'
+    ROOT: 'E:/zzy/GAN/data/HyRANK'
     PATCH:
         HEIGHT: 27
         WIDTH: 27
@@ -25,7 +25,7 @@ CRITERION:
 
 OPTIMIZER:
     NAME: 'adam'
-    LR: 0.0003
+    LR: 0.0001
 
 SCHEDULER:
     NAME: 'plateau'
@@ -34,4 +34,4 @@ SCHEDULER:
     PATIENCE: 2
 
 EPOCHS: 30
-EPOCHK: 3
+EPOCHK: 1

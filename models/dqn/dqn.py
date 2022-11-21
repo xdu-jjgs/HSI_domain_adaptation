@@ -14,12 +14,12 @@ class Net(nn.Module):
         self.num_actions = num_actions
         self.model = nn.Sequential(
             nn.Linear(len_states, 100),
-            nn.ReLU(),
+            nn.LeakyReLU(),
 
-            nn.Linear(100, 100),
-            nn.ReLU(),
+            nn.Linear(100, 32),
+            nn.LeakyReLU(),
 
-            nn.Linear(100, self.num_actions)
+            nn.Linear(32, self.num_actions)
         )
         initialize_weights(self.model)
 

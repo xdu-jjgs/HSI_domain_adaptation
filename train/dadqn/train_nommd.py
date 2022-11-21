@@ -211,9 +211,7 @@ def worker(rank_gpu, args):
             writer.add_scalar('lr-epoch', lr, epoch)
 
         # train DQN
-        # TODO
-        k = 2
-        if epoch % k == 0:
+        if epoch % CFG.EPOCHK == 0:
             dqn.train()
             model.eval()
             metric.reset()
@@ -221,6 +219,7 @@ def worker(rank_gpu, args):
             state_ = torch.HalfTensor([0] * len(test_dataset))
             state = state.to(device)
             state_ = state_.to(device)
+            selected_data = []
             # update state and dqn
             test_bar = tqdm(test_dataset, desc='training', ascii=True)
             for ind, item in enumerate(test_bar):
@@ -232,10 +231,13 @@ def worker(rank_gpu, args):
                     x_t = x_t.to(device)
                     label_t = torch.tensor(label_t)
                     label_t = torch.unsqueeze(label_t, 0)
+
                     _, y_t = model(x_t)
                     threshold = 0.5
                     reward = 1. if y_t.max() > threshold else -1.
                     pred = y_t.argmax(axis=1)
+
+                    selected_data.append((x_t, pred))
                     metric.add(pred.data.cpu().numpy(), label_t.data.numpy())
                 else:
                     reward = -0.1
@@ -265,23 +267,25 @@ def worker(rank_gpu, args):
                     'rank{} dqn epoch={} | class={} P={:.3f} R={:.3f} F1={:.3f}'.format(dist.get_rank() + 1, epoch, c,
                                                                                         Ps[c], Rs[c], F1S[c]))
 
-            # update selected data list
-            model.train()
-            dqn.eval()
-            selected_dataset = test_dataset[state == 1]
-            selected_sampler = DistributedSampler(selected_dataset, shuffle=False)
-            selected_dataloader = build_dataloader(selected_dataset, sampler=selected_sampler)
-            for selected_item in selected_dataloader:
-                x_st, _ = selected_item
-                x_st = x_st.to(device)
-                f_st, y_st = model(x_st)
-                pseudo_labels_st = y_st.max(dim=1)
-                sel_loss = cls_criterion(pseudo_labels_st, y_st)
-                optimizer_da.zero_grad()
-                with amp.scale_loss(sel_loss, optimizer_da) as scaled_loss:
-                    scaled_loss.backward()
-                optimizer_da.step()
-            model.eval()
+            # # update selected data list
+            # model.train()
+            # print(len(selected_data))
+            # # batch size = 1
+            # selected_sampler = DistributedSampler(selected_data, shuffle=False)
+            # selected_dataloader = build_dataloader(selected_data, sampler=selected_sampler)
+            # for selected_item in selected_dataloader:
+            #     x_st, pseudo_labels_st = selected_item
+            #     x_st, pseudo_labels_st = x_st.to(device), pseudo_labels_st.to(device)
+            #     print(x_st.size(), pseudo_labels_st.size())
+            #
+            #     f_st, y_st = model(x_st)
+            #
+            #     sel_loss = cls_criterion(pseudo_labels_st, y_st)
+            #     optimizer_da.zero_grad()
+            #     with amp.scale_loss(sel_loss, optimizer_da) as scaled_loss:
+            #         scaled_loss.backward()
+            #     optimizer_da.step()
+            # model.eval()
 
         # train da model
         model.train()  # set model to training mode
