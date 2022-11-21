@@ -272,7 +272,7 @@ def worker(rank_gpu, args):
             FE.train()
             C1.eval()
             C2.eval()
-            for i in range(CFG.EPOCHFE):
+            for i in range(CFG.EPOCHK):
                 f_t = FE(x_t)
                 p1_t, p2_t = C1(f_t)[-1], C2(f_t)[-1]
                 step3_loss = dis_criterion(p1_t, p2_t)
@@ -281,7 +281,7 @@ def worker(rank_gpu, args):
                 if dist.get_rank() == 0:
                     writer.add_scalar('train/loss_step1', step1_loss.item(), iteration)
                     writer.add_scalar('train/loss_step2', step2_loss.item(), iteration)
-                    writer.add_scalar('train/loss_step3', step3_loss.item(), (iteration - 1) * CFG.EPOCHFE + i + 1)
+                    writer.add_scalar('train/loss_step3', step3_loss.item(), (iteration - 1) * CFG.EPOCHK + i + 1)
                 optimizer_fe.zero_grad()
                 with amp.scale_loss(step3_loss, optimizer_fe) as scaled_loss:
                     scaled_loss.backward()
