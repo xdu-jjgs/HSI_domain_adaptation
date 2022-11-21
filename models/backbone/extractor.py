@@ -1,4 +1,5 @@
 import torch.nn as nn
+from models.utils.init import initialize_weights
 
 
 class FeatureExtractor(nn.Module):
@@ -24,6 +25,8 @@ class FeatureExtractor(nn.Module):
             nn.BatchNorm2d(out_channels),
             self.relu
         )
+
+        initialize_weights(self.model)
 
     def forward(self, x):
         features = self.model(x)

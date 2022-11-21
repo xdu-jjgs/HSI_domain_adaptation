@@ -1,4 +1,5 @@
 from .ddc import DDC
+from .dqn import DQN
 from .dann import DANN
 from configs import CFG
 from models.backbone import build_backbone, ImageClassifier
@@ -15,4 +16,6 @@ def build_model(num_channels, num_classes):
         return FE, C1, C2
     elif CFG.MODEL.NAME == 'dann':
         return DANN(num_classes, backbone_)
+    elif CFG.MODEL.NAME == 'dqn':
+        return DQN(backbone_.out_channels, num_classes)
     raise NotImplementedError('invalid model: {}'.format(CFG.MODEL.NAME))
