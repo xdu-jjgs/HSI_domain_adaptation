@@ -240,7 +240,7 @@ def worker(rank_gpu, args):
                     selected_data.append((x_t, pred))
                     metric.add(pred.data.cpu().numpy(), label_t.data.numpy())
                 else:
-                    reward = -0.1
+                    reward = 0
                 reward = torch.tensor(reward).to(device)
                 dqn.module.store_transition(state, state_[ind], reward, state_)
                 state[ind] = action
