@@ -216,6 +216,7 @@ def worker(rank_gpu, args):
         if epoch % k == 0:
             dqn.train()
             model.eval()
+            metric.reset()
             state = torch.HalfTensor([0] * len(test_dataset))
             state_ = torch.HalfTensor([0] * len(test_dataset))
             state = state.to(device)
@@ -226,12 +227,14 @@ def worker(rank_gpu, args):
                 action = dqn.module.choose_action(state)
                 state_[ind] = action
                 if action == 1:
-                    x_t, y_t = item
+                    x_t, label_t = item
                     x_t = torch.unsqueeze(x_t, 0)
                     x_t = x_t.to(device)
                     _, y_t = model(x_t)
                     threshold = 0.5
                     reward = 1. if y_t.max() > threshold else -1.
+                    pred = y_t.argmax(axis=1)
+                    metric.add(pred.data.cpu().numpy(), label_t.data.cpu().numpy())
                 else:
                     reward = -0.1
                 reward = torch.tensor(reward).to(device)
@@ -245,6 +248,20 @@ def worker(rank_gpu, args):
                     with amp.scale_loss(q_loss, optimizer_dqn) as scaled_loss:
                         scaled_loss.backward()
                     optimizer_dqn.step()
+
+            # output selected data metric
+            PA, mPA, Ps, Rs, F1S, KC = metric.PA(), metric.mPA(), metric.Ps(), metric.Rs(), metric.F1s(), metric.KC()
+            if dist.get_rank() == 0:
+                writer.add_scalar('dqn/PA-epoch', PA, epoch)
+                writer.add_scalar('dqn/mPA-epoch', mPA, epoch)
+                writer.add_scalar('dqn/KC-epoch', KC, epoch)
+            logging.info(
+                'rank{} dqn epoch={} | PA={:.3f} mPA={:.3f} KC={:.3f}'.format(dist.get_rank() + 1, epoch, PA, mPA,
+                                                                              KC))
+            for c in range(NUM_CLASSES):
+                logging.info(
+                    'rank{} dqn epoch={} | class={} P={:.3f} R={:.3f} F1={:.3f}'.format(dist.get_rank() + 1, epoch, c,
+                                                                                        Ps[c], Rs[c], F1S[c]))
 
             # update selected data list
             model.train()
