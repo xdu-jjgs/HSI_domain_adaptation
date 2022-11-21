@@ -2,6 +2,7 @@ import torch.distributed as dist
 import datas.transforms as transforms
 
 from torch.utils.data import DataLoader
+from tllib.utils.data import ForeverDataIterator
 
 from configs import CFG
 from datas.datasets import HoustonDataset, HyRankDataset, ShangHangDataset
@@ -46,3 +47,7 @@ def build_dataloader(dataset, sampler=None):
                       sampler=sampler,
                       drop_last=True
                       )
+
+
+def build_iterator(dataloader: DataLoader):
+    return ForeverDataIterator(dataloader)
