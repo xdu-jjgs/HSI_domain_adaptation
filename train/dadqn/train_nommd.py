@@ -212,7 +212,7 @@ def worker(rank_gpu, args):
 
         # train DQN
         # TODO
-        k = 3
+        k = 2
         if epoch % k == 0:
             dqn.train()
             model.eval()
@@ -230,11 +230,13 @@ def worker(rank_gpu, args):
                     x_t, label_t = item
                     x_t = torch.unsqueeze(x_t, 0)
                     x_t = x_t.to(device)
+                    label_t = torch.tensor(label_t)
+                    label_t = torch.unsqueeze(label_t, 0)
                     _, y_t = model(x_t)
                     threshold = 0.5
                     reward = 1. if y_t.max() > threshold else -1.
                     pred = y_t.argmax(axis=1)
-                    metric.add(pred.data.cpu().numpy(), label_t.data.cpu().numpy())
+                    metric.add(pred.data.cpu().numpy(), label_t.data.numpy())
                 else:
                     reward = -0.1
                 reward = torch.tensor(reward).to(device)
