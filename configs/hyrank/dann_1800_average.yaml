@@ -9,8 +9,9 @@ DATASET:
     SAMPLE_ORDER: 'average'
 
 DATALOADER:
-    BATCH_SIZE: 16
+    BATCH_SIZE: 32
     NUM_WORKERS: 0
+    ITERATION: 626
 
 MODEL:
     NAME: 'dann'

@@ -7,8 +7,9 @@ DATASET:
         PAD_MODE: 'symmetric'
 
 DATALOADER:
-    BATCH_SIZE: 64
+    BATCH_SIZE: 32
     NUM_WORKERS: 0
+    ITERATION: 626
 
 MODEL:
     NAME: 'ddc'
