@@ -25,7 +25,7 @@ CRITERION:
 
 OPTIMIZER:
     NAME: 'adam'
-    LR: 0.0001
+    LR: 0.0003
 
 SCHEDULER:
     NAME: 'plateau'
@@ -34,4 +34,4 @@ SCHEDULER:
     PATIENCE: 2
 
 EPOCHS: 30
-EPOCHK: 1
+EPOCHK: 3
