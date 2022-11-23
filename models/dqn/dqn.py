@@ -29,14 +29,15 @@ class Net(nn.Module):
 
 
 class DQN(nn.Module):
-    def __init__(self, len_states: int, batch_size: int):
+    # TODO: change memory_capacity init
+    def __init__(self, len_states: int, batch_size: int, memory_capacity: int = 12207):
         super(DQN, self).__init__()
         self.epsilon = 0.9
         self.gamma = 0.9
         self.num_actions = 2
         self.batch_size = batch_size
         self.memory_counter = 0
-        self.memory_capacity = 5000
+        self.memory_capacity = memory_capacity
         self.memory = deque(maxlen=self.memory_capacity)
         self.eval_net, self.target_net = Net(len_states, self.num_actions), Net(len_states, self.num_actions)
 

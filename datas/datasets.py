@@ -3,10 +3,10 @@ import scipy.io as sio
 
 from typing import Tuple
 
-from datas.base import Dataset
+from datas.base import HSIDataset
 
 
-class HoustonDataset(Dataset):
+class HoustonDataset(HSIDataset):
     def __init__(self, root, split: str, window_size: Tuple[int, int], pad_mode: str, sample_num: int = None,
                  sample_order: str = None, transform=None):
         super(HoustonDataset, self).__init__(root, split, window_size, pad_mode, sample_num, sample_order, transform)
@@ -51,7 +51,7 @@ class HoustonDataset(Dataset):
         ]
 
 
-class HyRankDataset(Dataset):
+class HyRankDataset(HSIDataset):
     def __init__(self, root, split: str, window_size: Tuple[int, int], pad_mode: str, sample_num: int = None,
                  sample_order: str = None, transform=None):
         super(HyRankDataset, self).__init__(root, split, window_size, pad_mode, sample_num, sample_order, transform)
@@ -98,7 +98,7 @@ class HyRankDataset(Dataset):
         ]
 
 
-class ShangHangDataset(Dataset):
+class ShangHangDataset(HSIDataset):
     def __init__(self, root, split: str, window_size: Tuple[int, int], pad_mode: str, sample_num: int = None,
                  sample_order: str = None, transform=None):
         super(ShangHangDataset, self).__init__(root, split, window_size, pad_mode, sample_num, sample_order, transform)
