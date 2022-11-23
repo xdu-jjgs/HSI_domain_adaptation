@@ -1,7 +1,7 @@
 import os
 import re
 
-root = r'E:/zts/HSI_domain_adaptation/runs'
+root = r'E:/zts/HSI_domain_adaptation/runs/old'
 datasets = ['houston', 'hyrank', 'shanghang']
 # datasets = ['houston', 'houston_sample']
 pattern = re.compile(r'Best epoch:\d+, PA:(0.\d+)')
@@ -17,6 +17,8 @@ for dataset in datasets:
             try:
                 pas = list(map(lambda x: float(x), re.findall(pattern, text)))
                 ave = sum(pas) / len(pas)
-                print(dataset, model, pas, ave)
+                min_ = min(pas)
+                max_ = max(pas)
+                print(dataset, model, pas, "ave:{}, min:{}, max:{}".format(ave, min_, max_))
             except ZeroDivisionError:
                 print("No result in dataset {}, model {}".format(dataset, model))
