@@ -5,6 +5,7 @@ from torch.utils.data import DataLoader
 from tllib.utils.data import ForeverDataIterator
 
 from configs import CFG
+from datas.base import DynamicDataset
 from datas.datasets import HoustonDataset, HyRankDataset, ShangHangDataset
 
 
@@ -21,7 +22,9 @@ def build_transform():
 
 
 def build_dataset(split: str):
-    assert split in ['train', 'val', 'test']
+    assert split in ['train', 'val', 'test', 'dynamic']
+    if split == 'dynamic':
+        return DynamicDataset()
     if CFG.DATASET.NAME == 'Houston':
         dataset = HoustonDataset(CFG.DATASET.ROOT, split, (CFG.DATASET.PATCH.HEIGHT, CFG.DATASET.PATCH.WIDTH),
                                  CFG.DATASET.PATCH.PAD_MODE, CFG.DATASET.SAMPLE_NUM if split == 'train' else None,

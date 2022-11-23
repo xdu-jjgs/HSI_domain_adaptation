@@ -1,13 +1,14 @@
 import numpy as np
-import torch.utils as utils
 
 from typing import Tuple
+from torch.utils.data import Dataset
+from torch.utils.data.dataset import T_co
 
 
-class Dataset(utils.data.Dataset):
+class HSIDataset(Dataset):
     def __init__(self, root, split: str, window_size: Tuple[int, int], pad_mode: str, sample_num: int = None,
                  sample_order: str = None, transform=None):
-        super(Dataset, self).__init__()
+        super(HSIDataset, self).__init__()
         assert split in ['train', 'val', 'test']
         assert sample_num is None or sample_num >= 0
         assert sample_order is None or sample_order in ['', 'sequence', 'average']
@@ -39,7 +40,6 @@ class Dataset(utils.data.Dataset):
         gts = np.array(gts)
         return coordinates, gts
 
-    # TODO: 不必写成类方法
     def sample_data(self):
         label_unique = list(np.unique(self.gt))
         num_pre_class = self.sample_num // len(label_unique)
@@ -106,3 +106,23 @@ class Dataset(utils.data.Dataset):
     def names(self):
         # e.g. ['background', 'road', 'building']
         raise NotImplementedError('names() not implemented')
+
+
+class DynamicDataset(Dataset):
+    def __init__(self):
+        self.data = []
+        self.gt = []
+
+    def __getitem__(self, index) -> T_co:
+        return self.data[index], self.gt[index]
+
+    def __len__(self):
+        return len(self.data)
+
+    def append(self, data, gt):
+        self.data.append(data)
+        self.gt.append(gt)
+
+    def flush(self):
+        self.data = []
+        self.gt = []

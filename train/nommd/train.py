@@ -137,7 +137,6 @@ def worker(rank_gpu, args):
     # build data sampler
     source_sampler = DistributedSampler(source_dataset, shuffle=True)
     val_sampler = DistributedSampler(val_dataset, shuffle=True)
-    test_sampler = DistributedSampler(target_dataset, shuffle=True)
     # build data loader
     source_dataloader = build_dataloader(source_dataset, sampler=source_sampler)
     val_dataloader = build_dataloader(val_dataset, sampler=val_sampler)

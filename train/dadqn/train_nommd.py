@@ -20,7 +20,7 @@ from models import build_model, DQN
 from criterions import build_criterion
 from optimizers import build_optimizer
 from schedulers import build_scheduler
-from datas import build_dataset, build_dataloader
+from datas import build_dataset, build_dataloader, build_iterator
 
 
 def parse_args():
@@ -126,26 +126,32 @@ def worker(rank_gpu, args):
         writer = SummaryWriter(logdir=args.path)
 
     # build dataset
-    train_dataset = build_dataset('train')
+    source_dataset = build_dataset('train')
     test_dataset = build_dataset('test')
     val_dataset = test_dataset
-    assert train_dataset.num_classes == val_dataset.num_classes
-    logging.info("Number of train {}, val {}, test {}".format(len(train_dataset), len(val_dataset), len(test_dataset)))
-    NUM_CHANNELS = train_dataset.num_channels
-    NUM_CLASSES = train_dataset.num_classes
+    selected_dataset = build_dataset('dynamic')
+    assert source_dataset.num_classes == val_dataset.num_classes
+    logging.info("Number of train {}, val {}, test {}".format(len(source_dataset), len(val_dataset), len(test_dataset)))
+    NUM_CHANNELS = source_dataset.num_channels
+    NUM_CLASSES = source_dataset.num_classes
     logging.info("Number of class: {}".format(NUM_CLASSES))
     # build data sampler
-    train_sampler = DistributedSampler(train_dataset, shuffle=True)
+    source_sampler = DistributedSampler(source_dataset, shuffle=True)
     val_sampler = DistributedSampler(val_dataset, shuffle=True)
+
     # build data loader
-    train_dataloader = build_dataloader(train_dataset, sampler=train_sampler)
+    source_dataloader = build_dataloader(source_dataset, sampler=source_sampler)
     val_dataloader = build_dataloader(val_dataset, sampler=val_sampler)
+
+    # build data iteration
+    source_iterator = build_iterator(source_dataloader)
     # build model
     model = build_model(NUM_CHANNELS, NUM_CLASSES)
     model.to(device)
     dqn = DQN(len(test_dataset), CFG.DATALOADER.BATCH_SIZE)
     dqn.to(device)
     # print(model)
+
     # build criterion
     loss_names = CFG.CRITERION.ITEMS
     loss_weights = CFG.CRITERION.WEIGHTS
@@ -204,7 +210,7 @@ def worker(rank_gpu, args):
                 writer.close()
             return
 
-        train_dataloader.sampler.set_epoch(epoch)
+        source_dataloader.sampler.set_epoch(epoch)
 
         if dist.get_rank() == 0:
             lr = optimizer_da.param_groups[0]['lr']
@@ -219,9 +225,8 @@ def worker(rank_gpu, args):
             state_ = torch.HalfTensor([0] * len(test_dataset))
             state = state.to(device)
             state_ = state_.to(device)
-            selected_data = []
             # update state and dqn
-            test_bar = tqdm(test_dataset, desc='training', ascii=True)
+            test_bar = tqdm(test_dataset, desc='selecting', ascii=True)
             for ind, item in enumerate(test_bar):
                 action = dqn.module.choose_action(state)
                 state_[ind] = action
@@ -237,7 +242,8 @@ def worker(rank_gpu, args):
                     reward = 1. if y_t.max() > threshold else -1.
                     pred = y_t.argmax(axis=1)
 
-                    selected_data.append((x_t, pred))
+                    # TODO: find a better way
+                    selected_dataset.append(torch.squeeze(x_t, 0), torch.squeeze(pred, 0))
                     metric.add(pred.data.cpu().numpy(), label_t.data.numpy())
                 else:
                     reward = 0
@@ -267,40 +273,39 @@ def worker(rank_gpu, args):
                     'rank{} dqn epoch={} | class={} P={:.3f} R={:.3f} F1={:.3f}'.format(dist.get_rank() + 1, epoch, c,
                                                                                         Ps[c], Rs[c], F1S[c]))
 
-            # # update selected data list
-            # model.train()
-            # print(len(selected_data))
-            # # batch size = 1
-            # selected_sampler = DistributedSampler(selected_data, shuffle=False)
-            # selected_dataloader = build_dataloader(selected_data, sampler=selected_sampler)
-            # for selected_item in selected_dataloader:
-            #     x_st, pseudo_labels_st = selected_item
-            #     x_st, pseudo_labels_st = x_st.to(device), pseudo_labels_st.to(device)
-            #     print(x_st.size(), pseudo_labels_st.size())
-            #
-            #     f_st, y_st = model(x_st)
-            #
-            #     sel_loss = cls_criterion(pseudo_labels_st, y_st)
-            #     optimizer_da.zero_grad()
-            #     with amp.scale_loss(sel_loss, optimizer_da) as scaled_loss:
-            #         scaled_loss.backward()
-            #     optimizer_da.step()
-            # model.eval()
+            # train da model by selected data
+            model.train()
+            print("Num of selected data: ", len(selected_dataset))
+            selected_sampler = DistributedSampler(selected_dataset, shuffle=False)
+            selected_dataloder = build_dataloader(selected_dataset, sampler=selected_sampler)
+            selected_bar = tqdm(selected_dataloder, desc='training', ascii=True)
+            for x_st, pseudo_labels_st in selected_bar:
+                # already in cuda
+                # x_st, pseudo_labels_st = x_st.to(device), pseudo_labels_st.to(device)
+                print(x_st.size(), pseudo_labels_st.size())
+
+                f_st, y_st = model(x_st)
+
+                sel_loss = cls_criterion(pseudo_labels_st, y_st)
+                optimizer_da.zero_grad()
+                with amp.scale_loss(sel_loss, optimizer_da) as scaled_loss:
+                    scaled_loss.backward()
+                optimizer_da.step()
+            model.eval()
+            selected_dataset.flush()
 
         # train da model
         model.train()  # set model to training mode
         metric.reset()  # reset metric
-        train_bar = tqdm(train_dataloader, desc='training', ascii=True)
+        train_bar = tqdm(range(1, CFG.DATALOADER.ITERATION+1), desc='training', ascii=True)
         total_loss_epoch, cls_loss_epoch = 0., 0.
-        for train_item in train_bar:
-            iteration += 1
-            x_s, label = train_item
+        for iteration in train_bar:
+            x_s, label = next(source_iterator)
             x_s, label = x_s.to(device), label.to(device)
             f_s, y_s = model(x_s)
 
             cls_loss = cls_criterion(label_s=label, y_s=y_s) * loss_weights[0]
             total_loss = cls_loss
-
             cls_loss_epoch += cls_loss.item()
             total_loss_epoch += total_loss.item()
             if dist.get_rank() == 0:
@@ -316,6 +321,7 @@ def worker(rank_gpu, args):
             metric.add(pred.data.cpu().numpy(), label.data.cpu().numpy())
 
             train_bar.set_postfix({
+                'iteration': iteration,
                 'epoch': epoch,
                 'loss': f'{total_loss.item():.3f}',
                 'mP': f'{metric.mPA():.3f}',
@@ -323,8 +329,8 @@ def worker(rank_gpu, args):
                 'KC': f'{metric.KC():.3f}',
             })
 
-        total_loss_epoch /= len(train_dataloader)
-        cls_loss_epoch /= len(train_dataloader)
+        total_loss_epoch /= len(source_dataloader)
+        cls_loss_epoch /= len(source_dataloader)
         PA, mPA, Ps, Rs, F1S, KC = metric.PA(), metric.mPA(), metric.Ps(), metric.Rs(), metric.F1s(), metric.KC()
         if dist.get_rank() == 0:
             writer.add_scalar('train/loss_total-epoch', total_loss_epoch, epoch)
