@@ -4,6 +4,7 @@ import random
 import logging
 import argparse
 import numpy as np
+import torch.nn.functional as F
 import torch.distributed as dist
 import torch.multiprocessing as mp
 
@@ -154,7 +155,9 @@ def worker(rank_gpu, args):
     dann.to(device)
     mapping = RandomizedMultiLinearMap(dann.out_channels, NUM_CLASSES, output_dim=512)
     selector = ImageClassifier(dann.out_channels, 2)
+    selector.to(device)
     C_t = ImageClassifier(dann.out_channels, NUM_CLASSES)
+    C_t.to(device)
 
     # build criterion
     loss_names = CFG.CRITERION.ITEMS
@@ -226,20 +229,20 @@ def worker(rank_gpu, args):
         metric_model.reset()  # reset metric
         metric_ct.reset()
         train_bar = tqdm(range(1, CFG.DATALOADER.ITERATION + 1), desc='training', ascii=True)
-        total_loss_epoch, cls_loss_epoch, domain_s_loss_epoch, domain_t_loss_epoch = 0., 0., 0., 0.
+        step1_loss_epoch, cls_loss_epoch, domain_s_loss_epoch, domain_t_loss_epoch = 0., 0., 0., 0.
         selector_loss_epoch = 0.
-        p = float(iteration + epoch * len(source_dataloader)) / CFG.EPOCHS / len(source_dataloader)
-        alpha = 2. / (1. + np.exp(-10 * p)) - 1
+        dann.train()
+        C_t.train()
+        selector.train()
         for iteration in train_bar:
+            p = float(iteration + epoch * len(source_dataloader)) / CFG.EPOCHS / len(source_dataloader)
+            alpha = 2. / (1. + np.exp(-10 * p)) - 1
             x_s, label_s = next(source_iterator)
             x_t, _ = next(target_iterator)
             x_s, label_s = x_s.to(device), label_s.to(device)
             x_t = x_t.to(device)
 
             # step1: train model
-            dann.train()
-            C_t.eval()
-            selector.eval()
             f_s, y_s, domain_out_s = dann(x_s, alpha)
             f_t, y_t, domain_out_t = dann(x_t, alpha)
 
@@ -250,21 +253,21 @@ def worker(rank_gpu, args):
             cls_loss = cls_criterion(y_s=y_s, label_s=label_s) * loss_weights[0]
             domain_s_loss = domain_criterion(y_s=domain_out_s, label_s=domain_label_s) * loss_weights[1]
             domain_t_loss = domain_criterion(y_s=domain_out_t, label_s=domain_label_t) * loss_weights[1]
-            total_loss = cls_loss + domain_s_loss + domain_t_loss
+            step1_loss = cls_loss + domain_s_loss + domain_t_loss
 
             cls_loss_epoch += cls_loss.item()
             domain_s_loss_epoch += domain_s_loss.item()
             domain_t_loss_epoch += domain_t_loss.item()
-            total_loss_epoch += total_loss.item()
+            step1_loss_epoch += step1_loss.item()
 
             if dist.get_rank() == 0:
-                writer.add_scalar('train/loss_total', total_loss.item(), iteration)
+                writer.add_scalar('train/loss_total', step1_loss.item(), iteration)
                 writer.add_scalar('train/loss_cls', cls_loss.item(), iteration)
                 writer.add_scalar('train/loss_domain_s', domain_s_loss.item(), iteration)
                 writer.add_scalar('train/loss_domain_t', domain_t_loss.item(), iteration)
 
             optimizer_model.zero_grad()
-            with amp.scale_loss(total_loss, optimizer_model) as scaled_loss:
+            with amp.scale_loss(step1_loss, optimizer_model) as scaled_loss:
                 scaled_loss.backward()
             optimizer_model.step()
 
@@ -274,7 +277,7 @@ def worker(rank_gpu, args):
             train_bar.set_postfix({
                 'iteration': iteration,
                 'epoch': epoch,
-                'loss': f'{total_loss.item():.3f}',
+                'loss': f'{step1_loss.item():.3f}',
                 'mP': f'{metric_model.mPA():.3f}',
                 'PA': f'{metric_model.PA():.3f}',
                 'KC': f'{metric_model.KC():.3f}'
@@ -283,46 +286,55 @@ def worker(rank_gpu, args):
             # step2: train selector
             dann.eval()
             C_t.eval()
-            selector.train()
-            joint = mapping(x_t, y_t)
-            select_status = selector(joint)
+            with torch.no_grad():
+                # f_s, y_s, domain_out_s = dann(x_s, alpha)
+                f_t, y_t, domain_out_t = dann(x_t, alpha)
+                f_t = torch.squeeze(f_t, dim=-1)
+                f_t = torch.squeeze(f_t, dim=-1)
+                y_t_ = F.softmax(y_t, dim=1).detach()
+                joint = mapping(f_t, y_t_)
+            select_status = selector(joint)[-1]
 
-            y_s_c_t = C_t(f_s)
+            domain_out_t_ = domain_out_t.argmax(axis=1)
             # 先试试接近
-            confu_loss = cls_criterion(y_s=select_status, label_s=domain_out_t)
-            cls_loss_ct_xs = cls_criterion(y_s=y_s_c_t, label_s=label_s)
-            selector_loss = confu_loss + cls_loss_ct_xs
-            selector_loss_epoch += selector_loss.item()
+            confu_loss = cls_criterion(y_s=select_status, label_s=domain_out_t_)
+            # y_s_c_t = C_t(f_s)[-1]
+            # cls_loss_ct_xs = cls_criterion(y_s=y_s_c_t, label_s=label_s)
+            # step2_loss = confu_loss + cls_loss_ct_xs
+            step2_loss = confu_loss
+            selector_loss_epoch += step2_loss.item()
 
+            optimizer_model.zero_grad()
             optimizer_selector.zero_grad()
-            with amp.scale_loss(selector_loss, optimizer_selector) as scaled_loss:
+            optimizer_ct.zero_grad()
+            with amp.scale_loss(step2_loss, optimizer_selector) as scaled_loss:
                 scaled_loss.backward()
             optimizer_selector.step()
 
             # step3: train c_t
-            dann.eval()
-            C_t.train()
             selector.eval()
+            C_t.train()
 
-            y_t_ct = C_t(f_t)
+            f_t, y_t, domain_out_t = dann(x_t, alpha)
+            y_t_ct = C_t(f_t)[-1]
             pseudo_label = y_t.argmax(axis=1)
-            cls_loss_ct_xt = cls_criterion(y_s=y_t_ct, label_s=pseudo_label)
+            step3_loss = cls_criterion(y_s=y_t_ct, label_s=pseudo_label)
 
             optimizer_ct.zero_grad()
-            with amp.scale_loss(cls_loss_ct_xt, optimizer_ct) as scaled_loss:
-                cls_loss_ct_xt.backward()
+            with amp.scale_loss(step3_loss, optimizer_ct) as scaled_loss:
+                scaled_loss.backward()
             optimizer_ct.step()
 
             pred_ct = y_t_ct.argmax(axis=1)
             metric_ct.add(pred_ct.data.cpu().numpy(), label_s.data.cpu().numpy())
 
-        total_loss_epoch /= len(source_dataloader)
+        step1_loss_epoch /= len(source_dataloader)
         cls_loss_epoch /= len(source_dataloader)
         domain_s_loss_epoch /= len(source_dataloader)
         domain_t_loss_epoch /= len(source_dataloader)
         PA, mPA, Ps, Rs, F1S, KC = metric_model.PA(), metric_model.mPA(), metric_model.Ps(), metric_model.Rs(), metric_model.F1s(), metric_model.KC()
         if dist.get_rank() == 0:
-            writer.add_scalar('train/loss_total-epoch', total_loss_epoch, epoch)
+            writer.add_scalar('train/loss_total-epoch', step1_loss_epoch, epoch)
             writer.add_scalar('train/loss_cls-epoch', cls_loss_epoch, epoch)
             writer.add_scalar('train/loss_domain_s-epoch', domain_s_loss_epoch, epoch)
             writer.add_scalar('train/loss_domain_t-epoch', domain_t_loss_epoch, epoch)
@@ -331,17 +343,17 @@ def worker(rank_gpu, args):
             writer.add_scalar('train/KC-epoch', KC, epoch)
         logging.info(
             'rank{} train epoch={} | loss_total={:.3f} loss_cls={:.3f} loss_domain_s={:.3f} loss_domain_t={:.3f}'.format(
-                dist.get_rank() + 1, epoch, total_loss_epoch, cls_loss_epoch, domain_s_loss_epoch, domain_t_loss_epoch))
+                dist.get_rank() + 1, epoch, step1_loss_epoch, cls_loss_epoch, domain_s_loss_epoch, domain_t_loss_epoch))
         for c in range(NUM_CLASSES):
             logging.info(
                 'rank{} train epoch={} | class={} P={:.3f} R={:.3f} F1={:.3f}'.format(dist.get_rank() + 1, epoch, c,
                                                                                       Ps[c], Rs[c], F1S[c]))
 
-        PA, mPA, Ps, Rs, F1S, KC = metric_ct.PA(), metric_ct.mPA(), metric_ct.Ps(), metric_ct.Rs(), metric_ct.F1s(), metric_ct.KC()
-        for c in range(NUM_CLASSES):
-            logging.info(
-                'rank{} train epoch={} | CT: class={} P={:.3f} R={:.3f} F1={:.3f}'.format(dist.get_rank() + 1, epoch, c,
-                                                                                          Ps[c], Rs[c], F1S[c]))
+        # PA, mPA, Ps, Rs, F1S, KC = metric_ct.PA(), metric_ct.mPA(), metric_ct.Ps(), metric_ct.Rs(), metric_ct.F1s(), metric_ct.KC()
+        # for c in range(NUM_CLASSES):
+        #     logging.info(
+        #         'rank{} train epoch={} | CT: class={} P={:.3f} R={:.3f} F1={:.3f}'.format(dist.get_rank() + 1, epoch, c,
+        #                                                                                   Ps[c], Rs[c], F1S[c]))
 
         # validate
         if args.no_validate:
@@ -354,7 +366,7 @@ def worker(rank_gpu, args):
         with torch.no_grad():  # disable gradient back-propagation
             for x_t, label_s in val_bar:
                 x_t, label_s = x_t.to(device), label_s.to(device)
-                y_t, _ = dann(x_t, alpha=0)  # val阶段网络不需要反传，所以alpha=0
+                _, y_t, _ = dann(x_t, alpha=0)  # val阶段网络不需要反传，所以alpha=0
 
                 cls_loss = val_criterion(y_s=y_t, label_s=label_s)
                 val_loss += cls_loss.item()
@@ -405,8 +417,12 @@ def worker(rank_gpu, args):
         if scheduler_model is not None:
             try:
                 scheduler_model.step()
+                scheduler_selector.step()
+                scheduler_ct.step()
             except TypeError:
                 scheduler_model.step(val_loss)
+                scheduler_selector.step(val_loss)
+                scheduler_ct.step(val_loss)
 
         # save checkpoint
         if dist.get_rank() == 0:

@@ -12,7 +12,7 @@ python train/ddc/train.py configs/shanghang/dan.yaml ^
         --master-ip localhost ^
         --master-port 8890 ^
         --seed %~1% ^
-        --opt-level O21
+        --opt-level O2
 
 rem dan
 python train/ddc/train.py configs/shanghang/dan_540_average.yaml ^

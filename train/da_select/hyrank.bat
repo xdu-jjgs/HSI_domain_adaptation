@@ -3,7 +3,7 @@ cd E:\zts\HSI_domain_adaptation
 set PYTHONPATH=%cd%
 
 rem da_select
-python train/da_select/train.py configs/hyrank/da_select.yaml ^
+python train/da_select/train_dann.py configs/hyrank/da_select.yaml ^
         --path ./runs/hyrank/da_select-train ^
         --nodes 1 ^
         --gpus 1 ^
