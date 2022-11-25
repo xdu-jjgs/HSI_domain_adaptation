@@ -182,11 +182,12 @@ def worker(rank_gpu, args):
     scheduler_ct = build_scheduler(optimizer_ct)
 
     # mixed precision
-    [dann, selector, classifier_t], [optimizer_model, optimizer_selector, optimizer_ct] = amp.initialize([dann, selector, classifier_t],
-                                                                                                [optimizer_model,
-                                                                                                 optimizer_selector,
-                                                                                                 optimizer_ct],
-                                                                                                opt_level=args.opt_level)
+    [dann, selector, classifier_t], [optimizer_model, optimizer_selector, optimizer_ct] = amp.initialize(
+        [dann, selector, classifier_t],
+        [optimizer_model,
+         optimizer_selector,
+         optimizer_ct],
+        opt_level=args.opt_level)
     # DDP
     dann = DistributedDataParallel(dann)
     selector = DistributedDataParallel(selector)
@@ -194,8 +195,9 @@ def worker(rank_gpu, args):
 
     epoch = 0
     iteration = 0
-    best_epoch = 0
-    best_PA = 0.
+    best_epoch_model = 0
+    best_PA_model = 0.
+    best_PA_ct = 0.
 
     # load checkpoint if specified
     if args.checkpoint is not None:
@@ -206,9 +208,9 @@ def worker(rank_gpu, args):
         optimizer_model.load_state_dict(checkpoint['optimizer_model']['state_dict'])
         epoch = checkpoint['optimizer_model']['epoch']
         iteration = checkpoint['optimizer_model']['iteration']
-        best_PA = checkpoint['metric']['PA']
-        best_epoch = checkpoint['optimizer_model']['best_epoch']
-        logging.info('load checkpoint {} with PA={:.4f}, epoch={}'.format(args.checkpoint, best_PA, epoch))
+        best_PA_model = checkpoint['metric']['PA']
+        best_epoch_model = checkpoint['optimizer_model']['best_epoch']
+        logging.info('load checkpoint {} with PA={:.4f}, epoch={}'.format(args.checkpoint, best_PA_model, epoch))
 
     # train - validation loop
 
@@ -216,7 +218,8 @@ def worker(rank_gpu, args):
         epoch += 1
         # apportion epochs to each gpu averagely
         if epoch > int(CFG.EPOCHS / args.world_size):
-            logging.info("Best epoch:{}, PA:{:.3f}".format(best_epoch, best_PA))
+            logging.info("Best model epoch:{}, PA:{:.3f}".format(best_epoch_model, best_PA_model))
+            logging.info("Best ct epoch:{}, PA:{:.3f}".format(best_epoch_ct, best_PA_ct))
             if dist.get_rank() == 0:
                 writer.close()
             return
@@ -233,6 +236,7 @@ def worker(rank_gpu, args):
         train_bar = tqdm(range(1, CFG.DATALOADER.ITERATION + 1), desc='training', ascii=True)
         step1_loss_epoch, cls_loss_epoch, domain_s_loss_epoch, domain_t_loss_epoch = 0., 0., 0., 0.
         selector_loss_epoch = 0.
+        select_amount = 0
         dann.train()
         classifier_t.train()
         selector.train()
@@ -296,6 +300,7 @@ def worker(rank_gpu, args):
                 y_t_ = F.softmax(y_t, dim=1).detach()
                 joint = mapping(f_t, y_t_)
             select_status = selector(joint)[-1]
+            select_amount += select_status[select_status]
 
             domain_out_t_ = domain_out_t.argmax(axis=1)
             # 先试试接近
@@ -397,8 +402,8 @@ def worker(rank_gpu, args):
             writer.add_scalar('val/PA-epoch', PA, epoch)
             writer.add_scalar('val/mPA-epoch', mPA, epoch)
             writer.add_scalar('val/KC-epoch', KC, epoch)
-        if PA > best_PA:
-            best_epoch = epoch
+        if PA > best_PA_model:
+            best_epoch_model = epoch
 
         logging.info('rank{} val epoch={} | loss={:.3f}'.format(dist.get_rank() + 1, epoch, val_loss))
         logging.info(
@@ -408,7 +413,9 @@ def worker(rank_gpu, args):
                 'rank{} val epoch={} | class={}- P={:.3f} R={:.3f} F1={:.3f}'.format(dist.get_rank() + 1, epoch, c,
                                                                                      Ps[c], Rs[c], F1S[c]))
 
-        PA, mPA, Ps, Rs, F1S, KC = metric_ct.PA(), metric_ct.mPA(), metric_ct.Ps(), metric_ct.Rs(), metric_ct.F1s(), metric_ct.KC()
+        PA_ct, mPA, Ps, Rs, F1S, KC = metric_ct.PA(), metric_ct.mPA(), metric_ct.Ps(), metric_ct.Rs(), metric_ct.F1s(), metric_ct.KC()
+        if PA_ct > best_PA_ct:
+            best_epoch_ct = epoch
         logging.info(
             'rank{} val epoch={} | CT: PA={:.3f} mPA={:.3f} KC={:.3f}'.format(dist.get_rank() + 1, epoch, PA, mPA, KC))
         for c in range(NUM_CLASSES):
@@ -436,7 +443,7 @@ def worker(rank_gpu, args):
                 'optimizer': {
                     'state_dict': optimizer_model.state_dict(),
                     'epoch': epoch,
-                    'best_epoch': best_epoch,
+                    'best_epoch': best_epoch_model,
                     'iteration': iteration
                 },
                 'metric': {
@@ -449,9 +456,12 @@ def worker(rank_gpu, args):
                 },
             }
             torch.save(checkpoint, os.path.join(args.path, 'last.pth'))
-            if PA > best_PA:
-                best_PA = PA
+            if PA > best_PA_model:
+                best_PA_model = PA
                 torch.save(checkpoint, os.path.join(args.path, 'best.pth'))
+            if PA_ct > best_PA_ct:
+                best_PA_ct = PA_ct
+                torch.save(checkpoint, os.path.join(args.path, 'best_ct.pth'))
 
 
 def main():
