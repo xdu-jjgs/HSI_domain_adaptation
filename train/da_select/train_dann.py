@@ -156,8 +156,8 @@ def worker(rank_gpu, args):
     mapping = RandomizedMultiLinearMap(dann.out_channels, NUM_CLASSES, output_dim=512)
     selector = ImageClassifier(dann.out_channels, 2)
     selector.to(device)
-    C_t = ImageClassifier(dann.out_channels, NUM_CLASSES)
-    C_t.to(device)
+    classifier_t = ImageClassifier(dann.out_channels, NUM_CLASSES)
+    classifier_t.to(device)
 
     # build criterion
     loss_names = CFG.CRITERION.ITEMS
@@ -175,20 +175,22 @@ def worker(rank_gpu, args):
     # build optimizer
     optimizer_model = build_optimizer(dann)
     optimizer_selector = build_optimizer(selector)
-    optimizer_ct = build_optimizer(C_t)
+    optimizer_ct = build_optimizer(classifier_t)
     # build scheduler
     scheduler_model = build_scheduler(optimizer_model)
     scheduler_selector = build_scheduler(optimizer_selector)
     scheduler_ct = build_scheduler(optimizer_ct)
 
     # mixed precision
-    [dann, selector, C_t], [optimizer_model, optimizer_selector, optimizer_ct] = amp.initialize([dann, selector, C_t],
+    [dann, selector, classifier_t], [optimizer_model, optimizer_selector, optimizer_ct] = amp.initialize([dann, selector, classifier_t],
                                                                                                 [optimizer_model,
                                                                                                  optimizer_selector,
                                                                                                  optimizer_ct],
                                                                                                 opt_level=args.opt_level)
     # DDP
     dann = DistributedDataParallel(dann)
+    selector = DistributedDataParallel(selector)
+    classifier_t = DistributedDataParallel(classifier_t)
 
     epoch = 0
     iteration = 0
@@ -232,7 +234,7 @@ def worker(rank_gpu, args):
         step1_loss_epoch, cls_loss_epoch, domain_s_loss_epoch, domain_t_loss_epoch = 0., 0., 0., 0.
         selector_loss_epoch = 0.
         dann.train()
-        C_t.train()
+        classifier_t.train()
         selector.train()
         for iteration in train_bar:
             p = float(iteration + epoch * len(source_dataloader)) / CFG.EPOCHS / len(source_dataloader)
@@ -285,9 +287,9 @@ def worker(rank_gpu, args):
 
             # step2: train selector
             dann.eval()
-            C_t.eval()
+            classifier_t.eval()
             with torch.no_grad():
-                # f_s, y_s, domain_out_s = dann(x_s, alpha)
+                f_s, y_s, domain_out_s = dann(x_s, alpha)
                 f_t, y_t, domain_out_t = dann(x_t, alpha)
                 f_t = torch.squeeze(f_t, dim=-1)
                 f_t = torch.squeeze(f_t, dim=-1)
@@ -298,10 +300,10 @@ def worker(rank_gpu, args):
             domain_out_t_ = domain_out_t.argmax(axis=1)
             # 先试试接近
             confu_loss = cls_criterion(y_s=select_status, label_s=domain_out_t_)
-            # y_s_c_t = C_t(f_s)[-1]
-            # cls_loss_ct_xs = cls_criterion(y_s=y_s_c_t, label_s=label_s)
-            # step2_loss = confu_loss + cls_loss_ct_xs
-            step2_loss = confu_loss
+            y_s_c_t = classifier_t(f_s)[-1]
+            cls_loss_ct_xs = cls_criterion(y_s=y_s_c_t, label_s=label_s)
+            step2_loss = confu_loss + cls_loss_ct_xs
+            # step2_loss = confu_loss
             selector_loss_epoch += step2_loss.item()
 
             optimizer_model.zero_grad()
@@ -313,10 +315,10 @@ def worker(rank_gpu, args):
 
             # step3: train c_t
             selector.eval()
-            C_t.train()
-
-            f_t, y_t, domain_out_t = dann(x_t, alpha)
-            y_t_ct = C_t(f_t)[-1]
+            classifier_t.train()
+            with torch.no_grad():
+                f_t, y_t, domain_out_t = dann(x_t, alpha)
+            y_t_ct = classifier_t(f_t)[-1]
             pseudo_label = y_t.argmax(axis=1)
             step3_loss = cls_criterion(y_s=y_t_ct, label_s=pseudo_label)
 
@@ -349,31 +351,36 @@ def worker(rank_gpu, args):
                 'rank{} train epoch={} | class={} P={:.3f} R={:.3f} F1={:.3f}'.format(dist.get_rank() + 1, epoch, c,
                                                                                       Ps[c], Rs[c], F1S[c]))
 
-        # PA, mPA, Ps, Rs, F1S, KC = metric_ct.PA(), metric_ct.mPA(), metric_ct.Ps(), metric_ct.Rs(), metric_ct.F1s(), metric_ct.KC()
-        # for c in range(NUM_CLASSES):
-        #     logging.info(
-        #         'rank{} train epoch={} | CT: class={} P={:.3f} R={:.3f} F1={:.3f}'.format(dist.get_rank() + 1, epoch, c,
-        #                                                                                   Ps[c], Rs[c], F1S[c]))
+        PA, mPA, Ps, Rs, F1S, KC = metric_ct.PA(), metric_ct.mPA(), metric_ct.Ps(), metric_ct.Rs(), metric_ct.F1s(), metric_ct.KC()
+        for c in range(NUM_CLASSES):
+            logging.info(
+                'rank{} train epoch={} | CT: class={} P={:.3f} R={:.3f} F1={:.3f}'.format(dist.get_rank() + 1, epoch, c,
+                                                                                          Ps[c], Rs[c], F1S[c]))
 
         # validate
         if args.no_validate:
             continue
         dann.eval()  # set model to evaluation mode
+        selector.eval()
+        classifier_t.eval()
         metric_model.reset()  # reset metric
         metric_ct.reset()
         val_bar = tqdm(val_dataloader, desc='validating', ascii=True)
         val_loss = 0.
         with torch.no_grad():  # disable gradient back-propagation
-            for x_t, label_s in val_bar:
-                x_t, label_s = x_t.to(device), label_s.to(device)
-                _, y_t, _ = dann(x_t, alpha=0)  # val阶段网络不需要反传，所以alpha=0
+            for x_t, label_t in val_bar:
+                x_t, label_t = x_t.to(device), label_t.to(device)
+                f_t, y_t, _ = dann(x_t, alpha=0)  # val阶段网络不需要反传，所以alpha=0
 
-                cls_loss = val_criterion(y_s=y_t, label_s=label_s)
-                val_loss += cls_loss.item()
+                y_t_ct = classifier_t(f_t)[-1]
+                pred_ct = y_t_ct.argmax(axis=-1)
+                metric_ct.add(pred_ct.data.cpu().numpy(), label_t.data.cpu().numpy())
 
                 pred = y_t.argmax(axis=1)
-                metric_model.add(pred.data.cpu().numpy(), label_s.data.cpu().numpy())
+                metric_model.add(pred.data.cpu().numpy(), label_t.data.cpu().numpy())
 
+                cls_loss = val_criterion(y_s=y_t, label_s=label_t)
+                val_loss += cls_loss.item()
                 val_bar.set_postfix({
                     'epoch': epoch,
                     'loss': f'{cls_loss.item():.3f}',
@@ -381,10 +388,6 @@ def worker(rank_gpu, args):
                     'PA': f'{metric_model.PA():.3f}',
                     'KC': f'{metric_model.KC():.3f}'
                 })
-
-                y_t_ct = C_t(x_t)
-                pred_ct = y_t_ct.argmax(axis=-1)
-                metric_ct.add(pred_ct.data.cpu().numpy(), label_s.data.cpu().numpy())
 
         val_loss /= len(val_dataloader)
 
