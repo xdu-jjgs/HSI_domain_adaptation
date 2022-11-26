@@ -341,10 +341,9 @@ def worker(rank_gpu, args):
         # TODO: try train dann?
         for x_t, pseudo_labels_t in selected_bar:
             with torch.no_grad():
-                f_t, y_t, domain_out_t = dann(x_t, alpha=0)
+                f_t, _, _ = dann(x_t, alpha=0)
             y_t_ct = classifier_t(f_t)[-1]
-            pseudo_label = y_t.argmax(axis=1)
-            step3_loss = cls_criterion(y_s=y_t_ct, label_s=pseudo_label)
+            step3_loss = cls_criterion(y_s=y_t_ct, label_s=pseudo_labels_t)
 
             optimizer_ct.zero_grad()
             with amp.scale_loss(step3_loss, optimizer_ct) as scaled_loss:
