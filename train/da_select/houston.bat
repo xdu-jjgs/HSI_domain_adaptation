@@ -11,5 +11,5 @@ python train/da_select/train_dann.py configs/houston/da_select.yaml ^
         --backend gloo ^
         --master-ip localhost ^
         --master-port 8830 ^
-        --seed 1 ^
-        --opt-level O1
+        --seed %~1% ^
+        --opt-level O2

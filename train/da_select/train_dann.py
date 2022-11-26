@@ -18,13 +18,14 @@ from torch.utils.data.distributed import DistributedSampler
 from configs import CFG
 from metric import Metric
 from models import build_model
+from collections import Counter
 from criterions import build_criterion
 from optimizers import build_optimizer
 from schedulers import build_scheduler
 from models.backbone import ImageClassifier
 from tllib.alignment.cdan import RandomizedMultiLinearMap
 
-from datas import build_dataset, build_dataloader, build_iterator
+from datas import build_dataset, build_dataloader, build_iterator, DynamicDataset
 
 
 def parse_args():
@@ -133,6 +134,7 @@ def worker(rank_gpu, args):
     source_dataset = build_dataset('train')
     target_dataset = build_dataset('test')
     val_dataset = target_dataset
+    select_dataset = DynamicDataset()
     assert source_dataset.num_classes == val_dataset.num_classes
     logging.info(
         "Number of train {}, val {}, test {}".format(len(source_dataset), len(val_dataset), len(target_dataset)))
@@ -171,6 +173,7 @@ def worker(rank_gpu, args):
     val_criterion.to(device)
     # build metric
     metric_model = Metric(NUM_CLASSES)
+    metric_selector = Metric(NUM_CLASSES)
     metric_ct = Metric(NUM_CLASSES)
     # build optimizer
     optimizer_model = build_optimizer(dann)
@@ -232,11 +235,12 @@ def worker(rank_gpu, args):
 
         # train
         metric_model.reset()  # reset metric
+        metric_selector.reset()
         metric_ct.reset()
         train_bar = tqdm(range(1, CFG.DATALOADER.ITERATION + 1), desc='training', ascii=True)
         step1_loss_epoch, cls_loss_epoch, domain_s_loss_epoch, domain_t_loss_epoch = 0., 0., 0., 0.
         selector_loss_epoch = 0.
-        select_amount = 0
+        select_dataset.flush()
         dann.train()
         classifier_t.train()
         selector.train()
@@ -244,9 +248,9 @@ def worker(rank_gpu, args):
             p = float(iteration + epoch * len(source_dataloader)) / CFG.EPOCHS / len(source_dataloader)
             alpha = 2. / (1. + np.exp(-10 * p)) - 1
             x_s, label_s = next(source_iterator)
-            x_t, _ = next(target_iterator)
+            x_t, label_t = next(target_iterator)
             x_s, label_s = x_s.to(device), label_s.to(device)
-            x_t = x_t.to(device)
+            x_t, label_t = x_t.to(device), label_t.to(device)
 
             # step1: train model
             f_s, y_s, domain_out_s = dann(x_s, alpha)
@@ -300,7 +304,6 @@ def worker(rank_gpu, args):
                 y_t_ = F.softmax(y_t, dim=1).detach()
                 joint = mapping(f_t, y_t_)
             select_status = selector(joint)[-1]
-            select_amount += select_status[select_status]
 
             domain_out_t_ = domain_out_t.argmax(axis=1)
             # 先试试接近
@@ -318,11 +321,27 @@ def worker(rank_gpu, args):
                 scaled_loss.backward()
             optimizer_selector.step()
 
-            # step3: train c_t
-            selector.eval()
-            classifier_t.train()
+            select_mask = select_status.argmax(axis=1)
+            x_t_select = x_t[select_mask == 1]
+            y_t_select = y_t.argmax(axis=1)[select_mask == 1]
+            label_t_select = label_t[select_mask == 1]
+            for d, l in zip(x_t_select, y_t_select):
+                select_dataset.append(d, l)
+            metric_selector.add(y_t_select.data.cpu().numpy(), label_t_select.data.cpu().numpy())
+
+        selector.eval()
+        classifier_t.train()
+        print("Num of selected data: ", len(select_dataset))
+        pseudo_labels = list(map(lambda x: x.item(), select_dataset.gt))
+        print("Count: ", Counter(pseudo_labels))
+        selected_sampler = DistributedSampler(select_dataset, shuffle=False)
+        selected_dataloder = build_dataloader(select_dataset, sampler=selected_sampler)
+        selected_bar = tqdm(selected_dataloder, desc='training_ct', ascii=True)
+        # TODO: try to use soft label?
+        # TODO: try train dann?
+        for x_t, pseudo_labels_t in selected_bar:
             with torch.no_grad():
-                f_t, y_t, domain_out_t = dann(x_t, alpha)
+                f_t, y_t, domain_out_t = dann(x_t, alpha=0)
             y_t_ct = classifier_t(f_t)[-1]
             pseudo_label = y_t.argmax(axis=1)
             step3_loss = cls_criterion(y_s=y_t_ct, label_s=pseudo_label)
@@ -333,7 +352,7 @@ def worker(rank_gpu, args):
             optimizer_ct.step()
 
             pred_ct = y_t_ct.argmax(axis=1)
-            metric_ct.add(pred_ct.data.cpu().numpy(), label_s.data.cpu().numpy())
+            metric_ct.add(pred_ct.data.cpu().numpy(), pseudo_labels_t.data.cpu().numpy())
 
         step1_loss_epoch /= len(source_dataloader)
         cls_loss_epoch /= len(source_dataloader)
@@ -351,15 +370,25 @@ def worker(rank_gpu, args):
         logging.info(
             'rank{} train epoch={} | loss_total={:.3f} loss_cls={:.3f} loss_domain_s={:.3f} loss_domain_t={:.3f}'.format(
                 dist.get_rank() + 1, epoch, step1_loss_epoch, cls_loss_epoch, domain_s_loss_epoch, domain_t_loss_epoch))
+        logging.info(
+            'rank{} train epoch={} | PA={:.3f} mPA={:.3f} KC={:.3f}'.format(dist.get_rank() + 1, epoch, PA, mPA, KC))
         for c in range(NUM_CLASSES):
             logging.info(
                 'rank{} train epoch={} | class={} P={:.3f} R={:.3f} F1={:.3f}'.format(dist.get_rank() + 1, epoch, c,
                                                                                       Ps[c], Rs[c], F1S[c]))
-
-        PA, mPA, Ps, Rs, F1S, KC = metric_ct.PA(), metric_ct.mPA(), metric_ct.Ps(), metric_ct.Rs(), metric_ct.F1s(), metric_ct.KC()
+        PA, mPA, Ps, Rs, F1S, KC = metric_selector.PA(), metric_selector.mPA(), metric_selector.Ps(), metric_selector.Rs(), metric_selector.F1s(), metric_selector.KC()
+        logging.info(
+            'rank{} train selector epoch={} | PA={:.3f} mPA={:.3f} KC={:.3f}'.format(dist.get_rank() + 1, epoch, PA, mPA, KC))
         for c in range(NUM_CLASSES):
             logging.info(
-                'rank{} train epoch={} | CT: class={} P={:.3f} R={:.3f} F1={:.3f}'.format(dist.get_rank() + 1, epoch, c,
+                'rank{} train selector epoch={} | class={} P={:.3f} R={:.3f} F1={:.3f}'.format(dist.get_rank() + 1, epoch, c,
+                                                                                          Ps[c], Rs[c], F1S[c]))
+        PA, mPA, Ps, Rs, F1S, KC = metric_ct.PA(), metric_ct.mPA(), metric_ct.Ps(), metric_ct.Rs(), metric_ct.F1s(), metric_ct.KC()
+        logging.info(
+            'rank{} train CT epoch={} | PA={:.3f} mPA={:.3f} KC={:.3f}'.format(dist.get_rank() + 1, epoch, PA, mPA, KC))
+        for c in range(NUM_CLASSES):
+            logging.info(
+                'rank{} train CT epoch={} | class={} P={:.3f} R={:.3f} F1={:.3f}'.format(dist.get_rank() + 1, epoch, c,
                                                                                           Ps[c], Rs[c], F1S[c]))
 
         # validate
