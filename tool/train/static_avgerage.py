@@ -5,6 +5,7 @@ root = r'E:/zts/HSI_domain_adaptation/runs/'
 datasets = ['houston', 'houston_sample', 'hyrank', 'hyrank_sample', 'shanghang', 'shanghang_sample']
 pattern = re.compile(r'Best([\s\w]*)\sepoch:\d+, PA:(0.\d+)')
 
+
 for dataset in datasets:
     path = os.path.join(root, dataset)
     models_paths = [os.path.join(path, i) for i in os.listdir(path)]
