@@ -169,6 +169,7 @@ def worker(rank_gpu, args):
     cls_criterion.to(device)
     domain_criterion = build_criterion(loss_names[1])
     domain_criterion.to(device)
+    klv_criterion = build_criterion('kldiv')
     val_criterion = build_criterion('softmax+ce')
     val_criterion.to(device)
     # build metric
@@ -305,8 +306,8 @@ def worker(rank_gpu, args):
                 joint = mapping(f_t, y_t_)
             select_status = selector(joint)[-1]
 
-            domain_out_t_ = domain_out_t.argmax(axis=1)
             # 先试试接近
+            domain_out_t_ = domain_out_t.argmin(axis=1)
             confu_loss = cls_criterion(y_s=select_status, label_s=domain_out_t_)
             y_s_c_t = classifier_t(f_s)[-1]
             cls_loss_ct_xs = cls_criterion(y_s=y_s_c_t, label_s=label_s)
@@ -323,17 +324,17 @@ def worker(rank_gpu, args):
 
             select_mask = select_status.argmax(axis=1)
             x_t_select = x_t[select_mask == 1]
-            y_t_select = y_t.argmax(axis=1)[select_mask == 1]
+            y_t_select = y_t_[select_mask == 1]
             label_t_select = label_t[select_mask == 1]
             for d, l in zip(x_t_select, y_t_select):
                 select_dataset.append(d, l)
-            metric_selector.add(y_t_select.data.cpu().numpy(), label_t_select.data.cpu().numpy())
+            metric_selector.add(y_t_select.argmax(axis=1).data.cpu().numpy(), label_t_select.data.cpu().numpy())
 
         selector.eval()
         classifier_t.train()
-        print("Num of selected data: ", len(select_dataset))
-        pseudo_labels = list(map(lambda x: x.item(), select_dataset.gt))
-        print("Count: ", Counter(pseudo_labels))
+        logging.info("Num of selected data: ", len(select_dataset))
+        pseudo_labels = list(map(lambda x: x.argmax(axis=0).item(), select_dataset.gt))
+        logging.info("Count: ", Counter(pseudo_labels))
         selected_sampler = DistributedSampler(select_dataset, shuffle=False)
         selected_dataloder = build_dataloader(select_dataset, sampler=selected_sampler)
         selected_bar = tqdm(selected_dataloder, desc='training_ct', ascii=True)
@@ -343,7 +344,7 @@ def worker(rank_gpu, args):
             with torch.no_grad():
                 f_t, _, _ = dann(x_t, alpha=0)
             y_t_ct = classifier_t(f_t)[-1]
-            step3_loss = cls_criterion(y_s=y_t_ct, label_s=pseudo_labels_t)
+            step3_loss = klv_criterion(y_t_ct, pseudo_labels_t)
 
             optimizer_ct.zero_grad()
             with amp.scale_loss(step3_loss, optimizer_ct) as scaled_loss:
@@ -351,7 +352,7 @@ def worker(rank_gpu, args):
             optimizer_ct.step()
 
             pred_ct = y_t_ct.argmax(axis=1)
-            metric_ct.add(pred_ct.data.cpu().numpy(), pseudo_labels_t.data.cpu().numpy())
+            metric_ct.add(pred_ct.data.cpu().numpy(), pseudo_labels_t.argmax(axis=1).data.cpu().numpy())
 
         step1_loss_epoch /= len(source_dataloader)
         cls_loss_epoch /= len(source_dataloader)

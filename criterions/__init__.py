@@ -1,7 +1,9 @@
+import torch.nn as nn
+
 from configs import CFG
 from .focal import FocalLoss
 from .coral import CoralLoss
-from .ce import CELoss, SoftmaxCELoss
+from .ce import CELoss, SoftmaxCELoss, Entropy
 from .bce import BCELoss, SigmoidBCELoss
 from .dice import DiceLoss, SigmoidDiceLoss
 from .mmd import MMDLoss, LocalMMDLoss, JointMMDLoss
@@ -40,6 +42,10 @@ def build_criterion(name):
         criterion = SoftmaxL1Distance()
     elif name == 'softmax+ce+ls':
         criterion = ConfidenceBasedSelfTrainingLoss(threshold=CFG.CRITERION.THRESHOLD)
+    elif name == 'entropy':
+        criterion = Entropy()
+    elif name == 'kldiv':
+        criterion = nn.KLDivLoss()
     else:
         raise NotImplementedError('invalid criterion: {}'.format(name))
     return criterion
