@@ -137,7 +137,7 @@ def worker(rank_gpu, args):
     logging.info("Number of class: {}".format(NUM_CLASSES))
     # build data sampler
     source_sampler = DistributedSampler(source_dataset, shuffle=True)
-    val_sampler = DistributedSampler(val_dataset, shuffle=True)
+    val_sampler = DistributedSampler(val_dataset, shuffle=False)
 
     # build data loader
     source_dataloader = build_dataloader(source_dataset, sampler=source_sampler)
@@ -227,7 +227,7 @@ def worker(rank_gpu, args):
             state_ = state_.to(device)
             # update state and dqn
             test_bar = tqdm(test_dataset, desc='selecting', ascii=True)
-            for ind, item in enumerate(test_bar):
+            for x_t, label in test_bar:
                 action = dqn.module.choose_action(state)
                 state_[ind] = action
                 if action == 1:
@@ -280,13 +280,8 @@ def worker(rank_gpu, args):
             selected_dataloder = build_dataloader(selected_dataset, sampler=selected_sampler)
             selected_bar = tqdm(selected_dataloder, desc='training', ascii=True)
             for x_st, pseudo_labels_st in selected_bar:
-                # already in cuda
-                # x_st, pseudo_labels_st = x_st.to(device), pseudo_labels_st.to(device)
-                print(x_st.size(), pseudo_labels_st.size())
-
                 f_st, y_st = model(x_st)
-
-                sel_loss = cls_criterion(pseudo_labels_st, y_st)
+                sel_loss = cls_criterion(y_s=y_st, label_s=pseudo_labels_st)
                 optimizer_da.zero_grad()
                 with amp.scale_loss(sel_loss, optimizer_da) as scaled_loss:
                     scaled_loss.backward()

@@ -1,6 +1,6 @@
 DATASET:
-    NAME: 'ShangHang'
-    ROOT: 'E:/zzy/GAN/data/ShanghaiHangzhou'
+    NAME: 'Houston'
+    ROOT: 'E:/zzy/GAN/data/Houston'
     PATCH:
         HEIGHT: 27
         WIDTH: 27
@@ -8,18 +8,20 @@ DATASET:
 
 
 DATALOADER:
-    BATCH_SIZE: 128
+    BATCH_SIZE: 64
     NUM_WORKERS: 0
-    ITERATION: 4241
+    ITERATION: 40
 
 MODEL:
-    NAME: 'ddc'
+    NAME: 'dann'
     BACKBONE: 'fe'
 
 CRITERION:
     ITEMS:
       - 'softmax+ce'
+      - 'softmax+ce'
     WEIGHTS:
+      - 1.0
       - 1.0
 
 OPTIMIZER:
@@ -32,4 +34,4 @@ SCHEDULER:
     FACTOR: 0.1
     PATIENCE: 2
 
-EPOCHS: 5
+EPOCHS: 15
