@@ -3,7 +3,7 @@ cd E:\zts\HSI_domain_adaptation
 set PYTHONPATH=%cd%
 
 rem dst
-python train/self_training/train.py configs/hyrank/dst_1_07_2.yaml ^
+python train/dst/train.py configs/hyrank/dst_1_07_2.yaml ^
         --path ./runs/hyrank/dst_1_07_2-train ^
         --nodes 1 ^
         --gpus 1 ^
@@ -16,7 +16,7 @@ python train/self_training/train.py configs/hyrank/dst_1_07_2.yaml ^
 
 
 remdst
-python train/self_training/train.py configs/hyrank/dst_1_07_2_1800_average.yaml ^
+python train/dst/train.py configs/hyrank/dst_1_07_2_1800_average.yaml ^
         --path ./runs/hyrank_sample/dst_1_07_2-train ^
         --nodes 1 ^
         --gpus 1 ^
