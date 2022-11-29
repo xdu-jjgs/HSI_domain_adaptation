@@ -43,5 +43,7 @@ _C.SCHEDULER.PATIENCE = 0
 _C.EPOCHS = 0
 _C.EPOCHK = 0
 
+_C.HYPERPARAMS = [0.] * 10
+
 CFG = _C.clone()
 CFG.freeze()

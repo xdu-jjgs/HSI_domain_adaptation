@@ -4,7 +4,7 @@ set PYTHONPATH=%cd%
 
 rem self_training
 python train/self_training/train.py configs/hyrank/self_training_1_05.yaml ^
-        --path ./runs/hyrank/self_training-train ^
+        --path ./runs/hyrank/self_training_1_05-train ^
         --nodes 1 ^
         --gpus 1 ^
         --rank-node 0 ^
@@ -28,7 +28,7 @@ python train/self_training/train.py configs/hyrank/self_training_1_05_1800_avera
         --opt-level O2
 
 python train/self_training/train.py configs/hyrank/self_training_1_07.yaml ^
-        --path ./runs/hyrank/self_training-train ^
+        --path ./runs/hyrank/self_training_1_07-train ^
         --nodes 1 ^
         --gpus 1 ^
         --rank-node 0 ^
@@ -41,7 +41,7 @@ python train/self_training/train.py configs/hyrank/self_training_1_07.yaml ^
 
 rem self_training
 python train/self_training/train.py configs/hyrank/self_training_1_07_1800_average.yaml ^
-        --path ./runs/hyrank_sample/self_training_1_05-train ^
+        --path ./runs/hyrank_sample/self_training_1_07-train ^
         --nodes 1 ^
         --gpus 1 ^
         --rank-node 0 ^

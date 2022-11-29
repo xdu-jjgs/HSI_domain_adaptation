@@ -4,7 +4,7 @@ set PYTHONPATH=%cd%
 
 rem self_training
 python train/self_training/train.py configs/shanghang/self_training_1_05.yaml ^
-        --path ./runs/shanghang/self_training-train ^
+        --path ./runs/shanghang/self_training_1_05-train ^
         --nodes 1 ^
         --gpus 1 ^
         --rank-node 0 ^
@@ -28,7 +28,7 @@ python train/self_training/train.py configs/shanghang/self_training_1_05_540_ave
 
 rem self_training
 python train/self_training/train.py configs/shanghang/self_training_1_07.yaml ^
-        --path ./runs/shanghang/self_training-train ^
+        --path ./runs/shanghang/self_training_1_07-train ^
         --nodes 1 ^
         --gpus 1 ^
         --rank-node 0 ^
@@ -40,7 +40,7 @@ python train/self_training/train.py configs/shanghang/self_training_1_07.yaml ^
 
 rem self_training
 python train/self_training/train.py configs/shanghang/self_training_1_07_540_average.yaml ^
-        --path ./runs/shanghang_sample/self_training_1_05-train ^
+        --path ./runs/shanghang_sample/self_training_1_07-train ^
         --nodes 1 ^
         --gpus 1 ^
         --rank-node 0 ^
