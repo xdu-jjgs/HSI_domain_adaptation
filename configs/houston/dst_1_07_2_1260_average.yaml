@@ -30,7 +30,7 @@ CRITERION:
 
 OPTIMIZER:
     NAME: 'adam'
-    LR: 0.0005
+    LR: 0.0001
 
 SCHEDULER:
     NAME: 'plateau'
