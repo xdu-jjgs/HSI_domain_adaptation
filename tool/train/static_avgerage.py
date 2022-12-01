@@ -28,7 +28,7 @@ for dataset in datasets:
                 avg = sum(v) / len(v)
                 min_ = min(v)
                 max_ = max(v)
-                print(dataset, name, "times:{}, avg:{:.3f}, +-{:.3f}".
+                print(dataset, name, "times:{}, avg:{:.3f}±{:.3f}".
                       format(len(v), avg, (max_ - min_)/2))
         except (ZeroDivisionError, FileNotFoundError):
             print("No result in dataset {}, model {}".format(dataset, model))
