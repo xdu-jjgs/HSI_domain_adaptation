@@ -301,9 +301,9 @@ def worker(rank_gpu, args):
                 'KC': f'{metric.KC():.3f}'
             })
 
-        step1_loss_epoch /= len(source_dataloader)
-        step2_loss_epoch /= len(source_dataloader)
-        step3_loss_epoch /= len(source_dataloader)
+        step1_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
+        step2_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
+        step3_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE * CFG.EPOCHK
         PA, mPA, Ps, Rs, F1S, KC = metric.PA(), metric.mPA(), metric.Ps(), metric.Rs(), metric.F1s(), metric.KC()
         if dist.get_rank() == 0:
             writer.add_scalar('train/loss_step1-epoch', step1_loss_epoch, epoch)

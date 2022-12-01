@@ -353,10 +353,10 @@ def worker(rank_gpu, args):
             pred_ct = y_t_ct.argmax(axis=1)
             metric_ct.add(pred_ct.data.cpu().numpy(), pseudo_labels_t.data.cpu().numpy())
 
-        step1_loss_epoch /= len(source_dataloader)
-        cls_loss_epoch /= len(source_dataloader)
-        domain_s_loss_epoch /= len(source_dataloader)
-        domain_t_loss_epoch /= len(source_dataloader)
+        step1_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
+        cls_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
+        domain_s_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
+        domain_t_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
         PA, mPA, Ps, Rs, F1S, KC = metric_model.PA(), metric_model.mPA(), metric_model.Ps(), metric_model.Rs(), metric_model.F1s(), metric_model.KC()
         if dist.get_rank() == 0:
             writer.add_scalar('train/loss_total-epoch', step1_loss_epoch, epoch)
