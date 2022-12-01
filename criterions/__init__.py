@@ -8,7 +8,9 @@ from .bce import BCELoss, SigmoidBCELoss
 from .dice import DiceLoss, SigmoidDiceLoss
 from .mmd import MMDLoss, LocalMMDLoss, JointMMDLoss
 from .dis import L1Distance, L2Distance, SoftmaxL1Distance
+from tllib.self_training.dst import WorstCaseEstimationLoss
 from tllib.self_training.pseudo_label import ConfidenceBasedSelfTrainingLoss
+
 
 
 def build_criterion(name):
@@ -40,12 +42,14 @@ def build_criterion(name):
         criterion = L2Distance()
     elif name == 'softmax+l1dis':
         criterion = SoftmaxL1Distance()
-    elif name == 'softmax+ce+ls':
-        criterion = ConfidenceBasedSelfTrainingLoss(threshold=CFG.CRITERION.THRESHOLD)
     elif name == 'entropy':
         criterion = Entropy()
     elif name == 'kldiv':
         criterion = nn.KLDivLoss()
+    elif name == 'softmax+ce+ls':
+        criterion = ConfidenceBasedSelfTrainingLoss(threshold=CFG.CRITERION.THRESHOLD)
+    elif name == 'wcec':
+        return WorstCaseEstimationLoss(CFG.HYPERPARAMS[0])
     else:
         raise NotImplementedError('invalid criterion: {}'.format(name))
     return criterion

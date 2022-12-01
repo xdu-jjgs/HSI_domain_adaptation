@@ -68,6 +68,8 @@
 - [ ] CDAN
 - [x] MCD
 - [ ] ParetoDA
+- [x] Self-training
+- [x] DST
 - [x] TSTNet
 
 ## <a name="usage"></a> 用法
@@ -96,51 +98,63 @@ python train/ddc/train.py configs/houston/dan_1800_average.yaml ^
 
 ## <a name="result"></a> 结果
 
-| Dataset          | Model  | backbone | sample-num | sample-order | loss                           | loss-ratio | kernel | batch-size | OA-best |
-|------------------|--------|----------|------------|--------------|--------------------------------|------------|--------|------------|---------|
-| Houston          | DNN    | fe       | -          | -            | softmax+ce                     | 1          | -      | 64         | 0.720   |
-| Houston          | DDC    | fe       | -          | -            | softmax+ce, mmd loss           | 1:1        | g1     | 64         | 0.706   |
-| Houston          | DAN    | fe       | -          | -            | softmax+ce, mmd loss           | 1:1        | g5     | 64         | 0.672   |
-| Houston          | JAN    | fe       | -          | -            | softmax+ce, joint mmd loss     | 1:1        | g5     | 64         | 0.622   |
-| Houston          | DSAN   | fe       | -          | -            | softmax+ce, local mmd loss     | 1:1        | g5     | 64         | 0.444   |
-| Houston          | DANN   | fe       | -          | -            | softmax+ce                     | 1          | -      | 64         | 0.573   |
-| Houston          | MCD    | fe       | -          | -            | softmax+ce, l1 loss            | 1:1        | -      | 64         | 0.573   | 
-| Houston          | TSTNet | fe       | -          | -            | softmax+ce, mmd loss, got loss | 1:1:0.1    | g5     | 100        | 0.762   |
-| Houston          | DNN    | fe       | 1260       | average      | softmax+ce                     | 1          | -      | 64         | 0.685   |
-| Houston          | DDC    | fe       | 1260       | average      | softmax+ce, mmd loss           | 1:1        | g1     | 64         | 0.690   |
-| Houston          | DAN    | fe       | 1260       | average      | softmax+ce, mmd loss           | 1:1        | g5     | 64         | 0.647   |
-| Houston          | JAN    | fe       | 1260       | average      | softmax+ce, joint mmd loss     | 1:1        | g5     | 64         | 0.440   |
-| Houston          | DSAN   | fe       | 1260       | average      | softmax+ce, local mmd loss     | 1:1        | g5     | 64         | 0.104   |
-| Houston          | DANN   | fe       | 1260       | average      | softmax+ce                     | 1          | -      | 64         | 0.608   |
-| Houston          | MCD    | fe       | 1260       | average      | softmax+ce, l1 loss            | 1:1        | -      | 64         | 0.614   |
-| HyRANK           | DNN    | fe       | -          | -            | softmax+ce                     | 1          | l      | 64         | 0.538   |  
-| HyRANK           | DDC    | fe       | -          | -            | softmax+ce, mmd loss           | 1:1        | g1     | 64         | 0.544   |    
-| HyRANK           | DAN    | fe       | -          | -            | softmax+ce, mmd loss           | 1:3        | g5     | 64         | 0.532   | 
-| HyRANK           | JAN    | fe       | -          | -            | softmax+ce, joint mmd loss     | 1:1        | g5     | 64         | 0.520   |
-| HyRANK           | DANN   | fe       | -          | -            | softmax+ce                     | 1          | -      | 64         | 0.615   |
-| HyRANK           | MCD    | fe       | -          | -            | softmax+ce, l1 loss            | 1:1        | -      | 64         | 0.544   |
-| HyRANK           | TSTNet | fe       | -          | -            | softmax+ce, mmd loss, got loss | 1:1:0.1    | l      | 100        | 0.633   |
-| HyRANK           | DNN    | fe       | 1800       | average      | softmax+ce                     | 1          | l      | 64         | 0.470   |  
-| HyRANK           | DDC    | fe       | 1800       | average      | softmax+ce, mmd loss           | 1:1        | g1     | 64         | 0.469   |    
-| HyRANK           | DAN    | fe       | 1800       | average      | softmax+ce, mmd loss           | 1:3        | g5     | 64         | 0.436   | 
-| HyRANK           | JAN    | fe       | 1800       | average      | softmax+ce, joint mmd loss     | 1:1        | g5     | 64         | 0.490   |
-| HyRANK           | DANN   | fe       | 1800       | average      | softmax+ce                     | 1          | -      | 64         | 0.422   |
-| HyRANK           | MCD    | fe       | 1800       | average      | softmax+ce, l1 loss            | 1:1        | -      | 64         | 0.436   |
-| ShanghaiHangzhou | DNN    | fe       | -          | -            | softmax+ce                     | 1          | -      | 64         | 0.929   |  
-| ShanghaiHangzhou | DDC    | fe       | -          | -            | softmax+ce, mmd loss           | 1:1        | g1     | 64         | 0.927   |    
-| ShanghaiHangzhou | DAN    | fe       | -          | -            | softmax+ce, mmd loss           | 1:1        | g5     | 64         | 0.916   | 
-| ShanghaiHangzhou | JAN    | fe       | -          | -            | softmax+ce, joint mmd loss     | 1:1        | g5     | 64         | 0.921   |
-| ShanghaiHangzhou | DSAN   | fe       | -          | -            | softmax+ce, local mmd loss     | 1:1        | g5     | 64         | 0.958   |   
-| ShanghaiHangzhou | DANN   | fe       | -          | -            | softmax+ce                     | 1          | -      | 64         | 0.903   |
-| ShanghaiHangzhou | MCD    | fe       | -          | -            | softmax+ce, l1 loss            | 1:1        | -      | 64         | 0.901   |
-| ShanghaiHangzhou | TSTNet | fe       | -          | -            | softmax+ce, mmd loss, got loss | 1:1:0.1    | l      | 100        | 0.801   |
-| ShanghaiHangzhou | DNN    | fe       | 540        | average      | softmax+ce                     | 1          | -      | 64         | 0.904   |  
-| ShanghaiHangzhou | DDC    | fe       | 540        | average      | softmax+ce, mmd loss           | 1:1        | g1     | 64         | 0.885   |    
-| ShanghaiHangzhou | DAN    | fe       | 540        | average      | softmax+ce, mmd loss           | 1:1        | g5     | 64         | 0.393   | 
-| ShanghaiHangzhou | JAN    | fe       | 540        | average      | softmax+ce, joint mmd loss     | 1:1        | g5     | 64         | 0.505   |
-| ShanghaiHangzhou | DSAN   | fe       | 540        | average      | softmax+ce, local mmd loss     | 1:1        | g5     | 64         | 0.523   |   
-| ShanghaiHangzhou | DANN   | fe       | 540        | average      | softmax+ce                     | 1          | -      | 64         | 0.921   |
-| ShanghaiHangzhou | MCD    | fe       | 540        | average      | softmax+ce, l1 loss            | 1:1        | -      | 64         | 0.921   |
+| Dataset          | Model         | OA-best     | backbone | sample-num | sample-order          | loss                             | loss-ratio | kernel | batch-size |
+|------------------|---------------|-------------|----------|------------|-----------------------|----------------------------------|------------|--------|------------|
+| Houston          | DNN           | 0.686±0.035 | fe       | -          | -                     | softmax+ce                       | 1          | -      | 64         |
+| Houston          | DDC           | 0.705±0.027 | fe       | -          | -                     | softmax+ce, mmd loss             | 1:1        | g1     | 64         |
+| Houston          | DAN           | 0.694±0.048 | fe       | -          | -                     | softmax+ce, mmd loss             | 1:1        | g5     | 64         |
+| Houston          | JAN           | 0.694±0.033 | fe       | -          | -                     | softmax+ce, joint mmd loss       | 1:1        | g5     | 64         |
+| Houston          | DSAN          | 0.664±0.108 | fe       | -          | -                     | softmax+ce, local mmd loss       | 1:1        | g5     | 64         |
+| Houston          | DANN          | 0.620±0.060 | fe       | -          | -                     | softmax+ce                       | 1          | -      | 64         |
+| Houston          | MCD           | 0.632±0.033 | fe       | -          | -                     | softmax+ce, l1 loss              | 1:1        | -      | 64         |
+| Houston          | Self-training | 0.652±0.003 | fe       | -          | softmax+ce, cbst loss | 1:1                              | -          | 100    |
+| Houston          | DST           | 0.571±0.003 | fe       | -          | -                     | softmax+ce, wcec loss, cbst loss | 1:1:1      | -      | 100        |
+| Houston          | TSTNet        | 0.762       | fe       | -          | -                     | softmax+ce, mmd loss, got loss   | 1:1:0.1    | g5     | 100        |
+| Houston          | DNN           | 0.671±0.042 | fe       | 1260       | average               | softmax+ce                       | 1          | -      | 64         |
+| Houston          | DDC           | 0.676±0.053 | fe       | 1260       | average               | softmax+ce, mmd loss             | 1:1        | g1     | 64         |
+| Houston          | DAN           | 0.686±0.058 | fe       | 1260       | average               | softmax+ce, mmd loss             | 1:1        | g5     | 64         |
+| Houston          | JAN           | 0.677±0.058 | fe       | 1260       | average               | softmax+ce, joint mmd loss       | 1:1        | g5     | 64         |
+| Houston          | DSAN          | 0.643±0.050 | fe       | 1260       | average               | softmax+ce, local mmd loss       | 1:1        | g5     | 64         |
+| Houston          | DANN          | 0.590±0.060 | fe       | 1260       | average               | softmax+ce                       | 1          | -      | 64         |
+| Houston          | MCD           | 0.618±0.027 | fe       | 1260       | average               | softmax+ce, l1 loss              | 1:1        | -      | 64         |
+| Houston          | Self-training | 0.631±0.011 | fe       | 1260       | average               | softmax+ce, cbst loss            | 1:1        | -      | 64         |
+| Houston          | DST           | 0.556±0.003 | fe       | 1260       | average               | softmax+ce, wcec loss, cbst loss | 1:1:1      | -      | 64         |
+| HyRANK           | DNN           | 0.507±0.023 | fe       | -          | -                     | softmax+ce                       | 1          | l      | 64         |  
+| HyRANK           | DDC           | 0.523±0.030 | fe       | -          | -                     | softmax+ce, mmd loss             | 1:1        | g1     | 64         |    
+| HyRANK           | DAN           | 0.504±0.039 | fe       | -          | -                     | softmax+ce, mmd loss             | 1:3        | g5     | 64         | 
+| HyRANK           | JAN           | 0.516±0.026 | fe       | -          | -                     | softmax+ce, joint mmd loss       | 1:1        | g5     | 64         |
+| HyRANK           | DANN          | 0.582±0.038 | fe       | -          | -                     | softmax+ce                       | 1          | -      | 64         |
+| HyRANK           | MCD           | 0.561±0.026 | fe       | -          | -                     | softmax+ce, l1 loss              | 1:1        | -      | 64         |
+| HyRANK           | Self-training | 0.514±0.009 | fe       | -          | -                     | softmax+ce, cbst loss            | 1:1        | -      | 64         |
+| HyRANK           | DST           | 0.555±0.17  | fe       | -          | -                     | softmax+ce, wcec loss, cbst loss | 1:1:1      | -      | 64         |
+| HyRANK           | TSTNet        | 0.633       | fe       | -          | -                     | softmax+ce, mmd loss, got loss   | 1:1:0.1    | l      | 100        |
+| HyRANK           | DNN           | 0.492±0.029 | fe       | 1800       | average               | softmax+ce                       | 1          | l      | 64         |  
+| HyRANK           | DDC           | 0.491±0.028 | fe       | 1800       | average               | softmax+ce, mmd loss             | 1:1        | g1     | 64         |    
+| HyRANK           | DAN           | 0.496±0.021 | fe       | 1800       | average               | softmax+ce, mmd loss             | 1:3        | g5     | 64         | 
+| HyRANK           | JAN           | 0.485±0.022 | fe       | 1800       | average               | softmax+ce, joint mmd loss       | 1:1        | g5     | 64         |
+| HyRANK           | DANN          | 0.473±0.036 | fe       | 1800       | average               | softmax+ce                       | 1          | -      | 64         |
+| HyRANK           | MCD           | 0.552±0.027 | fe       | 1800       | average               | softmax+ce, cbst loss            | 1:1        | -      | 64         |
+| HyRANK           | Self-training | 0.514±0.006 | fe       | 1800       | average               | softmax+ce, wcec loss, cbst loss | 1:1        | -      | 64         |
+| HyRANK           | DST           | 0.542±0.004 | fe       | 1800       | average               | softmax+ce, l1 loss              | 1:1        | -      | 64         |
+| ShanghaiHangzhou | DNN           | 0.909±0.002 | fe       | -          | -                     | softmax+ce                       | 1          | -      | 64         |  
+| ShanghaiHangzhou | DDC           | 0.887±0.008 | fe       | -          | -                     | softmax+ce, mmd loss             | 1:1        | g1     | 64         |    
+| ShanghaiHangzhou | DAN           | 0.904±0.011 | fe       | -          | -                     | softmax+ce, mmd loss             | 1:1        | g5     | 64         | 
+| ShanghaiHangzhou | JAN           | 0.903±0.011 | fe       | -          | -                     | softmax+ce, joint mmd loss       | 1:1        | g5     | 64         |
+| ShanghaiHangzhou | DSAN          | 0.907±0.005 | fe       | -          | -                     | softmax+ce, local mmd loss       | 1:1        | g5     | 64         |   
+| ShanghaiHangzhou | DANN          | 0.905±0.016 | fe       | -          | -                     | softmax+ce                       | 1          | -      | 64         |
+| ShanghaiHangzhou | MCD           | 0.717±0.105 | fe       | -          | -                     | softmax+ce, l1 loss              | 1:1        | -      | 64         |
+| ShanghaiHangzhou | Self-training | 0.915±0.000 | fe       | -          | -                     | softmax+ce, cbst loss            | 1:1        | -      | 64         |
+| ShanghaiHangzhou | DST           | 0.938±0.001 | fe       | -          | -                     | softmax+ce, wcec loss, cbst loss | 1:1:1      | -      | 64         |
+| ShanghaiHangzhou | TSTNet        | 0.801       | fe       | -          | -                     | softmax+ce, mmd loss, got loss   | 1:1:0.1    | l      | 100        |
+| ShanghaiHangzhou | DNN           | 0.911±0.020 | fe       | 540        | average               | softmax+ce                       | 1          | -      | 64         |  
+| ShanghaiHangzhou | DDC           | 0.928±0.004 | fe       | 540        | average               | softmax+ce, mmd loss             | 1:1        | g1     | 64         |    
+| ShanghaiHangzhou | DAN           | 0.913±0.011 | fe       | 540        | average               | softmax+ce, mmd loss             | 1:1        | g5     | 64         | 
+| ShanghaiHangzhou | JAN           | 0.905±0.014 | fe       | 540        | average               | softmax+ce, joint mmd loss       | 1:1        | g5     | 64         |
+| ShanghaiHangzhou | DSAN          | 0.901±0.013 | fe       | 540        | average               | softmax+ce, local mmd loss       | 1:1        | g5     | 64         |   
+| ShanghaiHangzhou | DANN          | 0.910±0.010 | fe       | 540        | average               | softmax+ce                       | 1          | -      | 64         |
+| ShanghaiHangzhou | MCD           | 0.930±0.004 | fe       | 540        | average               | softmax+ce, l1 loss              | 1:1        | -      | 64         |
+| ShanghaiHangzhou | Self-training | 0.925±0.000 | fe       | 540        | average               | softmax+ce, cbst loss            | 1:1        | -      | 64         |
+| ShanghaiHangzhou | DST           | 0.933±0.003 | fe       | 540        | average               | softmax+ce, wcec loss, cbst loss | 1:1:1      | -      | 64         |
 
 
 ## <a name="license"></a> 结果

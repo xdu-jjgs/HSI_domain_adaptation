@@ -1,6 +1,7 @@
 import torch.nn as nn
 import torch.nn.functional as F
 
+
 class CELoss(nn.NLLLoss):
     def __init__(self, **kwargs):
         super(CELoss, self).__init__(**kwargs)

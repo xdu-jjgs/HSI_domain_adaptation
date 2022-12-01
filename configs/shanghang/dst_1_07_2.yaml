@@ -13,17 +13,19 @@ DATALOADER:
     ITERATION: 4241
 
 MODEL:
-    NAME: 'ddc'
+    NAME: 'dst'
     BACKBONE: 'fe'
 
 CRITERION:
     ITEMS:
       - 'softmax+ce'
       - 'softmax+ce+ls'
+      - 'wcec'
     WEIGHTS:
       - 1.0
       - 1.0
-    THRESHOLD: 0.5
+      - 1.0
+    THRESHOLD: 0.7
 
 OPTIMIZER:
     NAME: 'adam'
@@ -36,3 +38,6 @@ SCHEDULER:
     PATIENCE: 2
 
 EPOCHS: 5
+
+HYPERPARAMS:
+    - 2.0

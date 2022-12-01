@@ -1,6 +1,6 @@
 DATASET:
-    NAME: 'ShangHang'
-    ROOT: 'E:/zzy/GAN/data/ShanghaiHangzhou'
+    NAME: 'HyRANK'
+    ROOT: 'E:/zzy/GAN/data/HyRANK'
     PATCH:
         HEIGHT: 27
         WIDTH: 27
@@ -8,22 +8,24 @@ DATASET:
 
 
 DATALOADER:
-    BATCH_SIZE: 128
+    BATCH_SIZE: 32
     NUM_WORKERS: 0
-    ITERATION: 4241
+    ITERATION: 626
 
 MODEL:
-    NAME: 'ddc'
+    NAME: 'dst'
     BACKBONE: 'fe'
 
 CRITERION:
     ITEMS:
       - 'softmax+ce'
       - 'softmax+ce+ls'
+      - 'wcec'
     WEIGHTS:
       - 1.0
       - 1.0
-    THRESHOLD: 0.5
+      - 1.0
+    THRESHOLD: 0.7
 
 OPTIMIZER:
     NAME: 'adam'
@@ -35,4 +37,7 @@ SCHEDULER:
     FACTOR: 0.1
     PATIENCE: 2
 
-EPOCHS: 5
+EPOCHS: 35
+
+HYPERPARAMS:
+    - 2.0

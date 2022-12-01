@@ -1,16 +1,17 @@
 DATASET:
-    NAME: 'ShangHang'
-    ROOT: 'E:/zzy/GAN/data/ShanghaiHangzhou'
+    NAME: 'HyRANK'
+    ROOT: 'E:/zzy/GAN/data/HyRANK'
     PATCH:
         HEIGHT: 27
         WIDTH: 27
         PAD_MODE: 'symmetric'
-
+    SAMPLE_NUM: 1800
+    SAMPLE_ORDER: 'average'
 
 DATALOADER:
-    BATCH_SIZE: 128
+    BATCH_SIZE: 32
     NUM_WORKERS: 0
-    ITERATION: 4241
+    ITERATION: 626
 
 MODEL:
     NAME: 'ddc'
@@ -23,7 +24,7 @@ CRITERION:
     WEIGHTS:
       - 1.0
       - 1.0
-    THRESHOLD: 0.5
+    THRESHOLD: 0.7
 
 OPTIMIZER:
     NAME: 'adam'
@@ -35,4 +36,4 @@ SCHEDULER:
     FACTOR: 0.1
     PATIENCE: 2
 
-EPOCHS: 5
+EPOCHS: 35
