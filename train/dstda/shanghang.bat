@@ -3,8 +3,8 @@ cd E:\zts\HSI_domain_adaptation
 set PYTHONPATH=%cd%
 
 rem dstda
-python train/dstda/train.py configs/shanghang/dstda_1_07_2.yaml ^
-        --path ./runs/shanghang/dstda_1_07_2-train ^
+python train/dstda/train.py configs/shanghang/dstda_1_1_1_1_07_2.yaml ^
+        --path ./runs/shanghang/dstda_1_1_1_1_07_2-train ^
         --nodes 1 ^
         --gpus 1 ^
         --rank-node 0 ^
@@ -15,8 +15,8 @@ python train/dstda/train.py configs/shanghang/dstda_1_07_2.yaml ^
         --opt-level O2
 
 rem dstda
-python train/dstda/train.py configs/shanghang/dstda_1_07_2_540_average.yaml ^
-        --path ./runs/shanghang_sample/dstda_1_07_2-train ^
+python train/dstda/train.py configs/shanghang/dstda_1_1_1_1_07_2_540_average.yaml ^
+        --path ./runs/shanghang_sample/dstda_1_1_1_1_07_2-train ^
         --nodes 1 ^
         --gpus 1 ^
         --rank-node 0 ^
