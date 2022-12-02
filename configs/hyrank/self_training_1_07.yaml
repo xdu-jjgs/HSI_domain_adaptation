@@ -19,7 +19,7 @@ MODEL:
 CRITERION:
     ITEMS:
       - 'softmax+ce'
-      - 'softmax+ce+ls'
+      - 'cbst'
     WEIGHTS:
       - 1.0
       - 1.0

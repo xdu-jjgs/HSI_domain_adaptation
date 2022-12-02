@@ -45,7 +45,7 @@ def build_criterion(name):
         criterion = Entropy()
     elif name == 'kldiv':
         criterion = nn.KLDivLoss()
-    elif name == 'softmax+ce+ls':
+    elif name == 'cbst':
         criterion = ConfidenceBasedSelfTrainingLoss(threshold=CFG.CRITERION.THRESHOLD)
     elif name == 'wcec':
         return WorstCaseEstimationLoss(CFG.HYPERPARAMS[0])

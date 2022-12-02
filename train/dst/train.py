@@ -156,11 +156,11 @@ def worker(rank_gpu, args):
     loss_weights = CFG.CRITERION.WEIGHTS
     assert len(loss_names) == len(loss_weights)
     cls_criterion = build_criterion(loss_names[0])
-    cbst_criterion = build_criterion(loss_names[1])
-    wcec_criterion = build_criterion(loss_names[2])
+    wcec_criterion = build_criterion(loss_names[1])
+    cbst_criterion = build_criterion(loss_names[2])
     cls_criterion.to(device)
-    cbst_criterion.to(device)
     wcec_criterion.to(device)
+    cbst_criterion.to(device)
     val_criterion = build_criterion('softmax+ce')
     val_criterion.to(device)
     # build metric
@@ -220,8 +220,7 @@ def worker(rank_gpu, args):
         metric_adv_t.reset()
         metric_pse.reset()
         train_bar = tqdm(range(1, CFG.DATALOADER.ITERATION + 1), desc='training', ascii=True)
-        total_loss_epoch, step1_loss_epoch, step2_loss_epoch, cls_loss_epoch, worst_loss_epoch, cbst_loss_epoch =\
-            0., 0., 0., 0., 0., 0.
+        total_loss_epoch, cls_loss_epoch, worst_loss_epoch, cbst_loss_epoch = 0., 0., 0., 0.,
         for iteration in train_bar:
             x_s, label_s = next(source_iterator)
             x_t, label_t = next(target_iterator)
@@ -233,19 +232,15 @@ def worker(rank_gpu, args):
             f_t, y_t, y_pse, y_t_adv = model(x_t)
 
             cls_loss = cls_criterion(y_s=y_s, label_s=label_s,) * loss_weights[0]
-            worst_loss = wcec_criterion(y_s, y_s_adv, y_t, y_t_adv)
-            step1_loss = cls_loss + worst_loss
+            worst_loss = wcec_criterion(y_s, y_s_adv, y_t, y_t_adv) * loss_weights[1]
             cls_loss_epoch += cls_loss.item()
             worst_loss_epoch += worst_loss.item()
-            step1_loss_epoch += step1_loss.item()
 
             # step2: train classifier_pse with T data
-            cbst_loss, mask, labels_pse = cbst_criterion(y_t, y_t)
-            step2_loss = cbst_loss
+            cbst_loss, mask, labels_pse = cbst_criterion(y_t, y_t) * loss_weights[2]
             cbst_loss_epoch += cbst_loss.item()
-            step2_loss_epoch += cbst_loss.item()
 
-            total_loss = step1_loss + step2_loss
+            total_loss = cls_loss + worst_loss + cbst_loss
             total_loss_epoch += total_loss.item()
 
             optimizer.zero_grad()
@@ -272,16 +267,12 @@ def worker(rank_gpu, args):
             train_bar.set_postfix({
                 'epoch': epoch,
                 'total-loss': f'{total_loss.item():.3f}',
-                'step1-loss': f'{step1_loss.item():.3f}',
-                'step2-loss': f'{step2_loss.item():.3f}',
                 'mP': f'{metric_cls.mPA():.3f}',
                 'PA': f'{metric_cls.PA():.3f}',
                 'KC': f'{metric_cls.KC():.3f}',
             })
 
         total_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
-        step1_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
-        step2_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
         cls_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
         worst_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
         cbst_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
@@ -299,10 +290,8 @@ def worker(rank_gpu, args):
 
         if dist.get_rank() == 0:
             writer.add_scalar('train/loss_total-epoch', total_loss_epoch, epoch)
-            writer.add_scalar('train/loss_step1-epoch', step1_loss_epoch, epoch)
             writer.add_scalar('train/loss_cls-epoch', cls_loss_epoch, epoch)
             writer.add_scalar('train/loss_wos-epoch', worst_loss_epoch, epoch)
-            writer.add_scalar('train/loss_step2-epoch', step2_loss_epoch, epoch)
 
             writer.add_scalar('train/PA_cls-epoch', PA_cls, epoch)
             writer.add_scalar('train/mPA_cls-epoch', mPA_cls, epoch)
@@ -320,10 +309,8 @@ def worker(rank_gpu, args):
             writer.add_scalar('train/mPA_pse-epoch', mPA_pse, epoch)
             writer.add_scalar('train/KC_pse-epoch', KC_pse, epoch)
         logging.info(
-            'rank{} train epoch={} | loss_total={:.3f} loss_step1={:.3f} '
-            'loss_cls={:.3f} loss_wos={:.3f} loss_step2={:.3f}'
-            .format(dist.get_rank() + 1, epoch, total_loss_epoch, step1_loss_epoch,
-                    cls_loss_epoch, worst_loss_epoch, step2_loss_epoch))
+            'rank{} train epoch={} | loss_total={:.3f} loss_cls={:.3f} loss_wos={:.3f} loss_cbst={:.3f}'
+            .format(dist.get_rank() + 1, epoch, total_loss_epoch, cls_loss_epoch, worst_loss_epoch, cbst_loss_epoch))
         logging.info(
             'rank{} train epoch={} | cls PA={:.3f} mPA={:.3f} KC={:.3f} | adv-s PA={:.3f} mPA={:.3f} KC={:.3f} |'
             ' adv_t PA={:.3f} mPA={:.3f} KC={:.3f}| pse PA={:.3f} mPA={:.3f} KC={:.3f}'

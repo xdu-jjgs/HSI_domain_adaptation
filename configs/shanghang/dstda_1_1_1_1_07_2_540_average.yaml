@@ -5,6 +5,9 @@ DATASET:
         HEIGHT: 27
         WIDTH: 27
         PAD_MODE: 'symmetric'
+    SAMPLE_NUM: 540
+    SAMPLE_ORDER: 'average'
+
 
 
 DATALOADER:
@@ -13,14 +16,15 @@ DATALOADER:
     ITERATION: 4241
 
 MODEL:
-    NAME: 'dst'
+    NAME: 'dstda'
     BACKBONE: 'fe'
 
 CRITERION:
     ITEMS:
       - 'softmax+ce'
-      - 'softmax+ce+ls'
       - 'wcec'
+      - 'softmax+ce'
+      - 'cbst'
     WEIGHTS:
       - 1.0
       - 1.0

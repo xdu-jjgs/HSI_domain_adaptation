@@ -1,29 +1,26 @@
 DATASET:
-    NAME: 'ShangHang'
-    ROOT: 'E:/zzy/GAN/data/ShanghaiHangzhou'
+    NAME: 'Houston'
+    ROOT: 'E:/zzy/GAN/data/Houston'
     PATCH:
         HEIGHT: 27
         WIDTH: 27
         PAD_MODE: 'symmetric'
-    SAMPLE_NUM: 540
-    SAMPLE_ORDER: 'average'
-
 
 
 DATALOADER:
-    BATCH_SIZE: 128
+    BATCH_SIZE: 64
     NUM_WORKERS: 0
-    ITERATION: 4241
+    ITERATION: 40
 
 MODEL:
-    NAME: 'dstda'
+    NAME: 'dst'
     BACKBONE: 'fe'
 
 CRITERION:
     ITEMS:
       - 'softmax+ce'
-      - 'softmax+ce+ls'
       - 'wcec'
+      - 'cbst'
     WEIGHTS:
       - 1.0
       - 1.0
@@ -32,7 +29,7 @@ CRITERION:
 
 OPTIMIZER:
     NAME: 'adam'
-    LR: 0.001
+    LR: 0.0001
 
 SCHEDULER:
     NAME: 'plateau'
@@ -40,7 +37,7 @@ SCHEDULER:
     FACTOR: 0.1
     PATIENCE: 2
 
-EPOCHS: 5
+EPOCHS: 30
 
 HYPERPARAMS:
     - 2.0
