@@ -12,7 +12,6 @@ from tllib.self_training.dst import WorstCaseEstimationLoss
 from tllib.self_training.pseudo_label import ConfidenceBasedSelfTrainingLoss
 
 
-
 def build_criterion(name):
     if name == 'ce':
         criterion = CELoss()
