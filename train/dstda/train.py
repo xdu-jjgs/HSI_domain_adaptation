@@ -354,7 +354,7 @@ def worker(rank_gpu, args):
         with torch.no_grad():  # disable gradient back-propagation
             for x_t, label_s in val_bar:
                 x_t, label_s = x_t.to(device), label_s.to(device)
-                _, y_t, _, _ = model(x_t)
+                _, y_t, _, _, _ = model(x_t)
 
                 cls_loss = val_criterion(y_s=y_t, label_s=label_s)
                 val_loss += cls_loss.item()

@@ -15,7 +15,7 @@ python train/dstda/train.py configs/hyrank/dstda_1_07_2.yaml ^
         --opt-level O2
 
 
-remdstda
+rem dstda
 python train/dstda/train.py configs/hyrank/dstda_1_07_2_1800_average.yaml ^
         --path ./runs/hyrank_sample/dstda_1_07_2-train ^
         --nodes 1 ^
