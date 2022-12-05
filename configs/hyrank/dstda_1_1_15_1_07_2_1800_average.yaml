@@ -5,6 +5,8 @@ DATASET:
         HEIGHT: 27
         WIDTH: 27
         PAD_MODE: 'symmetric'
+    SAMPLE_NUM: 1800
+    SAMPLE_ORDER: 'average'
 
 
 DATALOADER:
@@ -25,7 +27,7 @@ CRITERION:
     WEIGHTS:
       - 1.0
       - 1.0
-      - 1.0
+      - 1.5
       - 1.0
     THRESHOLD: 0.7
 

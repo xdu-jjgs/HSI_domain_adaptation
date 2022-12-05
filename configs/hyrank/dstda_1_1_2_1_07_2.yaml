@@ -25,13 +25,13 @@ CRITERION:
     WEIGHTS:
       - 1.0
       - 1.0
-      - 1.0
+      - 2.0
       - 1.0
     THRESHOLD: 0.7
 
 OPTIMIZER:
     NAME: 'adam'
-    LR: 0.001
+    LR: 0.0001
 
 SCHEDULER:
     NAME: 'plateau'

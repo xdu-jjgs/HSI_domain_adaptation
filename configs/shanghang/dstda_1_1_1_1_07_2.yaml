@@ -26,6 +26,7 @@ CRITERION:
       - 1.0
       - 1.0
       - 1.0
+      - 1.0
     THRESHOLD: 0.7
 
 OPTIMIZER:

@@ -247,7 +247,8 @@ def worker(rank_gpu, args):
             domain_loss_epoch += domain_s_loss.item() + domain_t_loss.item()
 
             # train classifier_pse with T data
-            cbst_loss, mask, labels_pse = cbst_criterion(y_t, y_t) * loss_weights[3]
+            cbst_loss, mask, labels_pse = cbst_criterion(y_t, y_t)
+            cbst_loss *= loss_weights[3]
             cbst_loss_epoch += cbst_loss.item()
 
             total_loss = cls_loss + worst_loss + domain_s_loss + domain_t_loss + cbst_loss

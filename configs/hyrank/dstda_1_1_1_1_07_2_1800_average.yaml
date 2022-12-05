@@ -28,6 +28,7 @@ CRITERION:
       - 1.0
       - 1.0
       - 1.0
+      - 1.0
     THRESHOLD: 0.7
 
 OPTIMIZER:
@@ -40,7 +41,7 @@ SCHEDULER:
     FACTOR: 0.1
     PATIENCE: 2
 
-EPOCHS: 35
+EPOCHS: 20
 
 HYPERPARAMS:
     - 2.0
