@@ -237,7 +237,7 @@ def worker(rank_gpu, args):
             worst_loss_epoch += worst_loss.item()
 
             # step2: train classifier_pse with T data
-            cbst_loss, mask, labels_pse = cbst_criterion(y_t, y_t)
+            cbst_loss, mask, labels_pse = cbst_criterion(y_pse, y_t)
             cbst_loss *= loss_weights[2]
             cbst_loss_epoch += cbst_loss.item()
 
