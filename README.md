@@ -108,8 +108,8 @@ python train/ddc/train.py configs/houston/dan_1800_average.yaml ^
 | Houston          | DANN          | 0.620±0.060 | fe       | -          | -                     | softmax+ce                       | 1          | -      | 64         |
 | Houston          | MCD           | 0.632±0.033 | fe       | -          | -                     | softmax+ce, l1 loss              | 1:1        | -      | 64         |
 | Houston          | Self-training | 0.652±0.003 | fe       | -          | softmax+ce, cbst loss | 1:1                              | -          | 100    |
-| Houston          | DST           | 0.575±0.007 | fe       | -          | -                     | softmax+ce, wcec loss, cbst loss | 1:1:1      | -      | 100        |
-| Houston          | DSTDA         | 0.577±0.024 | fe       | -          | -                     | softmax+ce, wcec loss, adv loss, cbst loss | 1:1:1:1      | -      | 100        |
+| Houston          | DST           | 0.597±0.018 | fe       | -          | -                     | softmax+ce, wcec loss, cbst loss | 1:1:1      | -      | 100        |
+| Houston          | DSTDA         | 0.593±0.013 | fe       | -          | -                     | softmax+ce, wcec loss, adv loss, cbst loss | 1:1:1:1      | -      | 100        |
 | Houston          | TSTNet        | 0.762       | fe       | -          | -                     | softmax+ce, mmd loss, got loss   | 1:1:0.1    | g5     | 100        |
 | Houston          | DNN           | 0.671±0.042 | fe       | 1260       | average               | softmax+ce                       | 1          | -      | 64         |
 | Houston          | DDC           | 0.676±0.053 | fe       | 1260       | average               | softmax+ce, mmd loss             | 1:1        | g1     | 64         |
@@ -119,8 +119,8 @@ python train/ddc/train.py configs/houston/dan_1800_average.yaml ^
 | Houston          | DANN          | 0.590±0.060 | fe       | 1260       | average               | softmax+ce                       | 1          | -      | 64         |
 | Houston          | MCD           | 0.618±0.027 | fe       | 1260       | average               | softmax+ce, l1 loss              | 1:1        | -      | 64         |
 | Houston          | Self-training | 0.631±0.011 | fe       | 1260       | average               | softmax+ce, cbst loss            | 1:1        | -      | 64         |
-| Houston          | DST           | 0.567±0.014 | fe       | 1260       | average               | softmax+ce, wcec loss, cbst loss | 1:1:1      | -      | 64         |
-| Houston          | DSTDA         | 0.560±0.027 | fe       | 1260       | average               | softmax+ce, wcec loss, adv loss, cbst loss | 1:1:1:1      | -      | 64         |
+| Houston          | DST           | 0.576±0.015 | fe       | 1260       | average               | softmax+ce, wcec loss, cbst loss | 1:1:1      | -      | 64         |
+| Houston          | DSTDA         | 0.575±0.015 | fe       | 1260       | average               | softmax+ce, wcec loss, adv loss, cbst loss | 1:1:1:1      | -      | 64         |
 | HyRANK           | DNN           | 0.507±0.023 | fe       | -          | -                     | softmax+ce                       | 1          | l      | 64         |  
 | HyRANK           | DDC           | 0.523±0.030 | fe       | -          | -                     | softmax+ce, mmd loss             | 1:1        | g1     | 64         |    
 | HyRANK           | DAN           | 0.504±0.039 | fe       | -          | -                     | softmax+ce, mmd loss             | 1:3        | g5     | 64         | 
@@ -128,8 +128,9 @@ python train/ddc/train.py configs/houston/dan_1800_average.yaml ^
 | HyRANK           | DANN          | 0.582±0.038 | fe       | -          | -                     | softmax+ce                       | 1          | -      | 64         |
 | HyRANK           | MCD           | 0.561±0.026 | fe       | -          | -                     | softmax+ce, l1 loss              | 1:1        | -      | 64         |
 | HyRANK           | Self-training | 0.514±0.009 | fe       | -          | -                     | softmax+ce, cbst loss            | 1:1        | -      | 64         |
-| HyRANK           | DST           | 0.553±0.27  | fe       | -          | -                     | softmax+ce, wcec loss, cbst loss | 1:1:1      | -      | 64         |
-| HyRANK           | DSTDA         | 0.544±0.30  | fe       | -          | -                     | softmax+ce, wcec loss, adv loss, cbst loss | 1:1:1:1      | -      | 64         |
+| HyRANK           | DST           | 0.558±0.021 | fe       | -          | -                     | softmax+ce, wcec loss, cbst loss | 1:1:1      | -      | 64         |
+| HyRANK           | DSTDA         | 0.558±0.015 | fe       | -          | -                     | softmax+ce, wcec loss, adv loss, cbst loss | 1:1:1:1      | -      | 64         |
+| HyRANK           | DSTDA         | 0.572±0.023 | fe       | -          | -                     | softmax+ce, wcec loss, adv loss, cbst loss | 1:1:2:1      | -      | 64         |
 | HyRANK           | TSTNet        | 0.633       | fe       | -          | -                     | softmax+ce, mmd loss, got loss   | 1:1:0.1    | l      | 100        |
 | HyRANK           | DNN           | 0.492±0.029 | fe       | 1800       | average               | softmax+ce                       | 1          | l      | 64         |  
 | HyRANK           | DDC           | 0.491±0.028 | fe       | 1800       | average               | softmax+ce, mmd loss             | 1:1        | g1     | 64         |    
@@ -138,8 +139,8 @@ python train/ddc/train.py configs/houston/dan_1800_average.yaml ^
 | HyRANK           | DANN          | 0.473±0.036 | fe       | 1800       | average               | softmax+ce                       | 1          | -      | 64         |
 | HyRANK           | MCD           | 0.552±0.027 | fe       | 1800       | average               | softmax+ce, l1 loss              | 1:1        | -      | 64         |
 | HyRANK           | Self-training | 0.514±0.006 | fe       | 1800       | average               | softmax+ce, cbst loss            | 1:1        | -      | 64         |
-| HyRANK           | DST           | 0.517±0.033 | fe       | 1800       | average               | softmax+ce, wcec loss, cbst loss | 1:1:1        | -      | 64         |
-| HyRANK           | DSTDA         | 0.510±0.045 | fe       | 1800       | average               | softmax+ce, wcec loss, adv loss, cbst loss | 1:1:1:1        | -      | 64         |
+| HyRANK           | DST           | 0.478±0.034 | fe       | 1800       | average               | softmax+ce, wcec loss, cbst loss | 1:1:1        | -      | 64         |
+| HyRANK           | DSTDA         | 0.478±0.028 | fe       | 1800       | average               | softmax+ce, wcec loss, adv loss, cbst loss | 1:1:1:1        | -      | 64         |
 | ShanghaiHangzhou | DNN           | 0.909±0.002 | fe       | -          | -                     | softmax+ce                       | 1          | -      | 64         |  
 | ShanghaiHangzhou | DDC           | 0.887±0.008 | fe       | -          | -                     | softmax+ce, mmd loss             | 1:1        | g1     | 64         |    
 | ShanghaiHangzhou | DAN           | 0.904±0.011 | fe       | -          | -                     | softmax+ce, mmd loss             | 1:1        | g5     | 64         | 

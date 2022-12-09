@@ -1,5 +1,6 @@
-from .dstda import DSTDA
+from .dstda import DSTDA, DSTDAMapping
 
 __all__ = [
-    DSTDA
+    DSTDA,
+    DSTDAMapping
 ]
