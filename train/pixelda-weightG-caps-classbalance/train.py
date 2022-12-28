@@ -22,7 +22,7 @@ from models import build_model
 from criterions import build_criterion
 from optimizers import build_optimizer
 from schedulers import build_scheduler
-from datas import build_dataset, build_dataloader
+from datas import build_dataset, build_dataloader, DynamicDataset
 
 
 def parse_args():
@@ -132,6 +132,7 @@ def worker(rank_gpu, args):
     train_dataset = build_dataset('train')
     test_dataset = build_dataset('test')
     val_dataset = test_dataset
+    pseudo_dataset = DynamicDataset()
     assert train_dataset.num_classes == val_dataset.num_classes
     logging.info("Number of train {}, val {}, test {}".format(len(train_dataset), len(val_dataset), len(test_dataset)))
     NUM_CHANNELS = train_dataset.num_channels
@@ -139,9 +140,11 @@ def worker(rank_gpu, args):
     logging.info("Number of class: {}".format(NUM_CLASSES))
     # build data sampler
     train_sampler = DistributedSampler(train_dataset, shuffle=True)
-    val_sampler = DistributedSampler(val_dataset, shuffle=True)
-    # test_sampler = DistributedSampler(test_dataset, shuffle=True)
-    test_sampler = ImbalancedDatasetSampler(test_dataset, labels=test_dataset.get_labels())
+    val_sampler = DistributedSampler(val_dataset, shuffle=True)    # 为了让预测标签和data对的上，这里不打乱
+    test_sampler = DistributedSampler(test_dataset, shuffle=True)
+    # test_sampler = ImbalancedDatasetSampler(test_dataset, labels=test_dataset.get_labels())
+    print('GT:', type(test_dataset.get_labels()))
+    print('shape of GT:', test_dataset.get_labels().shape)
     # build data loader
     train_dataloader = build_dataloader(train_dataset, sampler=train_sampler)
     val_dataloader = build_dataloader(val_dataset, sampler=val_sampler)
@@ -232,6 +235,16 @@ def worker(rank_gpu, args):
         C.train()  # set model to training mode
         # metric.reset()  # reset metric
         train_bar = tqdm(train_dataloader, desc='training', ascii=True)
+        if epoch % 5 == 0:
+            # pseudo_label = pseudo_label.cpu().numpy()
+            # pseudo_label = pseudo_label.reshape(-1, )
+            print("=============resample the data=============")
+            # pseudo_dataset.reshape()
+            # pseudo_dataset.print_info()
+            test_sampler = ImbalancedDatasetSampler(pseudo_dataset,
+                                                    labels=pseudo_dataset.get_labels(),
+                                                    confidence=pseudo_dataset.get_confid())
+            test_dataloader = build_dataloader(pseudo_dataset, sampler=test_sampler)
         epoch_g_loss = 0.
         epoch_d_loss = 0.
         epoch_c_loss = 0.
@@ -345,6 +358,12 @@ def worker(rank_gpu, args):
         # metric.reset()  # reset metric
         val_bar = tqdm(val_dataloader, desc='validating', ascii=True)
         val_loss = 0.
+        # pseudo_label = []
+        # pseudo_data = []
+        # pseudo_label = torch.tensor(pseudo_label).to(device)
+        # pseudo_data = torch.tensor(pseudo_data).to(device)
+        if (epoch + 1) % 5 == 0:
+            pseudo_dataset.flush()
         with torch.no_grad():  # disable gradient back-propagation
             for x_t, label in val_bar:
                 x_t, label = x_t.to(device), label.to(device)
@@ -363,6 +382,14 @@ def worker(rank_gpu, args):
                     'AA': f'{aa:.3f}',
                     'Kappa': f'{kappa:.3f}'
                 })
+
+                if (epoch+1) % 5 == 0:
+                    confid = get_confidence(y_t)
+                    pseudo_dataset.append(x_t.cpu(), pred.cpu(), confid.cpu())
+                # # pseudo_label.append(pred.cpu())
+                # pseudo_data = torch.cat((pseudo_data, x_t), dim=0)
+                # pseudo_label = torch.cat((pseudo_label, pred), dim=0)
+
         val_loss /= len(val_dataloader)
 
         if dist.get_rank() == 0:

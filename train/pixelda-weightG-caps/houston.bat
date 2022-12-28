@@ -10,6 +10,6 @@ python train/pixelda-weightG-caps/train.py configs/houston/pixelda-weightG-caps.
         --rank-node 0 ^
         --backend gloo ^
         --master-ip localhost ^
-        --master-port 8886 ^
+        --master-port 1999 ^
         --seed 30 ^
         --opt-level O2

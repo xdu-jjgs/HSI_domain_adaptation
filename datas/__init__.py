@@ -6,6 +6,7 @@ from torch.utils.data import DataLoader
 from configs import CFG
 from datas.raw_dataset import RawHouston, RawHyRANK, RawShangHang
 from datas.preprocessed_dataset import PreprocessedHouston, PreprocessedHyRank, PreprocessedShangHang
+from datas.dynamic_dataset import DynamicDataset
 
 
 def build_transform(split):
@@ -79,11 +80,13 @@ def build_dataset(split: str):
     return dataset
 
 
-def build_dataloader(dataset, sampler=None):
+def build_dataloader(dataset, sampler=None, drop=None):
+    if drop is None:
+        drop = True
     return DataLoader(dataset,
                       batch_size=CFG.DATALOADER.BATCH_SIZE // dist.get_world_size(),
                       num_workers=CFG.DATALOADER.NUM_WORKERS,
                       pin_memory=True if CFG.DATALOADER.NUM_WORKERS > 0 else False,
                       sampler=sampler,
-                      drop_last=True
+                      drop_last=drop
                       )

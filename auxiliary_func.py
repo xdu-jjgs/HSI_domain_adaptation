@@ -1,4 +1,6 @@
 # from torch import argmax
+import torch
+import torch.nn.functional as F
 import numpy as np
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import recall_score
@@ -28,4 +30,13 @@ def get_criteria(y_pred, y_real, class_num):
     kappa = cohen_kappa_score(y_real, y_pred)
     return oa, aa, kappa, per_class_acc
 
+
+def get_confidence(pred):
+    pred_class = F.softmax(pred, dim=1)
+    w = -pred_class * (torch.log(pred_class + 1e-5))  # entropy
+    w = torch.sum(w, dim=1)
+    w = 1.0 + torch.exp(-w)
+    # w, _ = torch.max(pred_class, dim=1)
+    w *= 10
+    return w
 
