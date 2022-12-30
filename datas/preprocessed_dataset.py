@@ -125,6 +125,9 @@ class PreprocessedShangHang(Dataset):
         else:
             return self.gt.shape[0]
 
+    def get_labels(self):
+        return self.gt
+
     def name2label(self, name):
         return self.names.index(name)
 

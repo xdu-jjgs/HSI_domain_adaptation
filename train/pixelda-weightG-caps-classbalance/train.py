@@ -235,16 +235,16 @@ def worker(rank_gpu, args):
         C.train()  # set model to training mode
         # metric.reset()  # reset metric
         train_bar = tqdm(train_dataloader, desc='training', ascii=True)
-        if epoch % 5 == 0:
-            # pseudo_label = pseudo_label.cpu().numpy()
-            # pseudo_label = pseudo_label.reshape(-1, )
-            print("=============resample the data=============")
-            # pseudo_dataset.reshape()
-            # pseudo_dataset.print_info()
-            test_sampler = ImbalancedDatasetSampler(pseudo_dataset,
-                                                    labels=pseudo_dataset.get_labels(),
-                                                    confidence=pseudo_dataset.get_confid())
-            test_dataloader = build_dataloader(pseudo_dataset, sampler=test_sampler)
+        # if epoch > 1 :
+        #     # pseudo_label = pseudo_label.cpu().numpy()
+        #     # pseudo_label = pseudo_label.reshape(-1, )
+        #     print("=============resample the data=============")
+        #     # pseudo_dataset.reshape()
+        #     # pseudo_dataset.print_info()
+        #     test_sampler = ImbalancedDatasetSampler(pseudo_dataset,
+        #                                             labels=pseudo_dataset.get_labels(),
+        #                                             confidence=pseudo_dataset.get_confid())
+        #     test_dataloader = build_dataloader(pseudo_dataset, sampler=test_sampler)
         epoch_g_loss = 0.
         epoch_d_loss = 0.
         epoch_c_loss = 0.
@@ -362,7 +362,7 @@ def worker(rank_gpu, args):
         # pseudo_data = []
         # pseudo_label = torch.tensor(pseudo_label).to(device)
         # pseudo_data = torch.tensor(pseudo_data).to(device)
-        if (epoch + 1) % 5 == 0:
+        if (epoch + 1) % 1 == 0:
             pseudo_dataset.flush()
         with torch.no_grad():  # disable gradient back-propagation
             for x_t, label in val_bar:
@@ -383,12 +383,9 @@ def worker(rank_gpu, args):
                     'Kappa': f'{kappa:.3f}'
                 })
 
-                if (epoch+1) % 5 == 0:
-                    confid = get_confidence(y_t)
-                    pseudo_dataset.append(x_t.cpu(), pred.cpu(), confid.cpu())
-                # # pseudo_label.append(pred.cpu())
-                # pseudo_data = torch.cat((pseudo_data, x_t), dim=0)
-                # pseudo_label = torch.cat((pseudo_label, pred), dim=0)
+                # if (epoch+1) % 1 == 0:
+                #     confid = get_confidence(y_t)
+                #     pseudo_dataset.append(x_t.cpu(), pred.cpu(), confid.cpu())
 
         val_loss /= len(val_dataloader)
 
