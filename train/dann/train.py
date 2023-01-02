@@ -22,8 +22,6 @@ from criterions import build_criterion
 from optimizers import build_optimizer
 from schedulers import build_scheduler
 from datas import build_dataset, build_dataloader
-
-
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('config',

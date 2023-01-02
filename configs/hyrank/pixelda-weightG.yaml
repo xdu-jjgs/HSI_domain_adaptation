@@ -1,8 +1,8 @@
 DATASET:
-    NAME: 'PREPROCESSED_Houston'
-    ROOT: 'E:/zzy/GAN/HSI_domain_adaptation/dataset/houston_preprocessed'
+    NAME: 'PREPROCESSED_HyRANK'
+    ROOT: 'E:/zzy/GAN/HSI_domain_adaptation/dataset/hyrank_preprocessed'
     AUGMENT:
-      RATIO: 21
+      RATIO: 1
       TRANS: ''
 
 DATALOADER:

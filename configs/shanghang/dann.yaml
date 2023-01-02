@@ -6,33 +6,23 @@ DATASET:
       WIDTH: 27
       PAD_MODE: 'symmetric'
     AUGMENT:
-      RATIO: 3
+      RATIO: 1
       TRANS: ''
 
 DATALOADER:
-    BATCH_SIZE: 128
+    BATCH_SIZE: 256
     NUM_WORKERS: 0
 
 MODEL:
-    NAME: 'pixelda-caps'
+    NAME: 'dann'
 
 CRITERION:
     ITEMS1:
       - 'softmax+ce'
       - 'softmax+ce'
+      - 'softmax+ce'
     WEIGHTS1:
       - 1.0
-      - 1.0
-    ITEMS2:
-      - 'softmax+ce'
-      - 'softmax+ce'
-    WEIGHTS2:
-      - 1.0
-      - 1.0
-    ITEMS3:
-      - 'softmax+ce'
-      - 'class_weight_ce'
-    WEIGHTS3:
       - 1.0
       - 1.0
     ITEMS4:
@@ -44,11 +34,6 @@ CRITERION:
 OPTIMIZER:
     NAME1: 'adam'
     LR1: 0.001
-    NAME2: 'adam'
-    LR2: 0.001
-    NAME3: 'adam'
-    LR3: 0.0001
-    MOMENTUM: 0.9
 
 SCHEDULER:
     NAME: 'plateau'
@@ -56,7 +41,6 @@ SCHEDULER:
     FACTOR: 0.1
     PATIENCE: 2
 
-EPOCHS: 15
+EPOCHS: 10
 
-EPOCH_RESAMPLE: 1
-
+EPOCHFE: 1

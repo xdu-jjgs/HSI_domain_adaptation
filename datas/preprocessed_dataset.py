@@ -23,16 +23,30 @@ class PreprocessedHouston(Dataset):
         self.transform = transform
         if self.transform is not None:
             self.data, self.gt = self.transform(self.data, self.gt)
+        self.pred = np.zeros_like(self.gt)
+        self.confid = np.zeros_like(self.gt)
         # print(len(self.data), self.data.shape, self.gt.shape)
 
     def __getitem__(self, item):
-        return self.data[item], self.gt[item]
+        return self.data[item], self.gt[item], item
 
     def __len__(self):
         return len(self.data)
 
+    def update_pred(self, index, pred):
+        self.pred[index] = pred
+
+    def update_confid(self, index, confid):
+        self.confid[index] = confid
+
     def get_labels(self):
         return self.gt
+
+    def get_pred(self):
+        return self.pred
+
+    def get_confid(self):
+        return self.confid
 
     def name2label(self, name):
         return self.names.index(name)
@@ -103,6 +117,7 @@ class PreprocessedShangHang(Dataset):
         self.gt = np.load(self.gt_path)
         self.coordinate_path = os.path.join(root, '{}_coordinate.npy'.format(split))
         self.coordinate = np.load(self.coordinate_path)
+        self.n_ori = self.coordinate.shape[0]
 
         patch = ((self.window_size[0] - 1) // 2, (self.window_size[1] - 1) // 2)
         self.data = np.pad(self.data, (patch, patch, (0, 0)), self.pad_mode)
@@ -110,14 +125,17 @@ class PreprocessedShangHang(Dataset):
         self.transform = transform
         if self.transform is not None:
             self.data, self.gt = self.transform(self.data, self.gt)
+        self.pred = np.zeros_like(self.gt)
+        self.confid = np.zeros_like(self.gt)
+        # print('info of shanghang:', len(self.data), self.data.shape, self.gt.shape)
 
     def __getitem__(self, item):
-        n_ori = self.coordinate.shape[0]
-        x1 = self.coordinate[item % n_ori][0]
-        y1 = self.coordinate[item % n_ori][1]
+        # n_ori = self.coordinate.shape[0]
+        x1 = self.coordinate[item % self.n_ori][0]
+        y1 = self.coordinate[item % self.n_ori][1]
         data = self.data[..., x1:x1 + self.window_size[0], y1:y1 + self.window_size[1]]
-        gt = self.gt[item % n_ori]
-        return data, gt
+        gt = self.gt[item % self.n_ori]
+        return data, gt, item
 
     def __len__(self):
         if self.split == 'train':
@@ -125,8 +143,26 @@ class PreprocessedShangHang(Dataset):
         else:
             return self.gt.shape[0]
 
+    def update_pred(self, index, pred):
+        self.pred[index % self.n_ori] = pred
+
+    def update_confid(self, index, confid):
+        self.confid[index % self.n_ori] = confid
+
     def get_labels(self):
         return self.gt
+
+    def get_pred(self):
+        return self.pred
+
+    def get_confid(self):
+        return self.confid
+
+    def print_info(self):
+        print(self.data.size())
+        print(self.gt)
+        print(self.pred)
+        print(self.confid)
 
     def name2label(self, name):
         return self.names.index(name)

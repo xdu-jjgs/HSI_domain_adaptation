@@ -3,8 +3,8 @@ cd E:\zzy\GAN\HSI_domain_adaptation
 set PYTHONPATH=%cd%
 
 rem ddc
-python train/pixelda-image/train.py configs/houston/pixelda-image.yaml ^
-        --path ./runs/houston/pixelda-image-train ^
+python train/dann/train.py configs/shanghang/dann.yaml ^
+        --path ./runs/shanghang/dann-train ^
         --nodes 1 ^
         --gpus 1 ^
         --rank-node 0 ^

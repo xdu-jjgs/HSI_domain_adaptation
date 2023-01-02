@@ -22,7 +22,7 @@ from models import build_model
 from criterions import build_criterion
 from optimizers import build_optimizer
 from schedulers import build_scheduler
-from datas import build_dataset, build_dataloader, DynamicDataset
+from datas import build_dataset, build_dataloader
 
 
 def parse_args():
@@ -132,7 +132,6 @@ def worker(rank_gpu, args):
     train_dataset = build_dataset('train')
     test_dataset = build_dataset('test')
     val_dataset = test_dataset
-    pseudo_dataset = DynamicDataset()
     assert train_dataset.num_classes == val_dataset.num_classes
     logging.info("Number of train {}, val {}, test {}".format(len(train_dataset), len(val_dataset), len(test_dataset)))
     NUM_CHANNELS = train_dataset.num_channels
@@ -140,7 +139,7 @@ def worker(rank_gpu, args):
     logging.info("Number of class: {}".format(NUM_CLASSES))
     # build data sampler
     train_sampler = DistributedSampler(train_dataset, shuffle=True)
-    val_sampler = DistributedSampler(val_dataset, shuffle=True)    # 为了让预测标签和data对的上，这里不打乱
+    val_sampler = DistributedSampler(val_dataset, shuffle=True)
     test_sampler = DistributedSampler(test_dataset, shuffle=True)
     # test_sampler = ImbalancedDatasetSampler(test_dataset, labels=test_dataset.get_labels())
     print('GT:', type(test_dataset.get_labels()))
@@ -235,33 +234,33 @@ def worker(rank_gpu, args):
         C.train()  # set model to training mode
         # metric.reset()  # reset metric
         train_bar = tqdm(train_dataloader, desc='training', ascii=True)
-        # if epoch > 1 :
-        #     # pseudo_label = pseudo_label.cpu().numpy()
-        #     # pseudo_label = pseudo_label.reshape(-1, )
-        #     print("=============resample the data=============")
-        #     # pseudo_dataset.reshape()
-        #     # pseudo_dataset.print_info()
-        #     test_sampler = ImbalancedDatasetSampler(pseudo_dataset,
-        #                                             labels=pseudo_dataset.get_labels(),
-        #                                             confidence=pseudo_dataset.get_confid())
-        #     test_dataloader = build_dataloader(pseudo_dataset, sampler=test_sampler)
+        if (epoch % CFG.EPOCH_RESAMPLE == 0) and (epoch > 1):
+            # pseudo_label = pseudo_label.cpu().numpy()
+            # pseudo_label = pseudo_label.reshape(-1, )
+            print("=============resample the data=============")
+            # pseudo_dataset.reshape()
+            # val_dataset.print_info()
+            test_sampler = ImbalancedDatasetSampler(test_dataset,
+                                                    labels=val_dataset.get_labels(),
+                                                    confidence=val_dataset.get_confid())
+            test_dataloader = build_dataloader(test_dataset, sampler=test_sampler)
         epoch_g_loss = 0.
         epoch_d_loss = 0.
         epoch_c_loss = 0.
         for train_item, test_item in zip(train_bar, test_dataloader):
             iteration += 1
-            x_s, label = train_item
-            x_t, _ = test_item
+            x_s, label, item_index = train_item
+            x_t, _, _ = test_item
             z = torch.rand([len(label), NUM_CHANNELS], dtype=torch.float)
             z_info = torch.tensor(one_hot(label, NUM_CLASSES), dtype=torch.float32)
             # label_fake = NUM_CLASSES * torch.ones(len(label), dtype=torch.int32)
-            onehot_label = torch.eye(NUM_CLASSES)[label.long(), :]
+            # onehot_label = torch.eye(NUM_CLASSES)[label.long(), :]
             domain_label_fake = torch.zeros(len(label))
             domain_label_t = torch.ones(len(label))
             x_s, label = x_s.to(device), label.to(device)
             x_t = x_t.to(device)
             z, z_info = z.to(device), z_info.to(device)
-            onehot_label = onehot_label.to(device)
+            # onehot_label = onehot_label.to(device)
             # label_fake = label_fake.to(device)
             domain_label_fake, domain_label_t = domain_label_fake.to(device), domain_label_t.to(device)
 
@@ -314,22 +313,24 @@ def worker(rank_gpu, args):
                 writer.add_scalar('train/loss_d-iteration', loss_d.item(), iteration)
 
             pred = c_s.argmax(axis=1)
+            train_dataset.update_pred(item_index.cpu(), pred.cpu())
             # metric.add(pred.data.cpu().numpy(), label.data.cpu().numpy())
-            oa, aa, kappa, per_class_acc = get_criteria(pred, label, NUM_CLASSES)
+            oa, aa, kappa, per_class_acc = get_criteria(pred.cpu().numpy(), label.cpu().numpy(), NUM_CLASSES)
 
             train_bar.set_postfix({
                 'epoch': epoch,
-                'loss_g': f'{loss_g.item():.3f}',
-                'loss_c': f'{loss_c.item():.3f}',
-                'loss_d': f'{loss_d.item():.3f}',
-                'OA': f'{oa:.3f}',
-                'AA': f'{aa:.3f}',
-                'Kappa': f'{kappa:.3f}'
+                'loss_g': f'{loss_g.item():.4f}',
+                'loss_c': f'{loss_c.item():.4f}',
+                'loss_d': f'{loss_d.item():.4f}',
+                'OA': f'{oa:.4f}',
+                'AA': f'{aa:.4f}',
+                'Kappa': f'{kappa:.4f}'
             })
 
         epoch_g_loss /= len(train_dataloader)
         epoch_c_loss /= len(train_dataloader)
         epoch_d_loss /= len(train_dataloader)
+        oa, aa, kappa, per_class_acc = get_criteria(train_dataset.get_pred(), train_dataset.get_labels(), NUM_CLASSES)
         if dist.get_rank() == 0:
             writer.add_scalar('train/g_loss-epoch', epoch_g_loss, epoch)
             writer.add_scalar('train/c_loss-epoch', epoch_c_loss, epoch)
@@ -338,12 +339,12 @@ def worker(rank_gpu, args):
             writer.add_scalar('train/AA-epoch', aa, epoch)
             writer.add_scalar('train/Kappa-epoch', kappa, epoch)
         logging.info(
-            'rank{} train epoch={} | g_loss={:.3f} c_loss={:.3f} d_loss={:.3f}'.format(dist.get_rank() + 1,
+            'rank{} train epoch={} | g_loss={:.4f} c_loss={:.4f} d_loss={:.4f}'.format(dist.get_rank() + 1,
                                                                                        epoch, epoch_g_loss,
                                                                                        epoch_c_loss, epoch_d_loss))
         for c in range(NUM_CLASSES):
             logging.info(
-                'rank{} train epoch={} | class={} Per_class_acc={:.3f} '.format(dist.get_rank() + 1, epoch, c,
+                'rank{} train epoch={} | class={} Per_class_acc={:.4f} '.format(dist.get_rank() + 1, epoch, c,
                                                                                 per_class_acc[c]))
 
         logging.info(category2cnt)
@@ -358,14 +359,8 @@ def worker(rank_gpu, args):
         # metric.reset()  # reset metric
         val_bar = tqdm(val_dataloader, desc='validating', ascii=True)
         val_loss = 0.
-        # pseudo_label = []
-        # pseudo_data = []
-        # pseudo_label = torch.tensor(pseudo_label).to(device)
-        # pseudo_data = torch.tensor(pseudo_data).to(device)
-        if (epoch + 1) % 1 == 0:
-            pseudo_dataset.flush()
         with torch.no_grad():  # disable gradient back-propagation
-            for x_t, label in val_bar:
+            for x_t, label, item_index in val_bar:
                 x_t, label = x_t.to(device), label.to(device)
                 y_t = C(x_t)
 
@@ -373,22 +368,24 @@ def worker(rank_gpu, args):
                 val_loss += loss.item()
 
                 pred = y_t.argmax(axis=1)
-                oa, aa, kappa, per_class_acc = get_criteria(pred, label, NUM_CLASSES)
+                val_dataset.update_pred(item_index.cpu(), pred.cpu())
+                oa, aa, kappa, per_class_acc = get_criteria(pred.cpu().numpy(), label.cpu().numpy(), NUM_CLASSES)
 
                 val_bar.set_postfix({
                     'epoch': epoch,
-                    'loss': f'{loss.item():.3f}',
-                    'OA': f'{oa:.3f}',
-                    'AA': f'{aa:.3f}',
-                    'Kappa': f'{kappa:.3f}'
+                    'loss': f'{loss.item():.4f}',
+                    'OA': f'{oa:.4f}',
+                    'AA': f'{aa:.4f}',
+                    'Kappa': f'{kappa:.4f}'
                 })
 
-                # if (epoch+1) % 1 == 0:
-                #     confid = get_confidence(y_t)
-                #     pseudo_dataset.append(x_t.cpu(), pred.cpu(), confid.cpu())
+                if (epoch+1) % CFG.EPOCH_RESAMPLE == 0:
+                    confid = get_confidence(y_t)
+                    val_dataset.update_confid(item_index.cpu(), confid.cpu())
+                    # pseudo_dataset.append(x_t.cpu(), pred.cpu(), confid.cpu())
 
         val_loss /= len(val_dataloader)
-
+        oa, aa, kappa, per_class_acc = get_criteria(val_dataset.get_pred(), val_dataset.get_labels(), NUM_CLASSES)
         if dist.get_rank() == 0:
             writer.add_scalar('val/loss-epoch', val_loss, epoch)
             writer.add_scalar('val/OA-epoch', oa, epoch)
@@ -398,11 +395,11 @@ def worker(rank_gpu, args):
             best_epoch = epoch
 
         logging.info(
-            'rank{} val epoch={} | loss={:.3f} OA={:.3f} AA={:.3f} Kappa={:.3f}'.format(dist.get_rank() + 1, epoch,
+            'rank{} val epoch={} | loss={:.4f} OA={:.4f} AA={:.4f} Kappa={:.4f}'.format(dist.get_rank() + 1, epoch,
                                                                                         val_loss, oa, aa, kappa))
         for c in range(NUM_CLASSES):
             logging.info(
-                'rank{} val epoch={} |  class={}- Per_class_acc={:.3f}'.format(dist.get_rank() + 1, epoch, c,
+                'rank{} val epoch={} |  class={}- Per_class_acc={:.4f}'.format(dist.get_rank() + 1, epoch, c,
                                                                                per_class_acc[c]))
 
         # adjust learning rate if specified

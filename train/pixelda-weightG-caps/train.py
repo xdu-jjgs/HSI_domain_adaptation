@@ -234,18 +234,18 @@ def worker(rank_gpu, args):
         epoch_c_loss = 0.
         for train_item, test_item in zip(train_bar, test_dataloader):
             iteration += 1
-            x_s, label = train_item
-            x_t, _ = test_item
+            x_s, label, item_index = train_item
+            x_t, _, _ = test_item
             z = torch.rand([len(label), NUM_CHANNELS], dtype=torch.float)
             z_info = torch.tensor(one_hot(label, NUM_CLASSES), dtype=torch.float32)
             # label_fake = NUM_CLASSES * torch.ones(len(label), dtype=torch.int32)
-            onehot_label = torch.eye(NUM_CLASSES)[label.long(), :]
+            # onehot_label = torch.eye(NUM_CLASSES)[label.long(), :]
             domain_label_fake = torch.zeros(len(label))
             domain_label_t = torch.ones(len(label))
             x_s, label = x_s.to(device), label.to(device)
             x_t = x_t.to(device)
             z, z_info = z.to(device), z_info.to(device)
-            onehot_label = onehot_label.to(device)
+            # onehot_label = onehot_label.to(device)
             # label_fake = label_fake.to(device)
             domain_label_fake, domain_label_t = domain_label_fake.to(device), domain_label_t.to(device)
 
@@ -296,22 +296,24 @@ def worker(rank_gpu, args):
                 writer.add_scalar('train/loss_d-iteration', loss_d.item(), iteration)
 
             pred = c_s.argmax(axis=1)
+            train_dataset.update_pred(item_index.cpu(), pred.cpu())
             # metric.add(pred.data.cpu().numpy(), label.data.cpu().numpy())
-            oa, aa, kappa, per_class_acc = get_criteria(pred, label, NUM_CLASSES)
+            oa, aa, kappa, per_class_acc = get_criteria(pred.cpu().numpy(), label.cpu().numpy(), NUM_CLASSES)
 
             train_bar.set_postfix({
                 'epoch': epoch,
-                'loss_g': f'{loss_g.item():.3f}',
-                'loss_c': f'{loss_c.item():.3f}',
-                'loss_d': f'{loss_d.item():.3f}',
-                'OA': f'{oa:.3f}',
-                'AA': f'{aa:.3f}',
-                'Kappa': f'{kappa:.3f}'
+                'loss_g': f'{loss_g.item():.4f}',
+                'loss_c': f'{loss_c.item():.4f}',
+                'loss_d': f'{loss_d.item():.4f}',
+                'OA': f'{oa:.4f}',
+                'AA': f'{aa:.4f}',
+                'Kappa': f'{kappa:.4f}'
             })
 
         epoch_g_loss /= len(train_dataloader)
         epoch_c_loss /= len(train_dataloader)
         epoch_d_loss /= len(train_dataloader)
+        oa, aa, kappa, per_class_acc = get_criteria(train_dataset.get_pred(), train_dataset.get_labels(), NUM_CLASSES)
         if dist.get_rank() == 0:
             writer.add_scalar('train/g_loss-epoch', epoch_g_loss, epoch)
             writer.add_scalar('train/c_loss-epoch', epoch_c_loss, epoch)
@@ -320,13 +322,15 @@ def worker(rank_gpu, args):
             writer.add_scalar('train/AA-epoch', aa, epoch)
             writer.add_scalar('train/Kappa-epoch', kappa, epoch)
         logging.info(
-            'rank{} train epoch={} | g_loss={:.3f} c_loss={:.3f} d_loss={:.3f}'.format(dist.get_rank() + 1,
+            'rank{} train epoch={} | g_loss={:.4f} c_loss={:.4f} d_loss={:.4f}'.format(dist.get_rank() + 1,
                                                                                        epoch, epoch_g_loss,
                                                                                        epoch_c_loss, epoch_d_loss))
         for c in range(NUM_CLASSES):
             logging.info(
-                'rank{} train epoch={} | class={} Per_class_acc={:.3f} '.format(dist.get_rank() + 1, epoch, c,
+                'rank{} train epoch={} | class={} Per_class_acc={:.4f} '.format(dist.get_rank() + 1, epoch, c,
                                                                                 per_class_acc[c]))
+
+        logging.info(category2cnt)
 
         # validate
         if args.no_validate:
@@ -339,7 +343,7 @@ def worker(rank_gpu, args):
         val_bar = tqdm(val_dataloader, desc='validating', ascii=True)
         val_loss = 0.
         with torch.no_grad():  # disable gradient back-propagation
-            for x_t, label in val_bar:
+            for x_t, label, item_index in val_bar:
                 x_t, label = x_t.to(device), label.to(device)
                 y_t = C(x_t)
 
@@ -347,17 +351,18 @@ def worker(rank_gpu, args):
                 val_loss += loss.item()
 
                 pred = y_t.argmax(axis=1)
-                oa, aa, kappa, per_class_acc = get_criteria(pred, label, NUM_CLASSES)
+                val_dataset.update_pred(item_index.cpu(), pred.cpu())
+                oa, aa, kappa, per_class_acc = get_criteria(pred.cpu().numpy(), label.cpu().numpy(), NUM_CLASSES)
 
                 val_bar.set_postfix({
                     'epoch': epoch,
-                    'loss': f'{loss.item():.3f}',
-                    'OA': f'{oa:.3f}',
-                    'AA': f'{aa:.3f}',
-                    'Kappa': f'{kappa:.3f}'
+                    'loss': f'{loss.item():.4f}',
+                    'OA': f'{oa:.4f}',
+                    'AA': f'{aa:.4f}',
+                    'Kappa': f'{kappa:.4f}'
                 })
         val_loss /= len(val_dataloader)
-
+        oa, aa, kappa, per_class_acc = get_criteria(val_dataset.get_pred(), val_dataset.get_labels(), NUM_CLASSES)
         if dist.get_rank() == 0:
             writer.add_scalar('val/loss-epoch', val_loss, epoch)
             writer.add_scalar('val/OA-epoch', oa, epoch)
@@ -367,11 +372,11 @@ def worker(rank_gpu, args):
             best_epoch = epoch
 
         logging.info(
-            'rank{} val epoch={} | loss={:.3f} OA={:.3f} AA={:.3f} Kappa={:.3f}'.format(dist.get_rank() + 1, epoch,
+            'rank{} val epoch={} | loss={:.4f} OA={:.4f} AA={:.4f} Kappa={:.4f}'.format(dist.get_rank() + 1, epoch,
                                                                                         val_loss, oa, aa, kappa))
         for c in range(NUM_CLASSES):
             logging.info(
-                'rank{} val epoch={} |  class={}- Per_class_acc={:.3f}'.format(dist.get_rank() + 1, epoch, c,
+                'rank{} val epoch={} |  class={}- Per_class_acc={:.4f}'.format(dist.get_rank() + 1, epoch, c,
                                                                                per_class_acc[c]))
 
         # adjust learning rate if specified

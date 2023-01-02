@@ -1,12 +1,16 @@
 DATASET:
-    NAME: 'PREPROCESSED_Houston'
-    ROOT: 'E:/zzy/GAN/HSI_domain_adaptation/dataset/houston_preprocessed'
+    NAME: 'PREPROCESSED_ShangHang'
+    ROOT: 'E:/zzy/GAN/HSI_domain_adaptation/dataset/shanghaihangzhou_preprocessed'
+    PATCH:
+      HEIGHT: 27
+      WIDTH: 27
+      PAD_MODE: 'symmetric'
     AUGMENT:
-      RATIO: 21
+      RATIO: 3
       TRANS: ''
 
 DATALOADER:
-    BATCH_SIZE: 64
+    BATCH_SIZE: 128
     NUM_WORKERS: 0
 
 MODEL:
@@ -52,5 +56,5 @@ SCHEDULER:
     FACTOR: 0.1
     PATIENCE: 2
 
-EPOCHS: 20
+EPOCHS: 10
 

@@ -5,6 +5,7 @@ import numpy as np
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import recall_score
 from sklearn.metrics import cohen_kappa_score
+from sklearn.metrics import confusion_matrix
 
 
 def one_hot(lable, class_number):
@@ -21,8 +22,8 @@ def get_criteria(y_pred, y_real, class_num):
     # y_pred = torch.argmax(y_pred, dim=1)
     # y_pred = argmax(y_pred, dim=1)
     # y_real = torch.argmax(y_real, dim=1)
-    y_pred = y_pred.cpu().numpy()
-    y_real = y_real.cpu().numpy()
+    # y_pred = y_pred.cpu().numpy()
+    # y_real = y_real.cpu().numpy()
     oa = accuracy_score(y_real, y_pred)
     label_list = [i for i in range(class_num)]
     per_class_acc = recall_score(y_real, y_pred, labels=label_list, average=None, zero_division=0)

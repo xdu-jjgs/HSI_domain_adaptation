@@ -63,6 +63,7 @@ class GeneratorImage(nn.Module):
             nn.Conv2d(64, self.data_c, 3, 1, 1, bias=True),
             nn.Tanh()
         )
+        self.last_activ = nn.Tanh()
 
     def forward(self, z, label, x):
         in_c = self.in_c
@@ -73,6 +74,7 @@ class GeneratorImage(nn.Module):
         z = z.reshape([-1, in_c*4, 2, 2])
         z = self.gnet_noise(z)
         x = x + z
+        x = self.last_activ(x)
         # x = self.gnet_image(x)
         return x
 

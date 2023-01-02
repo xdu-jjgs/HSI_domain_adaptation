@@ -21,19 +21,9 @@ def build_model(num_channels, num_classes):
         return FE, C1, C2
     elif CFG.MODEL.NAME == 'dann':
         return DANN(num_channels, num_classes)
-    elif CFG.MODEL.NAME == 'pixelda-image':
-        G = GeneratorImage(num_channels, num_classes)
-        domain_discriminator = DDC(num_channels, num_classes=2)
-        class_dicriminator = ResNet(num_channels, num_classes, depth=18, pretrained=False)
-        return G, domain_discriminator, class_dicriminator
     elif CFG.MODEL.NAME == 'pixelda-baseline':
         G = GeneratorImage(num_channels, num_classes)
         domain_discriminator = DDC(num_channels, num_classes=2)
-        class_dicriminator = ResNet(num_channels, num_classes, depth=18, pretrained=False)
-        return G, domain_discriminator, class_dicriminator
-    elif CFG.MODEL.NAME == 'pixelda-condition':
-        G = GeneratorImage(num_channels, num_classes)
-        domain_discriminator = DDCondition(num_channels, num_classes=2, condition_l=num_classes)
         class_dicriminator = ResNet(num_channels, num_classes, depth=18, pretrained=False)
         return G, domain_discriminator, class_dicriminator
     elif CFG.MODEL.NAME == 'pixelda-caps':

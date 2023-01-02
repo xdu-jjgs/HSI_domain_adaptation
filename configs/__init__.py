@@ -50,6 +50,8 @@ _C.SCHEDULER.PATIENCE = 0
 
 _C.EPOCHS = 0
 
+_C.EPOCH_RESAMPLE = 0
+
 _C.EPOCHFE = 0
 
 CFG = _C.clone()
