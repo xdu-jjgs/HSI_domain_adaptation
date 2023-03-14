@@ -10,7 +10,7 @@ DATASET:
 DATALOADER:
     BATCH_SIZE: 128
     NUM_WORKERS: 0
-    ITERATION: 4241
+    ITERATION: 1060
 
 MODEL:
     NAME: 'ddc'
@@ -19,7 +19,7 @@ MODEL:
 CRITERION:
     ITEMS:
       - 'softmax+ce'
-      - 'softmax+ce+ls'
+      - 'cbst'
     WEIGHTS:
       - 1.0
       - 1.0

@@ -3,8 +3,8 @@ cd E:\zts\HSI_domain_adaptation
 set PYTHONPATH=%cd%
 
 rem dst
-python train/dst/train.py configs/houston/dst_1_07_2.yaml ^
-        --path ./runs/houston/dst_1_07_2-train ^
+python train/dst/train.py configs/houston/dst_1_1_1_07_2.yaml ^
+        --path ./runs/houston/dst_1_1_1_07_2-train ^
         --nodes 1 ^
         --gpus 1 ^
         --rank-node 0 ^
@@ -15,8 +15,8 @@ python train/dst/train.py configs/houston/dst_1_07_2.yaml ^
         --opt-level O2
 
 rem dst
-python train/dst/train.py configs/houston/dst_1_07_2_1260_average.yaml ^
-        --path ./runs/houston_sample/dst_1_07_2-train ^
+python train/dst/train.py configs/houston/dst_1_1_1_07_2_1260_average.yaml ^
+        --path ./runs/houston_sample/dst_1_1_1_07_2-train ^
         --nodes 1 ^
         --gpus 1 ^
         --rank-node 0 ^

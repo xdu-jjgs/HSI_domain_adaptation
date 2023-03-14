@@ -2,6 +2,8 @@ from .ddc import DDC
 from .dqn import DQN
 from .dst import DST
 from .dann import DANN
+from .dstda import DSTDA, DSTDAMapping
+
 from configs import CFG
 from models.backbone import build_backbone, ImageClassifier
 
@@ -19,6 +21,10 @@ def build_model(num_channels, num_classes):
         return DANN(num_classes, backbone_)
     elif CFG.MODEL.NAME == 'dst':
         return DST(num_classes, backbone_)
+    elif CFG.MODEL.NAME == 'dstda':
+        return DSTDA(num_classes, backbone_)
+    elif CFG.MODEL.NAME == 'dstda_mapping':
+        return DSTDAMapping(num_classes, backbone_)
     elif CFG.MODEL.NAME == 'dqn':
         return DQN(backbone_.out_channels, num_classes)
     raise NotImplementedError('invalid model: {}'.format(CFG.MODEL.NAME))

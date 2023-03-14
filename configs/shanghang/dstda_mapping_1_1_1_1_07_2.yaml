@@ -1,0 +1,45 @@
+DATASET:
+    NAME: 'ShangHang'
+    ROOT: 'E:/zzy/GAN/data/ShanghaiHangzhou'
+    PATCH:
+        HEIGHT: 27
+        WIDTH: 27
+        PAD_MODE: 'symmetric'
+
+
+DATALOADER:
+    BATCH_SIZE: 128
+    NUM_WORKERS: 0
+    ITERATION: 1060
+
+MODEL:
+    NAME: 'dstda_mapping'
+    BACKBONE: 'fe'
+
+CRITERION:
+    ITEMS:
+      - 'softmax+ce'
+      - 'wcec'
+      - 'softmax+ce'
+      - 'cbst'
+    WEIGHTS:
+      - 1.0
+      - 1.0
+      - 1.0
+      - 1.0
+    THRESHOLD: 0.7
+
+OPTIMIZER:
+    NAME: 'adam'
+    LR: 0.001
+
+SCHEDULER:
+    NAME: 'plateau'
+    MODE: 'min'
+    FACTOR: 0.1
+    PATIENCE: 2
+
+EPOCHS: 5
+
+HYPERPARAMS:
+    - 2.0

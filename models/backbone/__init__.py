@@ -1,12 +1,13 @@
 from configs import CFG
 from .resnet import ResNet
 from .extractor import FeatureExtractor
-from .classifier import ImageClassifier
+from .classifier import ImageClassifier, MultiHeadClassifier
 
 __all__ = [
     ResNet,
     FeatureExtractor,
     ImageClassifier,
+    MultiHeadClassifier
 ]
 
 

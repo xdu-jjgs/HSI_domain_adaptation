@@ -12,7 +12,6 @@ from tllib.self_training.dst import WorstCaseEstimationLoss
 from tllib.self_training.pseudo_label import ConfidenceBasedSelfTrainingLoss
 
 
-
 def build_criterion(name):
     if name == 'ce':
         criterion = CELoss()
@@ -46,7 +45,7 @@ def build_criterion(name):
         criterion = Entropy()
     elif name == 'kldiv':
         criterion = nn.KLDivLoss()
-    elif name == 'softmax+ce+ls':
+    elif name == 'cbst':
         criterion = ConfidenceBasedSelfTrainingLoss(threshold=CFG.CRITERION.THRESHOLD)
     elif name == 'wcec':
         return WorstCaseEstimationLoss(CFG.HYPERPARAMS[0])
