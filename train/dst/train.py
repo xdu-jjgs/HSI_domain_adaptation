@@ -237,7 +237,7 @@ def worker(rank_gpu, args):
             worst_loss_epoch += worst_loss.item()
 
             # step2: train classifier_pse with T data
-            cbst_loss, mask, labels_pse = cbst_criterion(y_pse, y_t)
+            cbst_loss, mask, pseudo_labels = cbst_criterion(y_pse, y_t)
             cbst_loss *= loss_weights[2]
             cbst_loss_epoch += cbst_loss.item()
 
@@ -256,8 +256,7 @@ def worker(rank_gpu, args):
             metric_cls.add(pred_cls.data.cpu().numpy(), label_s.data.cpu().numpy())
             metric_adv_s.add(pred_adv_s.data.cpu().numpy(), label_s.data.cpu().numpy())
             metric_adv_t.add(pred_adv_t.data.cpu().numpy(), label_s.data.cpu().numpy())
-            pred_pse = y_pse.argmax(axis=1)
-            metric_pse.add(pred_pse.data.cpu().numpy(), label_t.data.cpu().numpy())
+            metric_pse.add(pseudo_labels[mask], label_t.data[mask].cpu().numpy())
 
             if dist.get_rank() == 0:
                 writer.add_scalar('train/loss_total', total_loss.item(), iteration)
@@ -320,7 +319,7 @@ def worker(rank_gpu, args):
         for c in range(NUM_CLASSES):
             logging.info(
                 'rank{} train epoch={} | class={} | cls P={:.3f} R={:.3f} F1={:.3f}|adv_s P={:.3f} R={:.3f} F1={:.3f}|'
-                ' adv_t P={:.3f} R={:.3f} F1={:.3f}| pse P={:.3f} R={:.3f} F1={:.3f}'
+                ' adv_t P={:.3f} R={:.3f} F1={:.3f} | pse P={:.3f} R={:.3f} F1={:.3f}'
                 .format(dist.get_rank() + 1, epoch, c + 1, Ps_cls[c], Rs_cls[c], F1S_cls[c], Ps_adv_s[c], Rs_adv_s[c],
                         F1S_adv_s[c], Ps_adv_t[c], Rs_adv_t[c], F1S_adv_t[c], Ps_pse[c], Rs_pse[c], F1S_pse[c]))
 

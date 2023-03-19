@@ -130,7 +130,8 @@ def worker(rank_gpu, args):
     target_dataset = build_dataset('test')
     val_dataset = target_dataset
     assert source_dataset.num_classes == val_dataset.num_classes
-    logging.info("Number of train {}, val {}, test {}".format(len(source_dataset), len(val_dataset), len(target_dataset)))
+    logging.info(
+        "Number of train {}, val {}, test {}".format(len(source_dataset), len(val_dataset), len(target_dataset)))
     NUM_CHANNELS = source_dataset.num_channels
     NUM_CLASSES = source_dataset.num_classes
     logging.info("Number of class: {}".format(NUM_CLASSES))
@@ -162,6 +163,7 @@ def worker(rank_gpu, args):
     val_criterion.to(device)
     # build metric
     metric = Metric(NUM_CLASSES)
+    metric_pse = Metric(NUM_CLASSES)
     # build optimizer
     optimizer = build_optimizer(model)
     # build scheduler
@@ -210,11 +212,12 @@ def worker(rank_gpu, args):
         # train
         model.train()  # set model to training mode
         metric.reset()  # reset metric
+        metric_pse.reset()
         train_bar = tqdm(range(1, CFG.DATALOADER.ITERATION + 1), desc='training', ascii=True)
         total_loss_epoch, cls_s_loss_epoch, cls_t_loss_epoch = 0., 0., 0.
         for iteration in train_bar:
             x_s, label = next(source_iterator)
-            x_t, _ = next(target_iterator)
+            x_t, label_t = next(target_iterator)
             x_s, label = x_s.to(device), label.to(device)
             x_t = x_t.to(device)
 
@@ -247,6 +250,7 @@ def worker(rank_gpu, args):
 
             pred = y_s.argmax(axis=1)
             metric.add(pred.data.cpu().numpy(), label.data.cpu().numpy())
+            metric_pse.add(pseudo_labels[mask], label_t.data[mask].cpu().numpy())
 
             train_bar.set_postfix({
                 'epoch': epoch,
@@ -260,22 +264,32 @@ def worker(rank_gpu, args):
         cls_s_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
         cls_t_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
         PA, mPA, Ps, Rs, F1S, KC = metric.PA(), metric.mPA(), metric.Ps(), metric.Rs(), metric.F1s(), metric.KC()
+        PA_pse, mPA_pse, Ps_pse, Rs_pse, F1S_pse, KC_pse = \
+            metric_pse.PA(), metric_pse.mPA(), metric_pse.Ps(), metric_pse.Rs(), metric_pse.F1s(), metric_pse.KC()
+
         if dist.get_rank() == 0:
             writer.add_scalar('train/loss_total-epoch', total_loss_epoch, epoch)
             writer.add_scalar('train/loss_cls_s-epoch', cls_s_loss_epoch, epoch)
             writer.add_scalar('train/loss_cls_t-epoch', cls_t_loss_epoch, epoch)
+
             writer.add_scalar('train/PA-epoch', PA, epoch)
             writer.add_scalar('train/mPA-epoch', mPA, epoch)
             writer.add_scalar('train/KC-epoch', KC, epoch)
+
+            writer.add_scalar('train/PA_pse-epoch', PA_pse, epoch)
+            writer.add_scalar('train/mPA_pse-epoch', mPA_pse, epoch)
+            writer.add_scalar('train/KC_pse-epoch', KC_pse, epoch)
         logging.info(
             'rank{} train epoch={} | loss_total={:.3f} loss_cls_s={:.3f} loss_cls_t={:.3f}'.format(
                 dist.get_rank() + 1, epoch, total_loss_epoch, cls_s_loss_epoch, cls_t_loss_epoch))
         logging.info(
-            'rank{} train epoch={} | PA={:.3f} mPA={:.3f} KC={:.3f}'.format(dist.get_rank() + 1, epoch, PA, mPA, KC))
+            'rank{} train epoch={} | PA={:.3f} mPA={:.3f} KC={:.3f} | pse PA={:.3f} mPA={:.3f} KC={:.3f}'.format(
+                dist.get_rank() + 1, epoch, PA, mPA, KC, PA_pse, mPA_pse, KC_pse))
         for c in range(NUM_CLASSES):
             logging.info(
-                'rank{} train epoch={} | class={} P={:.3f} R={:.3f} F1={:.3f}'.format(dist.get_rank() + 1, epoch, c,
-                                                                                      Ps[c], Rs[c], F1S[c]))
+                'rank{} train epoch={} | class={} P={:.3f} R={:.3f} F1={:.3f}| pse P={:.3f} R={:.3f} F1={:.3f}'.format(
+                    dist.get_rank() + 1, epoch, c,
+                    Ps[c], Rs[c], F1S[c], Ps_pse[c], Rs_pse[c], F1S_pse[c]))
 
         # validate
         if args.no_validate:
