@@ -11,7 +11,7 @@ from apex import amp
 from tqdm import tqdm
 from datetime import datetime
 from tensorboardX import SummaryWriter
-from apex.parallel import DistributedDataParallel
+from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data.distributed import DistributedSampler
 
 from configs import CFG
@@ -170,7 +170,7 @@ def worker(rank_gpu, args):
     # mixed precision
     model, optimize = amp.initialize(model, optimizer, opt_level=args.opt_level)
     # DDP
-    model = DistributedDataParallel(model)
+    model = DistributedDataParallel(model, broadcast_buffers=False)
 
     epoch = 0
     iteration = 0
