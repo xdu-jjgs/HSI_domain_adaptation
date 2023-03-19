@@ -12,7 +12,7 @@ from apex import amp
 from tqdm import tqdm
 from datetime import datetime
 from tensorboardX import SummaryWriter
-from apex.parallel import DistributedDataParallel
+from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data.distributed import DistributedSampler
 
 from configs import CFG
