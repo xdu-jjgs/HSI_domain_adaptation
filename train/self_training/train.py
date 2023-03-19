@@ -11,7 +11,7 @@ from apex import amp
 from tqdm import tqdm
 from datetime import datetime
 from tensorboardX import SummaryWriter
-from apex.parallel import DistributedDataParallel
+from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data.distributed import DistributedSampler
 
 from configs import CFG
@@ -172,7 +172,7 @@ def worker(rank_gpu, args):
     # mixed precision
     model, optimizer = amp.initialize(model, optimizer, opt_level=args.opt_level)
     # DDP
-    model = DistributedDataParallel(model)
+    model = DistributedDataParallel(model, broadcast_buffers=False)
 
     epoch = 0
     iteration = 0
@@ -224,7 +224,6 @@ def worker(rank_gpu, args):
             f_s, y_s = model(x_s)
 
             model.eval()
-
             with torch.no_grad():
                 f_t, y_t = model(x_t)
             model.train()
@@ -250,7 +249,7 @@ def worker(rank_gpu, args):
 
             pred = y_s.argmax(axis=1)
             metric.add(pred.data.cpu().numpy(), label.data.cpu().numpy())
-            metric_pse.add(pseudo_labels[mask], label_t.data[mask].cpu().numpy())
+            metric_pse.add(pseudo_labels[torch.where(mask)].cpu().numpy(), label_t.data[torch.where(mask)].cpu().numpy())
 
             train_bar.set_postfix({
                 'epoch': epoch,
@@ -280,11 +279,15 @@ def worker(rank_gpu, args):
             writer.add_scalar('train/mPA_pse-epoch', mPA_pse, epoch)
             writer.add_scalar('train/KC_pse-epoch', KC_pse, epoch)
         logging.info(
-            'rank{} train epoch={} | loss_total={:.3f} loss_cls_s={:.3f} loss_cls_t={:.3f}'.format(
+            'rank{} train epoch={} | '
+            'loss_total={:.3f} loss_cls_s={:.3f} loss_cls_t={:.3f}'.format(
                 dist.get_rank() + 1, epoch, total_loss_epoch, cls_s_loss_epoch, cls_t_loss_epoch))
         logging.info(
-            'rank{} train epoch={} | PA={:.3f} mPA={:.3f} KC={:.3f} | pse PA={:.3f} mPA={:.3f} KC={:.3f}'.format(
-                dist.get_rank() + 1, epoch, PA, mPA, KC, PA_pse, mPA_pse, KC_pse))
+            'rank{} train epoch={} | '
+            'PA={:.3f} mPA={:.3f} KC={:.3f} | '
+            'pse PA={:.3f} mPA={:.3f} KC={:.3f} NUM={}/{}'.format(
+                dist.get_rank() + 1, epoch, PA, mPA, KC, PA_pse, mPA_pse, KC_pse, metric_pse.count,
+                iteration * CFG.DATALOADER.BATCH_SIZE))
         for c in range(NUM_CLASSES):
             logging.info(
                 'rank{} train epoch={} | class={} P={:.3f} R={:.3f} F1={:.3f}| pse P={:.3f} R={:.3f} F1={:.3f}'.format(
