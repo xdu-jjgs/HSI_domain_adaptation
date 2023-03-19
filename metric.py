@@ -6,9 +6,11 @@ class Metric:
         self.num_classes = num_classes
         self.ignore_indexes = ignore_indexes
         self.matrix = np.zeros((self.num_classes, self.num_classes))
+        self.count = 0
 
     def reset(self):
         self.matrix.fill(0)
+        self.count = 0
 
     def add(self, pred, label):
         mask = (label >= 0) & (label < self.num_classes)
@@ -17,6 +19,7 @@ class Metric:
 
         count = np.bincount(self.num_classes * label[mask] + pred[mask], minlength=self.num_classes ** 2)
         self.matrix += count.reshape((self.num_classes, self.num_classes))
+        self.count += pred.shape[0]
 
     def PA(self):
         # pixel accuracy

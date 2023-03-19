@@ -247,7 +247,7 @@ def worker(rank_gpu, args):
             domain_loss_epoch += domain_s_loss.item() + domain_t_loss.item()
 
             # train classifier_pse with T data
-            cbst_loss, mask, labels_pse = cbst_criterion(y_pse, y_t)
+            cbst_loss, mask, pseudo_labels = cbst_criterion(y_pse, y_t)
             cbst_loss *= loss_weights[3]
             cbst_loss_epoch += cbst_loss.item()
 
@@ -266,8 +266,7 @@ def worker(rank_gpu, args):
             metric_cls.add(pred_cls.data.cpu().numpy(), label_s.data.cpu().numpy())
             metric_adv_s.add(pred_adv_s.data.cpu().numpy(), label_s.data.cpu().numpy())
             metric_adv_t.add(pred_adv_t.data.cpu().numpy(), label_s.data.cpu().numpy())
-            pred_pse = y_pse.argmax(axis=1)
-            metric_pse.add(pred_pse.data.cpu().numpy(), label_t.data.cpu().numpy())
+            metric_pse.add(pseudo_labels[torch.where(mask)].cpu().numpy(), label_t.data[torch.where(mask)].cpu().numpy())
 
             if dist.get_rank() == 0:
                 writer.add_scalar('train/loss_total', total_loss.item(), iteration)
@@ -324,9 +323,10 @@ def worker(rank_gpu, args):
             .format(dist.get_rank() + 1, epoch, total_loss_epoch, cls_loss_epoch, worst_loss_epoch, cbst_loss_epoch))
         logging.info(
             'rank{} train epoch={} | cls PA={:.3f} mPA={:.3f} KC={:.3f} | adv-s PA={:.3f} mPA={:.3f} KC={:.3f} |'
-            ' adv_t PA={:.3f} mPA={:.3f} KC={:.3f}| pse PA={:.3f} mPA={:.3f} KC={:.3f}'
+            ' adv_t PA={:.3f} mPA={:.3f} KC={:.3f}| pse PA={:.3f} mPA={:.3f} KC={:.3f} NUM={}/{}'
             .format(dist.get_rank() + 1, epoch, PA_cls, mPA_cls, KC_cls, PA_adv_s, mPA_adv_s, KC_adv_s, PA_adv_t,
-                    mPA_adv_t, KC_adv_t, PA_pse, mPA_pse, KC_pse))
+                    mPA_adv_t, KC_adv_t, PA_pse, mPA_pse, KC_pse, metric_pse.count,
+                    iteration * CFG.DATALOADER.BATCH_SIZE))
         for c in range(NUM_CLASSES):
             logging.info(
                 'rank{} train epoch={} | class={} | cls P={:.3f} R={:.3f} F1={:.3f}|adv_s P={:.3f} R={:.3f} F1={:.3f}|'
