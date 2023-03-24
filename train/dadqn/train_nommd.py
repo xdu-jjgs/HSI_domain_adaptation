@@ -4,6 +4,7 @@ import random
 import logging
 import argparse
 import numpy as np
+import torch.nn.functional as F
 import torch.distributed as dist
 import torch.multiprocessing as mp
 
@@ -11,12 +12,12 @@ from apex import amp
 from tqdm import tqdm
 from datetime import datetime
 from tensorboardX import SummaryWriter
-from apex.parallel import DistributedDataParallel
+from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data.distributed import DistributedSampler
 
 from configs import CFG
 from metric import Metric
-from models import build_model, DQN
+from models import build_model, DQN, get_next_state
 from criterions import build_criterion
 from optimizers import build_optimizer
 from schedulers import build_scheduler
@@ -127,28 +128,32 @@ def worker(rank_gpu, args):
 
     # build dataset
     source_dataset = build_dataset('train')
-    test_dataset = build_dataset('test')
-    val_dataset = test_dataset
+    target_dataset = build_dataset('test')
+    val_dataset = target_dataset
     selected_dataset = build_dataset('dynamic')
     assert source_dataset.num_classes == val_dataset.num_classes
-    logging.info("Number of train {}, val {}, test {}".format(len(source_dataset), len(val_dataset), len(test_dataset)))
+    logging.info(
+        "Number of train {}, val {}, test {}".format(len(source_dataset), len(val_dataset), len(target_dataset)))
     NUM_CHANNELS = source_dataset.num_channels
     NUM_CLASSES = source_dataset.num_classes
     logging.info("Number of class: {}".format(NUM_CLASSES))
     # build data sampler
     source_sampler = DistributedSampler(source_dataset, shuffle=True)
-    val_sampler = DistributedSampler(val_dataset, shuffle=False)
-
+    val_sampler = DistributedSampler(val_dataset, shuffle=True)
+    target_sampler = DistributedSampler(target_dataset, shuffle=True)
     # build data loader
     source_dataloader = build_dataloader(source_dataset, sampler=source_sampler)
+    target_dataloader = build_dataloader(target_dataset, sampler=target_sampler)
     val_dataloader = build_dataloader(val_dataset, sampler=val_sampler)
 
     # build data iteration
     source_iterator = build_iterator(source_dataloader)
+    target_iterator = build_iterator(target_dataloader)
     # build model
     model = build_model(NUM_CHANNELS, NUM_CLASSES)
     model.to(device)
-    dqn = DQN(len(test_dataset), CFG.DATALOADER.BATCH_SIZE)
+    # todo: update initiation
+    dqn = DQN(64 * CFG.DATALOADER.BATCH_SIZE, CFG.DATALOADER.BATCH_SIZE)
     dqn.to(device)
     # print(model)
 
@@ -164,6 +169,7 @@ def worker(rank_gpu, args):
     q_criterion.to(device)
     # build metric
     metric = Metric(NUM_CLASSES)
+    metric_pse = Metric(NUM_CLASSES)
     # build optimizer
     optimizer_da = build_optimizer(model)
     optimizer_dqn = build_optimizer(dqn)
@@ -175,7 +181,7 @@ def worker(rank_gpu, args):
     [model, dqn], [optimizer_da, optimizer_dqn] = amp.initialize([model, dqn], [optimizer_da, optimizer_dqn],
                                                                  opt_level=args.opt_level)
     # DDP
-    model = DistributedDataParallel(model)
+    model = DistributedDataParallel(model, broadcast_buffers=False)
     # DistributedDataParallel不能有新方法？
     dqn = DistributedDataParallel(dqn)
 
@@ -216,92 +222,81 @@ def worker(rank_gpu, args):
             lr = optimizer_da.param_groups[0]['lr']
             writer.add_scalar('lr-epoch', lr, epoch)
 
-        # train DQN
-        if epoch % CFG.EPOCHK == 0:
-            dqn.train()
-            model.eval()
-            metric.reset()
-            state = torch.HalfTensor([0] * len(test_dataset))
-            state_ = torch.HalfTensor([0] * len(test_dataset))
-            state = state.to(device)
-            state_ = state_.to(device)
-            # update state and dqn
-            test_bar = tqdm(test_dataset, desc='selecting', ascii=True)
-            for x_t, label in test_bar:
-                action = dqn.module.choose_action(state)
-                state_[ind] = action
-                if action == 1:
-                    x_t, label_t = item
-                    x_t = torch.unsqueeze(x_t, 0)
-                    x_t = x_t.to(device)
-                    label_t = torch.tensor(label_t)
-                    label_t = torch.unsqueeze(label_t, 0)
-
-                    _, y_t = model(x_t)
-                    threshold = 0.5
-                    reward = 1. if y_t.max() > threshold else -1.
-                    pred = y_t.argmax(axis=1)
-
-                    # TODO: find a better way
-                    selected_dataset.append(torch.squeeze(x_t, 0), torch.squeeze(pred, 0))
-                    metric.add(pred.data.cpu().numpy(), label_t.data.numpy())
-                else:
-                    reward = 0
-                reward = torch.tensor(reward).to(device)
-                dqn.module.store_transition(state, state_[ind], reward, state_)
-                state[ind] = action
-
-                if dqn.module.memory_counter > dqn.module.memory_capacity:
-                    q_eval, q_target = dqn()
-                    q_loss = q_criterion(q_eval, q_target)
-                    optimizer_dqn.zero_grad()
-                    with amp.scale_loss(q_loss, optimizer_dqn) as scaled_loss:
-                        scaled_loss.backward()
-                    optimizer_dqn.step()
-
-            # output selected data metric
-            PA, mPA, Ps, Rs, F1S, KC = metric.PA(), metric.mPA(), metric.Ps(), metric.Rs(), metric.F1s(), metric.KC()
-            if dist.get_rank() == 0:
-                writer.add_scalar('dqn/PA-epoch', PA, epoch)
-                writer.add_scalar('dqn/mPA-epoch', mPA, epoch)
-                writer.add_scalar('dqn/KC-epoch', KC, epoch)
-            logging.info(
-                'rank{} dqn epoch={} | PA={:.3f} mPA={:.3f} KC={:.3f}'.format(dist.get_rank() + 1, epoch, PA, mPA,
-                                                                              KC))
-            for c in range(NUM_CLASSES):
-                logging.info(
-                    'rank{} dqn epoch={} | class={} P={:.3f} R={:.3f} F1={:.3f}'.format(dist.get_rank() + 1, epoch, c,
-                                                                                        Ps[c], Rs[c], F1S[c]))
-
-            # train da model by selected data
-            model.train()
-            print("Num of selected data: ", len(selected_dataset))
-            selected_sampler = DistributedSampler(selected_dataset, shuffle=False)
-            selected_dataloder = build_dataloader(selected_dataset, sampler=selected_sampler)
-            selected_bar = tqdm(selected_dataloder, desc='training', ascii=True)
-            for x_st, pseudo_labels_st in selected_bar:
-                f_st, y_st = model(x_st)
-                sel_loss = cls_criterion(y_s=y_st, label_s=pseudo_labels_st)
-                optimizer_da.zero_grad()
-                with amp.scale_loss(sel_loss, optimizer_da) as scaled_loss:
-                    scaled_loss.backward()
-                optimizer_da.step()
-            model.eval()
-            selected_dataset.flush()
-
         # train da model
         model.train()  # set model to training mode
         metric.reset()  # reset metric
-        train_bar = tqdm(range(1, CFG.DATALOADER.ITERATION+1), desc='training', ascii=True)
-        total_loss_epoch, cls_loss_epoch = 0., 0.
+        metric_pse.reset()
+        train_bar = tqdm(range(1, CFG.DATALOADER.ITERATION + 1), desc='training', ascii=True)
+        total_loss_epoch, cls_loss_epoch, sel_loss_epoch = 0., 0., 0.
         for iteration in train_bar:
             x_s, label = next(source_iterator)
+            x_t, label_t = next(target_iterator)
             x_s, label = x_s.to(device), label.to(device)
+
             f_s, y_s = model(x_s)
 
+            model.eval()
+            with torch.no_grad():
+                f_t, y_t = model(x_t)
+            model.train()
+
+            # DQN select
+            dqn.train()
+            metric_pse.reset()
+            selected_dataset.flush()
+            confidence, pseudo_labels = F.softmax(f_t.detach(), dim=1).max(dim=1)
+            state = f_t.detach()
+            dqn.current_state = state
+            # mask = (confidence > CFG.CRITERION.THRESHOLD).float()
+            # valid_index = torch.where(mask)
+            # x_t_select = x_t[valid_index]
+            # pseudo_labels_select = pseudo_labels[valid_index]
+            # confidence_select = confidence[valid_index]
+            # 先补齐到batch_size大小再选
+            # state = get_next_state(state, CFG.DATALOADER.BATCH_SIZE-valid_index[0].size()[0])
+
+            num_select = 0
+            while state.size()[0] > 0:
+                terminal = 0
+                # action_index在dqn中已经减去了select_iteration，不会选到空样本
+                action, action_index, Flag = dqn.choose_action(num_select)
+
+                if confidence[action_index] > args.r_threshold:
+                    reward = 1
+                else:
+                    reward = -1
+                if dqn.step < dqn.step_observe or reward > 0:
+                    selected_dataset.append(x_t[action_index], pseudo_labels[action_index])
+                    metric_pse.add(pseudo_labels[action_index], y_t[action_index])
+
+                x_t = torch.concat([x_t[:action_index], x_t[action_index + 1:]])
+                state = torch.concat([state[:action_index], state[action_index + 1:]])
+                pseudo_labels = torch.concat([pseudo_labels[:action_index], pseudo_labels[action_index + 1:]])
+                confidence = torch.concat([confidence[:action_index], confidence[action_index + 1:]])
+                y_t = torch.concat([y_t[:action_index], y_t[action_index + 1:]])
+
+                num_select += 1
+                next_state = get_next_state(state, num_select)
+                if reward < 0:
+                    terminal = 1
+                dqn.store_transition(action, reward, next_state, num_select, terminal, iteration)
+                if reward < 0:
+                    break
+
+            # train da model by selected data
+            model.train()
+            selected_sampler = DistributedSampler(selected_dataset, shuffle=True)
+            selected_dataloder = build_dataloader(selected_dataset, sampler=selected_sampler, drop_last=False)
+            assert len(selected_dataloder) == 1
+            x_st, pseudo_labels_st = selected_dataloder[0]
+            f_st, y_st = model(x_st)
+
             cls_loss = cls_criterion(label_s=label, y_s=y_s) * loss_weights[0]
-            total_loss = cls_loss
+            sel_loss = cls_criterion(y_s=y_st, label_s=pseudo_labels_st) * loss_weights[1]
+            total_loss = cls_loss + sel_loss
+
             cls_loss_epoch += cls_loss.item()
+            sel_loss_epoch += sel_loss.item()
             total_loss_epoch += total_loss.item()
             if dist.get_rank() == 0:
                 writer.add_scalar('train/loss_total', total_loss.item(), iteration)
@@ -326,22 +321,33 @@ def worker(rank_gpu, args):
 
         total_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
         cls_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
+        sel_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
         PA, mPA, Ps, Rs, F1S, KC = metric.PA(), metric.mPA(), metric.Ps(), metric.Rs(), metric.F1s(), metric.KC()
+        PA_pse, mPA_pse, Ps_pse, Rs_pse, F1S_pse, KC_pse = \
+            metric_pse.PA(), metric_pse.mPA(), metric_pse.Ps(), metric_pse.Rs(), metric_pse.F1s(), metric_pse.KC()
+
         if dist.get_rank() == 0:
             writer.add_scalar('train/loss_total-epoch', total_loss_epoch, epoch)
             writer.add_scalar('train/loss_cls-epoch', cls_loss_epoch, epoch)
             writer.add_scalar('train/PA-epoch', PA, epoch)
             writer.add_scalar('train/mPA-epoch', mPA, epoch)
             writer.add_scalar('train/KC-epoch', KC, epoch)
+            writer.add_scalar('dqn/PA-epoch', PA_pse, epoch)
+            writer.add_scalar('dqn/mPA-epoch', mPA_pse, epoch)
+            writer.add_scalar('dqn/KC-epoch', KC_pse, epoch)
         logging.info(
-            'rank{} train epoch={} | loss_total={:.3f} loss_cls={:.3f}'.format(
-                dist.get_rank() + 1, epoch, total_loss_epoch, cls_loss_epoch))
+            'rank{} train epoch={} | loss_total={:.3f} loss_cls={:.3f} loss_sel={:.3f}'.format(
+                dist.get_rank() + 1, epoch, total_loss_epoch, cls_loss_epoch, sel_loss_epoch))
         logging.info(
-            'rank{} train epoch={} | PA={:.3f} mPA={:.3f} KC={:.3f}'.format(dist.get_rank() + 1, epoch, PA, mPA, KC))
+            'rank{} train epoch={} | '
+            'PA={:.3f} mPA={:.3f} KC={:.3f} | '
+            'pse PA={:.3f} mPA={:.3f} KC={:.3f} NUM={}/{}'.format(
+                dist.get_rank() + 1, epoch, PA, mPA, KC, PA_pse, mPA_pse, KC_pse, metric_pse.count,
+                iteration * CFG.DATALOADER.BATCH_SIZE))
         for c in range(NUM_CLASSES):
             logging.info(
-                'rank{} train epoch={} | class={} P={:.3f} R={:.3f} F1={:.3f}'.format(dist.get_rank() + 1, epoch, c,
-                                                                                      Ps[c], Rs[c], F1S[c]))
+                'rank{} train epoch={} | class={} P={:.3f} R={:.3f} F1={:.3f}| pse P={:.3f} R={:.3f} F1={:.3f}'.format(
+                    dist.get_rank() + 1, epoch, c, Ps[c], Rs[c], F1S[c], Ps_pse[c], Rs_pse[c], F1S_pse[c]))
 
         # validate
         if args.no_validate:

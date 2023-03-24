@@ -1,5 +1,5 @@
 from .ddc import DDC
-from .dqn import DQN
+from .dqn import DQN, get_next_state
 from .dst import DST
 from .dann import DANN
 from .dstda import DSTDA, DSTDAMapping
