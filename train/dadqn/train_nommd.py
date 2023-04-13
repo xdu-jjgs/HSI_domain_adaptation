@@ -77,6 +77,7 @@ def parse_args():
     args = parser.parse_args()
     # number of GPUs totally, which equals to the number of processes
     args.world_size = args.nodes * args.gpus
+    args.path = os.path.join(args.path, str(args.seed))
     return args
 
 
@@ -153,7 +154,7 @@ def worker(rank_gpu, args):
     model = build_model(NUM_CHANNELS, NUM_CLASSES)
     model.to(device)
     # todo: update initiation
-    dqn = DQN(64 * CFG.DATALOADER.BATCH_SIZE, CFG.DATALOADER.BATCH_SIZE)
+    dqn = DQN(len_states=64 * CFG.DATALOADER.BATCH_SIZE, num_actions=2, batch_size=CFG.DATALOADER.BATCH_SIZE)
     dqn.to(device)
     # print(model)
 
@@ -165,8 +166,8 @@ def worker(rank_gpu, args):
     cls_criterion.to(device)
     val_criterion = build_criterion('softmax+ce')
     val_criterion.to(device)
-    q_criterion = build_criterion('l2dis')
-    q_criterion.to(device)
+    dqn_criterion = build_criterion('l2dis')
+    dqn_criterion.to(device)
     # build metric
     metric = Metric(NUM_CLASSES)
     metric_pse = Metric(NUM_CLASSES)
@@ -280,6 +281,13 @@ def worker(rank_gpu, args):
                 if reward < 0:
                     terminal = 1
                 dqn.store_transition(action, reward, next_state, num_select, terminal, iteration)
+                if dqn.step > dqn.step_observe and terminal == 1:
+                    q_eval, q_target = dqn.train_net()
+                    q_loss = dqn_criterion(q_eval, q_target)
+                    optimizer_dqn.zero_grad()
+                    with amp.scale_loss(q_loss, optimizer_dqn) as scaled_loss:
+                        scaled_loss.backward()
+                    optimizer_dqn.step()
                 if reward < 0:
                     break
 
@@ -298,9 +306,6 @@ def worker(rank_gpu, args):
             cls_loss_epoch += cls_loss.item()
             sel_loss_epoch += sel_loss.item()
             total_loss_epoch += total_loss.item()
-            if dist.get_rank() == 0:
-                writer.add_scalar('train/loss_total', total_loss.item(), iteration)
-                writer.add_scalar('train/loss_cls', cls_loss.item(), iteration)
 
             optimizer_da.zero_grad()
             with amp.scale_loss(total_loss, optimizer_da) as scaled_loss:

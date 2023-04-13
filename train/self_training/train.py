@@ -76,6 +76,7 @@ def parse_args():
     args = parser.parse_args()
     # number of GPUs totally, which equals to the number of processes
     args.world_size = args.nodes * args.gpus
+    args.path = os.path.join(args.path, str(args.seed))
     return args
 
 

@@ -30,7 +30,8 @@ class Net(nn.Module):
 
 class DQN(nn.Module):
     # TODO: change memory_capacity init
-    def __init__(self, len_states: int, num_actions: int, batch_size:int, memory_capacity: int = 2000, step_observe: int = 100):
+    def __init__(self, len_states: int, num_actions: int, batch_size: int, memory_capacity: int = 2000,
+                 step_observe: int = 100):
         super(DQN, self).__init__()
         self.batch_size = batch_size
         self.epsilon = 0.9
@@ -40,7 +41,7 @@ class DQN(nn.Module):
         self.num_actions = num_actions
         self.step = 0
         self.step_observe = step_observe
-        self.explore = 10000
+        self.explore = 1000
         self.memory_capacity = memory_capacity
         self.memory = deque(maxlen=self.memory_capacity)
         self.current_state = None
@@ -50,11 +51,11 @@ class DQN(nn.Module):
         # x = torch.unsqueeze(x, 0)
         action = torch.zeros(self.num_actions)
         if np.random.random() <= self.epsilon:
-            action_index = np.random.randint(self.CANDIDATE_NUM - selected_num)
+            action_index = np.random.randint(self.batch_size - selected_num)
             action[action_index] = 1
         else:
             action_value = self.eval_net.forward(self.current_state)
-            action_index = np.argmax(action_value[0, 0:(self.CANDIDATE_NUM - selected_num)])
+            action_index = np.argmax(action_value[0, 0:(self.batch_size - selected_num)])
             action[action_index] = 1
         if self.epsilon > self.epsilon_ and self.step > self.step_observe:
             self.epsilon -= (self.epsilon_max - self.epsilon_min) / self.explore
@@ -64,8 +65,7 @@ class DQN(nn.Module):
         # state:选择的样本序列
         transition = (self.current_state, action, reward, next_state, num_select, terminal, iteration)
         self.memory.append(transition)
-        if self.step > self.step_observe and terminal == 1:
-            self.train_net()
+
         self.step += 1
         self.current_state = next_state
 
@@ -86,17 +86,19 @@ class DQN(nn.Module):
         # print(b_new_states, b_new_states.size())
         # print(torch.masked_select(b_states, b_states != 0).size())
         # print(torch.masked_select(b_new_states, b_new_states != 0).size())
+        b_terminal = torch.stack([i[5] for i in b_memory], dim=0)
 
-        q_eval = self.eval_net(b_num_select)
+        q_eval = self.eval_net(b_states)
         q_eval = q_eval.gather(1, b_actions)
+
         q_next = self.target_net(b_new_states).detach()
-        q_target = b_rewards + self.gamma * q_next.max(1)[0].view(self.batch_size, 1)
+        q_target = b_rewards + self.gamma * q_next.max(1)[0].view(self.batch_size, 1) * (1 - b_terminal)
 
         return q_eval, q_target
 
 
 def get_next_state(state, num_select):
-    feature_dim = state.size()[0]
+    feature_dim = state.size()[-1]
     zero_padding = torch.zeros([num_select, feature_dim])
     new_state = torch.cat([state, zero_padding])
     return new_state
