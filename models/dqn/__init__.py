@@ -1,6 +1,5 @@
-from .dqn import DQN, get_next_state
+from .dqn import DQN
 
 __all__ = [
-    DQN,
-    get_next_state
+    DQN
 ]

@@ -17,7 +17,7 @@ from torch.utils.data.distributed import DistributedSampler
 
 from configs import CFG
 from metric import Metric
-from models import build_model, DQN, get_next_state
+from models import build_model, DQN
 from criterions import build_criterion
 from optimizers import build_optimizer
 from schedulers import build_scheduler
@@ -154,7 +154,8 @@ def worker(rank_gpu, args):
     model = build_model(NUM_CHANNELS, NUM_CLASSES)
     model.to(device)
     # todo: update initiation
-    dqn = DQN(len_states=64 * CFG.DATALOADER.BATCH_SIZE, num_actions=2, batch_size=CFG.DATALOADER.BATCH_SIZE)
+    dqn = DQN(len_states=64 * CFG.DATALOADER.BATCH_SIZE, num_actions=CFG.DATALOADER.BATCH_SIZE,
+              batch_size=CFG.DATALOADER.BATCH_SIZE)
     dqn.to(device)
     # print(model)
 
@@ -233,6 +234,7 @@ def worker(rank_gpu, args):
             x_s, label = next(source_iterator)
             x_t, label_t = next(target_iterator)
             x_s, label = x_s.to(device), label.to(device)
+            x_t = x_t.to(device)
 
             f_s, y_s = model(x_s)
 
@@ -245,9 +247,9 @@ def worker(rank_gpu, args):
             dqn.train()
             metric_pse.reset()
             selected_dataset.flush()
-            confidence, pseudo_labels = F.softmax(f_t.detach(), dim=1).max(dim=1)
+            confidence, pseudo_labels = F.softmax(y_t.detach(), dim=1).max(dim=1)
             state = f_t.detach()
-            dqn.current_state = state
+            dqn.module.current_state = state
             # mask = (confidence > CFG.CRITERION.THRESHOLD).float()
             # valid_index = torch.where(mask)
             # x_t_select = x_t[valid_index]
@@ -260,29 +262,37 @@ def worker(rank_gpu, args):
             while state.size()[0] > 0:
                 terminal = 0
                 # action_index在dqn中已经减去了select_iteration，不会选到空样本
-                action, action_index, Flag = dqn.choose_action(num_select)
-
-                if confidence[action_index] > args.r_threshold:
-                    reward = 1
+                action, action_index = dqn.module.choose_action(num_select)
+                # TODO: update reward
+                r_threshold = 0.8
+                if confidence[action_index] > r_threshold:
+                    reward = 1.
+                elif num_select <= 1:
+                    reward = 0.1
                 else:
                     reward = -1
-                if dqn.step < dqn.step_observe or reward > 0:
+
+                if dqn.module.step < dqn.module.step_observe or reward > 0:
                     selected_dataset.append(x_t[action_index], pseudo_labels[action_index])
-                    metric_pse.add(pseudo_labels[action_index], y_t[action_index])
+                    metric_pse.add(pseudo_labels[action_index].cpu().numpy(), label_t[action_index].cpu().numpy())
 
                 x_t = torch.concat([x_t[:action_index], x_t[action_index + 1:]])
                 state = torch.concat([state[:action_index], state[action_index + 1:]])
                 pseudo_labels = torch.concat([pseudo_labels[:action_index], pseudo_labels[action_index + 1:]])
                 confidence = torch.concat([confidence[:action_index], confidence[action_index + 1:]])
-                y_t = torch.concat([y_t[:action_index], y_t[action_index + 1:]])
+                label_t = torch.concat([label_t[:action_index], label_t[action_index + 1:]])
 
                 num_select += 1
-                next_state = get_next_state(state, num_select)
+                # make next state
+                feature_dim = state.size()[-1]
+                zero_padding = torch.zeros([num_select, feature_dim]).to(device)
+                next_state = torch.cat([state, zero_padding])
+                # next_state = get_next_state(state, num_select, device)
                 if reward < 0:
                     terminal = 1
-                dqn.store_transition(action, reward, next_state, num_select, terminal, iteration)
-                if dqn.step > dqn.step_observe and terminal == 1:
-                    q_eval, q_target = dqn.train_net()
+                dqn.module.store_transition(action, reward, next_state, num_select, terminal, iteration)
+                if dqn.module.step > dqn.module.step_observe and terminal == 1:
+                    q_eval, q_target = dqn.module.train_net()
                     q_loss = dqn_criterion(q_eval, q_target)
                     optimizer_dqn.zero_grad()
                     with amp.scale_loss(q_loss, optimizer_dqn) as scaled_loss:
@@ -296,7 +306,8 @@ def worker(rank_gpu, args):
             selected_sampler = DistributedSampler(selected_dataset, shuffle=True)
             selected_dataloder = build_dataloader(selected_dataset, sampler=selected_sampler, drop_last=False)
             assert len(selected_dataloder) == 1
-            x_st, pseudo_labels_st = selected_dataloder[0]
+            x_st, pseudo_labels_st = next(iter(selected_dataloder))
+            # print(x_st.shape, pseudo_labels_st.shape)
             f_st, y_st = model(x_st)
 
             cls_loss = cls_criterion(label_s=label, y_s=y_s) * loss_weights[0]

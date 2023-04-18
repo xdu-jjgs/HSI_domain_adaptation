@@ -7,9 +7,9 @@ DATASET:
         PAD_MODE: 'symmetric'
 
 DATALOADER:
-    BATCH_SIZE: 32
+    BATCH_SIZE: 16
     NUM_WORKERS: 0
-    ITERATION: 626
+    ITERATION: 1252
 
 MODEL:
     NAME: 'ddc'
@@ -26,7 +26,7 @@ CRITERION:
 
 OPTIMIZER:
     NAME: 'adam'
-    LR: 0.0003
+    LR: 0.001
 
 SCHEDULER:
     NAME: 'plateau'
@@ -35,5 +35,3 @@ SCHEDULER:
     PATIENCE: 2
 
 EPOCHS: 20
-# TODO: update EPOCHK
-EPOCHK: 2
