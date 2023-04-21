@@ -10,24 +10,20 @@ for dataset in datasets:
     path = os.path.join(root, dataset)
     models_paths = [os.path.join(path, i) for i in os.listdir(path)]
     for mp in models_paths:
+        log_file_path = os.path.join(mp, 'train.log')
         model = os.path.basename(mp).split('-')[0]
-        seed_path = [os.path.join(path, i) for i in os.listdir(path)]
-        for sp in seed_path:
-            log_file_path = os.path.join(sp, 'train.log')
+        try:
+            with open(log_file_path) as fo:
+                text = fo.read()
             res = {}
-            try:
-                with open(log_file_path) as fo:
-                    text = fo.read()
-                    pair = re.findall(pattern, text)[0]
-                    sub_model = pair[0].replace(' ', '_')
-                    pa = float(pair[1])
-                    if res.get(model+sub_model):
-                        res[model+sub_model].append(pa)
-                    else:
-                        res[model + sub_model] = [pa]
-            except (ZeroDivisionError, FileNotFoundError):
-                print("No result in dataset {}, model {}".format(dataset, model))
-
+            pair = re.findall(pattern, text)
+            sub_model = list(map(lambda x: x[0].replace(' ', '_'), pair))
+            pas = list(map(lambda x: float(x[1]), pair))
+            for ele, pa in zip(sub_model, pas):
+                if res.get(model+ele):
+                    res[model+ele].append(pa)
+                else:
+                    res[model + ele] = [pa]
             for name, v in res.items():
                 v.sort()
                 avg = sum(v) / len(v)
@@ -35,4 +31,5 @@ for dataset in datasets:
                 max_ = v[-1]
                 print(dataset, name, "times:{}, avg:{:.3f}±{:.3f} best:{:.3f} med:{:.3f}".
                       format(len(v), avg, (max_ - min_)/2, max_, v[(len(v)-1)//2]))
-
+        except (ZeroDivisionError, FileNotFoundError):
+            print("No result in dataset {}, model {}".format(dataset, model))

@@ -268,12 +268,6 @@ def worker(rank_gpu, args):
             metric_adv_t.add(pred_adv_t.data.cpu().numpy(), label_s.data.cpu().numpy())
             metric_pse.add(pseudo_labels[torch.where(mask)].cpu().numpy(), label_t.data[torch.where(mask)].cpu().numpy())
 
-            if dist.get_rank() == 0:
-                writer.add_scalar('train/loss_total', total_loss.item(), iteration)
-                writer.add_scalar('train/loss_cls', cls_loss.item(), iteration)
-                writer.add_scalar('train/loss_wos', worst_loss.item(), iteration)
-                writer.add_scalar('train/loss_cbst', cbst_loss.item(), iteration)
-
             train_bar.set_postfix({
                 'epoch': epoch,
                 'total-loss': f'{total_loss.item():.3f}',

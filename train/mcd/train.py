@@ -279,10 +279,6 @@ def worker(rank_gpu, args):
                 step3_loss = dis_criterion(p1_t, p2_t)
                 step3_loss_epoch += step3_loss.item()
 
-                if dist.get_rank() == 0:
-                    writer.add_scalar('train/loss_step1', step1_loss.item(), iteration)
-                    writer.add_scalar('train/loss_step2', step2_loss.item(), iteration)
-                    writer.add_scalar('train/loss_step3', step3_loss.item(), (iteration - 1) * CFG.EPOCHK + i + 1)
                 optimizer_fe.zero_grad()
                 with amp.scale_loss(step3_loss, optimizer_fe) as scaled_loss:
                     scaled_loss.backward()
@@ -295,7 +291,6 @@ def worker(rank_gpu, args):
                 'epoch': epoch,
                 'loss_step1': f'{step1_loss.item():.3f}',
                 'loss_step2': f'{step2_loss.item():.3f}',
-                'loss_step3': f'{step3_loss.item():.3f}',
                 'mP': f'{metric.mPA():.3f}',
                 'PA': f'{metric.PA():.3f}',
                 'KC': f'{metric.KC():.3f}'
@@ -309,6 +304,7 @@ def worker(rank_gpu, args):
             writer.add_scalar('train/loss_step1-epoch', step1_loss_epoch, epoch)
             writer.add_scalar('train/loss_step2-epoch', step2_loss_epoch, epoch)
             writer.add_scalar('train/loss_step3-epoch', step3_loss_epoch, epoch)
+
             writer.add_scalar('train/PA-epoch', PA, epoch)
             writer.add_scalar('train/mPA-epoch', mPA, epoch)
             writer.add_scalar('train/KC-epoch', KC, epoch)
@@ -326,7 +322,7 @@ def worker(rank_gpu, args):
         FE.eval()  # set model to evaluation mode
         C1.eval()  # set model to evaluation mode
         C2.eval()  # set model to evaluation mode
-        # TODO attention:由于 retain graph = true 此处不能用eval() 否则计算图会被free掉 导致模型失效
+        # 由于 retain graph = true 此处不能用eval() 否则计算图会被free掉 导致模型失效
         metric.reset()  # reset metric
         val_bar = tqdm(val_dataloader, desc='validating', ascii=True)
         val_loss = 0.

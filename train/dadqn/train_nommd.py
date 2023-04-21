@@ -345,9 +345,11 @@ def worker(rank_gpu, args):
         if dist.get_rank() == 0:
             writer.add_scalar('train/loss_total-epoch', total_loss_epoch, epoch)
             writer.add_scalar('train/loss_cls-epoch', cls_loss_epoch, epoch)
+
             writer.add_scalar('train/PA-epoch', PA, epoch)
             writer.add_scalar('train/mPA-epoch', mPA, epoch)
             writer.add_scalar('train/KC-epoch', KC, epoch)
+
             writer.add_scalar('dqn/PA-epoch', PA_pse, epoch)
             writer.add_scalar('dqn/mPA-epoch', mPA_pse, epoch)
             writer.add_scalar('dqn/KC-epoch', KC_pse, epoch)
