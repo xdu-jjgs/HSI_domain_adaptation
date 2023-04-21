@@ -272,12 +272,6 @@ def worker(rank_gpu, args):
             domain_t_loss_epoch += domain_t_loss.item()
             step1_loss_epoch += step1_loss.item()
 
-            if dist.get_rank() == 0:
-                writer.add_scalar('train/loss_total', step1_loss.item(), iteration)
-                writer.add_scalar('train/loss_cls', cls_loss.item(), iteration)
-                writer.add_scalar('train/loss_domain_s', domain_s_loss.item(), iteration)
-                writer.add_scalar('train/loss_domain_t', domain_t_loss.item(), iteration)
-
             optimizer_model.zero_grad()
             with amp.scale_loss(step1_loss, optimizer_model) as scaled_loss:
                 scaled_loss.backward()
@@ -363,9 +357,11 @@ def worker(rank_gpu, args):
             writer.add_scalar('train/loss_cls-epoch', cls_loss_epoch, epoch)
             writer.add_scalar('train/loss_domain_s-epoch', domain_s_loss_epoch, epoch)
             writer.add_scalar('train/loss_domain_t-epoch', domain_t_loss_epoch, epoch)
+
             writer.add_scalar('train/PA-epoch', PA, epoch)
             writer.add_scalar('train/mPA-epoch', mPA, epoch)
             writer.add_scalar('train/KC-epoch', KC, epoch)
+
         logging.info(
             'rank{} train epoch={} | loss_total={:.3f} loss_cls={:.3f} loss_domain_s={:.3f} loss_domain_t={:.3f}'.format(
                 dist.get_rank() + 1, epoch, step1_loss_epoch, cls_loss_epoch, domain_s_loss_epoch, domain_t_loss_epoch))

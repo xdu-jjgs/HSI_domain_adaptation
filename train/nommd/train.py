@@ -216,9 +216,6 @@ def worker(rank_gpu, args):
             total_loss = cls_loss
             cls_loss_epoch += cls_loss.item()
             total_loss_epoch += total_loss.item()
-            if dist.get_rank() == 0:
-                writer.add_scalar('train/loss_total', total_loss.item(), iteration)
-                writer.add_scalar('train/loss_cls', cls_loss.item(), iteration)
 
             optimizer.zero_grad()
             with amp.scale_loss(total_loss, optimizer) as scaled_loss:
@@ -243,6 +240,7 @@ def worker(rank_gpu, args):
         if dist.get_rank() == 0:
             writer.add_scalar('train/loss_total-epoch', total_loss_epoch, epoch)
             writer.add_scalar('train/loss_cls-epoch', cls_loss_epoch, epoch)
+
             writer.add_scalar('train/PA-epoch', PA, epoch)
             writer.add_scalar('train/mPA-epoch', mPA, epoch)
             writer.add_scalar('train/KC-epoch', KC, epoch)
