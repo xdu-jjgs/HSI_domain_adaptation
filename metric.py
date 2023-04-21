@@ -19,7 +19,10 @@ class Metric:
 
         count = np.bincount(self.num_classes * label[mask] + pred[mask], minlength=self.num_classes ** 2)
         self.matrix += count.reshape((self.num_classes, self.num_classes))
-        self.count += pred.shape[0]
+        if len(pred.shape) >= 1:
+            self.count += pred.shape[0]
+        else:
+            self.count += 1
 
     def PA(self):
         # pixel accuracy

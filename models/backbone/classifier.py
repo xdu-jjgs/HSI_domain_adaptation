@@ -15,11 +15,11 @@ class ImageClassifier(nn.Module):
             self.relu,
         )
         self.layer2 = nn.Sequential(
-            nn.Linear(256, 100),
+            nn.Linear(256, 64),
             self.relu
         )
         self.head = nn.Sequential(
-            nn.Linear(100, num_classes)
+            nn.Linear(64, num_classes)
         )
         if dropout:
             self.dropout = nn.Dropout(0.5)

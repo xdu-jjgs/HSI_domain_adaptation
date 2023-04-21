@@ -42,13 +42,13 @@ def build_dataset(split: str):
     return dataset
 
 
-def build_dataloader(dataset, sampler=None):
+def build_dataloader(dataset, sampler=None, drop_last=True):
     return DataLoader(dataset,
                       batch_size=CFG.DATALOADER.BATCH_SIZE // dist.get_world_size(),
                       num_workers=CFG.DATALOADER.NUM_WORKERS,
                       pin_memory=True if CFG.DATALOADER.NUM_WORKERS > 0 else False,
                       sampler=sampler,
-                      drop_last=True
+                      drop_last=drop_last
                       )
 
 

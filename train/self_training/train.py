@@ -76,6 +76,7 @@ def parse_args():
     args = parser.parse_args()
     # number of GPUs totally, which equals to the number of processes
     args.world_size = args.nodes * args.gpus
+    args.path = os.path.join(args.path, str(args.seed))
     return args
 
 
@@ -222,14 +223,9 @@ def worker(rank_gpu, args):
             x_t = x_t.to(device)
 
             f_s, y_s = model(x_s)
-
-            model.eval()
-            with torch.no_grad():
-                f_t, y_t = model(x_t)
-            model.train()
+            f_t, y_t = model(x_t)
 
             cls_s_loss = cls_criterion(label_s=label, y_s=y_s) * loss_weights[0]
-            # TODO: Add metric for mask?
             cls_t_loss, mask, pseudo_labels = cls_ls_criterion(y_t, y_t)
             cls_t_loss *= loss_weights[1]
             total_loss = cls_s_loss + cls_t_loss
@@ -291,8 +287,7 @@ def worker(rank_gpu, args):
         for c in range(NUM_CLASSES):
             logging.info(
                 'rank{} train epoch={} | class={} P={:.3f} R={:.3f} F1={:.3f}| pse P={:.3f} R={:.3f} F1={:.3f}'.format(
-                    dist.get_rank() + 1, epoch, c,
-                    Ps[c], Rs[c], F1S[c], Ps_pse[c], Rs_pse[c], F1S_pse[c]))
+                    dist.get_rank() + 1, epoch, c, Ps[c], Rs[c], F1S[c], Ps_pse[c], Rs_pse[c], F1S_pse[c]))
 
         # validate
         if args.no_validate:

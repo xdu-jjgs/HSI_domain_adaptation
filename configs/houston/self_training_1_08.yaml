@@ -1,15 +1,16 @@
 DATASET:
-    NAME: 'HyRANK'
-    ROOT: 'E:/zzy/GAN/data/HyRANK'
+    NAME: 'Houston'
+    ROOT: 'E:/zzy/GAN/data/Houston'
     PATCH:
         HEIGHT: 27
         WIDTH: 27
         PAD_MODE: 'symmetric'
 
+
 DATALOADER:
-    BATCH_SIZE: 32
+    BATCH_SIZE: 64
     NUM_WORKERS: 0
-    ITERATION: 626
+    ITERATION: 40
 
 MODEL:
     NAME: 'ddc'
@@ -18,15 +19,15 @@ MODEL:
 CRITERION:
     ITEMS:
       - 'softmax+ce'
-      - 'mmd'
+      - 'cbst'
     WEIGHTS:
       - 1.0
       - 1.0
-    KERNEL_NUM: 5
+    THRESHOLD: 0.8
 
 OPTIMIZER:
     NAME: 'adam'
-    LR: 0.0003
+    LR: 0.0005
 
 SCHEDULER:
     NAME: 'plateau'
@@ -34,6 +35,4 @@ SCHEDULER:
     FACTOR: 0.1
     PATIENCE: 2
 
-EPOCHS: 20
-# TODO: update EPOCHK
-EPOCHK: 2
+EPOCHS: 30
