@@ -74,6 +74,7 @@ def parse_args():
                         default='O0',
                         help='optimization level for nvidia/apex')
     args = parser.parse_args()
+    args.path = os.path.join(args.path, str(args.seed))
     # number of GPUs totally, which equals to the number of processes
     args.world_size = args.nodes * args.gpus
     return args
@@ -130,7 +131,8 @@ def worker(rank_gpu, args):
     target_dataset = build_dataset('test')
     val_dataset = target_dataset
     assert source_dataset.num_classes == val_dataset.num_classes
-    logging.info("Number of train {}, val {}, test {}".format(len(source_dataset), len(val_dataset), len(target_dataset)))
+    logging.info(
+        "Number of train {}, val {}, test {}".format(len(source_dataset), len(val_dataset), len(target_dataset)))
     NUM_CHANNELS = source_dataset.num_channels
     NUM_CLASSES = source_dataset.num_classes
     logging.info("Number of class: {}".format(NUM_CLASSES))
@@ -146,7 +148,7 @@ def worker(rank_gpu, args):
     source_iterator = build_iterator(source_dataloader)
     target_iterator = build_iterator(target_dataloader)
     # build mmoe
-    mmoe = build_model(NUM_CHANNELS, NUM_CLASSES)
+    mmoe = build_model(NUM_CHANNELS, [NUM_CLASSES, NUM_CLASSES])
     mmoe.to(device)
     # print(mmoe)
 
@@ -170,7 +172,7 @@ def worker(rank_gpu, args):
     # mixed precision
     mmoe, optimizer = amp.initialize(mmoe, optimizer, opt_level=args.opt_level)
     # DDP
-    mmoe = DistributedDataParallel(mmoe, broadcast_buffers=False)
+    mmoe = DistributedDataParallel(mmoe, broadcast_buffers=False, find_unused_parameters=True)
 
     epoch = 0
     iteration = 0
@@ -213,20 +215,29 @@ def worker(rank_gpu, args):
         metric.reset()  # reset metric
         train_bar = tqdm(range(1, CFG.DATALOADER.ITERATION + 1), desc='training', ascii=True)
         total_loss_epoch, cls_loss_epoch, trans_loss_epoch = 0., 0., 0.
+        cls_weight_epoch, mmd_weight_epoch = np.zeros((len(mmoe.module.experts))), np.zeros(
+            (len(mmoe.module.experts)))
         for iteration in train_bar:
             x_s, label = next(source_iterator)
             x_t, _ = next(target_iterator)
             x_s, label = x_s.to(device), label.to(device)
             x_t = x_t.to(device)
 
-            f_s_cls, y_s_cls, f_s_mmd, y_s_mmd = mmoe(x_s)
+            out_cls, out_mmd, task_weights = mmoe(x_s)
+            f_s_cls, y_s_cls = out_cls
+            f_s_mmd, y_s_mmd = out_mmd
+            cls_weight_epoch += task_weights[0].sum(dim=0).squeeze(0).detach().cpu().numpy()
+            mmd_weight_epoch += task_weights[1].sum(dim=0).squeeze(0).detach().cpu().numpy()
 
             mmoe.eval()
             with torch.no_grad():
-                _, _, f_t_mmd, y_t_mmd = mmoe(x_t)
+                _, out_mmd, _ = mmoe(x_t)
+                f_t_mmd, y_t_mmd = out_mmd
             mmoe.train()
+
             cls_loss = cls_criterion(label_s=label, y_s=y_s_cls) * loss_weights[0]
-            trans_loss = trans_criterion(f_s=f_s_mmd, f_t=f_t_mmd, label_s=label, y_s=y_s_mmd, y_t=y_t_mmd) * loss_weights[1]
+            trans_loss = trans_criterion(f_s=f_s_mmd, f_t=f_t_mmd, label_s=label,
+                                         y_s=y_s_mmd, y_t=y_t_mmd) * loss_weights[1]
             total_loss = cls_loss + trans_loss
 
             cls_loss_epoch += cls_loss.item()
@@ -252,6 +263,8 @@ def worker(rank_gpu, args):
         total_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
         cls_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
         trans_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
+        cls_weight_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
+        mmd_weight_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
         PA, mPA, Ps, Rs, F1S, KC = metric.PA(), metric.mPA(), metric.Ps(), metric.Rs(), metric.F1s(), metric.KC()
         if dist.get_rank() == 0:
             writer.add_scalar('train/loss_total-epoch', total_loss_epoch, epoch)
@@ -261,6 +274,10 @@ def worker(rank_gpu, args):
             writer.add_scalar('train/PA-epoch', PA, epoch)
             writer.add_scalar('train/mPA-epoch', mPA, epoch)
             writer.add_scalar('train/KC-epoch', KC, epoch)
+
+            for ind, ele in enumerate(zip(cls_weight_epoch, mmd_weight_epoch)):
+                writer.add_scalar('train/cls_weight_expert{}'.format(ind+1), ele[0], epoch)
+                writer.add_scalar('train/mmd_weight_expert{}'.format(ind+1), ele[1], epoch)
         logging.info(
             'rank{} train epoch={} | loss_total={:.3f} loss_cls={:.3f} loss_trans={:.3f}'.format(
                 dist.get_rank() + 1, epoch, total_loss_epoch, cls_loss_epoch, trans_loss_epoch))
@@ -278,10 +295,16 @@ def worker(rank_gpu, args):
         metric.reset()  # reset metric
         val_bar = tqdm(val_dataloader, desc='validating', ascii=True)
         val_loss = 0.
+        cls_weight_epoch, mmd_weight_epoch = np.zeros((len(mmoe.module.experts))), np.zeros(
+            (len(mmoe.module.experts)))
         with torch.no_grad():  # disable gradient back-propagation
             for x_t, label in val_bar:
                 x_t, label = x_t.to(device), label.to(device)
-                _, y_t, _, _ = mmoe(x_t)
+                out_cls, _, task_weights = mmoe(x_t)
+                _, y_t = out_cls
+
+                cls_weight_epoch += task_weights[0].sum(dim=0).squeeze(0).detach().cpu().numpy()
+                mmd_weight_epoch += task_weights[1].sum(dim=0).squeeze(0).detach().cpu().numpy()
 
                 cls_loss = val_criterion(y_s=y_t, label_s=label)
                 val_loss += cls_loss.item()
@@ -301,9 +324,14 @@ def worker(rank_gpu, args):
         PA, mPA, Ps, Rs, F1S, KC = metric.PA(), metric.mPA(), metric.Ps(), metric.Rs(), metric.F1s(), metric.KC()
         if dist.get_rank() == 0:
             writer.add_scalar('val/loss-epoch', val_loss, epoch)
+
             writer.add_scalar('val/PA-epoch', PA, epoch)
             writer.add_scalar('val/mPA-epoch', mPA, epoch)
             writer.add_scalar('val/KC-epoch', KC, epoch)
+
+            for ind, ele in enumerate(zip(cls_weight_epoch, mmd_weight_epoch)):
+                writer.add_scalar('val/cls_weight_expert{}'.format(ind+1), ele[0], epoch)
+                writer.add_scalar('val/mmd_weight_expert{}'.format(ind+1), ele[1], epoch)
         if PA > best_PA:
             best_epoch = epoch
 

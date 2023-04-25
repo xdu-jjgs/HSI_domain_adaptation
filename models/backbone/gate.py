@@ -9,7 +9,7 @@ class Gate(nn.Module):
         super(Gate, self).__init__()
         self.relu = nn.ReLU()
         self.layer1 = nn.Sequential(
-            nn.Linear(in_nodes, 256),
+            nn.Linear(in_nodes, 64),
             self.relu,
         )
         self.head = nn.Sequential(
