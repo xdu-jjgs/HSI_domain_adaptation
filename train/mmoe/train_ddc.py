@@ -320,6 +320,8 @@ def worker(rank_gpu, args):
                     'KC': f'{metric.KC():.3f}'
                 })
         val_loss /= len(val_dataloader)
+        cls_weight_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
+        mmd_weight_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
 
         PA, mPA, Ps, Rs, F1S, KC = metric.PA(), metric.mPA(), metric.Ps(), metric.Rs(), metric.F1s(), metric.KC()
         if dist.get_rank() == 0:
@@ -334,6 +336,7 @@ def worker(rank_gpu, args):
                 writer.add_scalar('val/mmd_weight_expert{}'.format(ind+1), ele[1], epoch)
         if PA > best_PA:
             best_epoch = epoch
+            writer.add_scalar('best-PA', best_PA, epoch)
 
         logging.info('rank{} val epoch={} | loss={:.3f}'.format(dist.get_rank() + 1, epoch, val_loss))
         logging.info(
