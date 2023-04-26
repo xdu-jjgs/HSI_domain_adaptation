@@ -4,11 +4,13 @@ import torch.nn as nn
 from typing import List
 
 from models.backbone import Gate, ImageClassifier
+from tllib.modules.grl import WarmStartGradientReverseLayer
 
 
-class MMOE(nn.Module):
+
+class MMOEDANN(nn.Module):
     def __init__(self, num_task_classes: List[int], experts: List[nn.Module]):
-        super(MMOE, self).__init__()
+        super(MMOEDANN, self).__init__()
         # backbone输入通道数
         self.num_channels = experts[0].in_channels
         self.num_task = len(num_task_classes)
@@ -18,6 +20,7 @@ class MMOE(nn.Module):
         self.towers = nn.ModuleList([ImageClassifier(experts[0].out_channels, num_classes)
                                      for num_classes in num_task_classes])
         self.gap = nn.AdaptiveAvgPool2d((1, 1))
+        self.grl_layer = WarmStartGradientReverseLayer(alpha=1.0, lo=0.0, hi=0.1, max_iters=1000, auto_step=False)
 
     def forward(self, x):
         experts_features = [i(x) for i in self.experts]
@@ -33,6 +36,9 @@ class MMOE(nn.Module):
             features = torch.matmul(task_weights[i], experts_features)
             features = features.squeeze(1)
             # print(features.size())
+            if i == 1 and self.num_task_classes[i] == 2:
+                print("Reverse")
+                features = self.grl_layer(features)
             outs.append(self.towers[i](features))
         outs.append(task_weights)
         return outs

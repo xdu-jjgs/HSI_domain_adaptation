@@ -271,6 +271,8 @@ def worker(rank_gpu, args):
         logging.info(
             'rank{} train epoch={} | loss_total={:.3f} loss_cls={:.3f} loss_domain_s={:.3f} loss_domain_t={:.3f}'.format(
                 dist.get_rank() + 1, epoch, total_loss_epoch, cls_loss_epoch, domain_s_loss_epoch, domain_t_loss_epoch))
+        logging.info(
+            'rank{} train epoch={} | PA={:.3f} mPA={:.3f} KC={:.3f}'.format(dist.get_rank() + 1, epoch, PA, mPA, KC))
         for c in range(NUM_CLASSES):
             logging.info(
                 'rank{} train epoch={} | class={} P={:.3f} R={:.3f} F1={:.3f}'.format(dist.get_rank() + 1, epoch, c,
@@ -311,7 +313,6 @@ def worker(rank_gpu, args):
             writer.add_scalar('val/KC-epoch', KC, epoch)
         if PA > best_PA:
             best_epoch = epoch
-            writer.add_scalar('best-PA', best_PA, epoch)
 
         logging.info('rank{} val epoch={} | loss={:.3f}'.format(dist.get_rank() + 1, epoch, val_loss))
         logging.info(
@@ -353,6 +354,7 @@ def worker(rank_gpu, args):
             if PA > best_PA:
                 best_PA = PA
                 torch.save(checkpoint, os.path.join(args.path, 'best.pth'))
+            writer.add_scalar('best-PA', best_PA, epoch)
 
 
 def main():

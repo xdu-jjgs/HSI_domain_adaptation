@@ -13,7 +13,7 @@ DATALOADER:
     ITERATION: 626
 
 MODEL:
-    NAME: 'mmoe_ddc'
+    NAME: 'mmoe_dann'
     EXPERTS:
         - 'fe'
         - 'fe'
@@ -21,7 +21,7 @@ MODEL:
 CRITERION:
     ITEMS:
       - 'softmax+ce'
-      - 'mmd'
+      - 'softmax+ce'
     WEIGHTS:
       - 1.0
       - 1.0

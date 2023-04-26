@@ -1,5 +1,7 @@
-from .mmoe import MMOE
+from .mmoe_ddc import MMOEDDC
+from .mmoe_dann import MMOEDANN
 
 __all__ = [
-    MMOE
+    MMOEDDC,
+    MMOEDANN,
 ]

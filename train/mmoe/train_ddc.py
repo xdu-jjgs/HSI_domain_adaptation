@@ -336,7 +336,6 @@ def worker(rank_gpu, args):
                 writer.add_scalar('val/mmd_weight_expert{}'.format(ind+1), ele[1], epoch)
         if PA > best_PA:
             best_epoch = epoch
-            writer.add_scalar('best-PA', best_PA, epoch)
 
         logging.info('rank{} val epoch={} | loss={:.3f}'.format(dist.get_rank() + 1, epoch, val_loss))
         logging.info(
@@ -378,6 +377,7 @@ def worker(rank_gpu, args):
             if PA > best_PA:
                 best_PA = PA
                 torch.save(checkpoint, os.path.join(args.path, 'best.pth'))
+            writer.add_scalar('best-PA', best_PA, epoch)
 
 
 def main():
