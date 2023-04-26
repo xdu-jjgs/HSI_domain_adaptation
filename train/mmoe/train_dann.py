@@ -148,7 +148,8 @@ def worker(rank_gpu, args):
     source_iterator = build_iterator(source_dataloader)
     target_iterator = build_iterator(target_dataloader)
     # build mmoe
-    mmoe = build_model(NUM_CHANNELS, [NUM_CLASSES, 2])
+    # -2 for adding reverse layer
+    mmoe = build_model(NUM_CHANNELS, [NUM_CLASSES, -2])
     mmoe.to(device)
     # print(mmoe)
 

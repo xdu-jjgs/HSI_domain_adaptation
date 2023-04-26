@@ -25,3 +25,27 @@ python train/mmoe/train_ddc.py configs/hyrank/mmoe/mmoe_fe_dan.yaml ^
         --master-port 8890 ^
         --seed %~1% ^
         --opt-level O1
+
+rem mmoe-jan
+python train/mmoe/train_ddc.py configs/hyrank/mmoe/mmoe_fe_jan.yaml ^
+        --path ./runs/hyrank/mmoe/mmoe_fe_jan-train ^
+        --nodes 1 ^
+        --gpus 1 ^
+        --rank-node 0 ^
+        --backend gloo ^
+        --master-ip localhost ^
+        --master-port 8890 ^
+        --seed %~1% ^
+        --opt-level O1
+
+rem mmoe-dann
+python train/mmoe/train_dann.py configs/hyrank/mmoe/mmoe_fe_dann.yaml ^
+        --path ./runs/hyrank/mmoe/mmoe_fe_dann-train ^
+        --nodes 1 ^
+        --gpus 1 ^
+        --rank-node 0 ^
+        --backend gloo ^
+        --master-ip localhost ^
+        --master-port 8890 ^
+        --seed %~1% ^
+        --opt-level O1
