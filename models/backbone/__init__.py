@@ -1,9 +1,10 @@
-from configs import CFG
+from .gate import Gate
 from .resnet import ResNet
 from .extractor import FeatureExtractor
 from .classifier import ImageClassifier, MultiHeadClassifier
 
 __all__ = [
+    Gate,
     ResNet,
     FeatureExtractor,
     ImageClassifier,
@@ -11,15 +12,15 @@ __all__ = [
 ]
 
 
-def build_backbone(num_channels):
-    if CFG.MODEL.BACKBONE == 'resnet18':
+def build_backbone(num_channels, model_name):
+    if model_name == 'resnet18':
         return ResNet(num_channels, depth=18)
-    elif CFG.MODEL.BACKBONE == 'resnet34':
+    elif model_name == 'resnet34':
         return ResNet(num_channels, depth=34)
-    elif CFG.MODEL.BACKBONE == 'resnet50':
+    elif model_name == 'resnet50':
         return ResNet(num_channels, depth=50)
-    elif CFG.MODEL.BACKBONE == 'resnet101':
+    elif model_name == 'resnet101':
         return ResNet(num_channels, depth=101)
-    elif CFG.MODEL.BACKBONE == 'fe':
+    elif model_name == 'fe':
         return FeatureExtractor(num_channels)
-    raise NotImplementedError('invalid model: {}'.format(CFG.MODEL.NAME))
+    raise NotImplementedError('invalid model: {}'.format(model_name))

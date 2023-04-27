@@ -404,6 +404,7 @@ def worker(rank_gpu, args):
             if PA > best_PA:
                 best_PA = PA
                 torch.save(checkpoint, os.path.join(args.path, 'best.pth'))
+            writer.add_scalar('best-PA', best_PA, epoch)
 
 
 def main():
