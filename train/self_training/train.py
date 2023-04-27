@@ -157,9 +157,9 @@ def worker(rank_gpu, args):
     loss_weights = CFG.CRITERION.WEIGHTS
     assert len(loss_names) == len(loss_weights)
     cls_criterion = build_criterion(loss_names[0])
-    cls_ls_criterion = build_criterion(loss_names[1])
+    st_criterion = build_criterion(loss_names[1])
     cls_criterion.to(device)
-    cls_ls_criterion.to(device)
+    st_criterion.to(device)
     val_criterion = build_criterion('softmax+ce')
     val_criterion.to(device)
     # build metric
@@ -226,7 +226,7 @@ def worker(rank_gpu, args):
             f_t, y_t = model(x_t)
 
             cls_s_loss = cls_criterion(label_s=label, y_s=y_s) * loss_weights[0]
-            cls_t_loss, mask, pseudo_labels = cls_ls_criterion(y_t, y_t)
+            cls_t_loss, mask, pseudo_labels = st_criterion(y_t, y_t)
             cls_t_loss *= loss_weights[1]
             total_loss = cls_s_loss + cls_t_loss
 
