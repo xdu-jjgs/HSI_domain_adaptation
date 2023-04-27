@@ -3,7 +3,7 @@ cd E:\zts\HSI_domain_adaptation
 set PYTHONPATH=%cd%
 
 rem deepcoral
-python train/ddc/train.py configs/houston/deepcoral.yaml ^
+python train/ddc/train.py configs/houston/deepcoral/deepcoral.yaml ^
         --path ./runs/houston/deepcoral-train ^
         --nodes 1 ^
         --gpus 1 ^
@@ -15,7 +15,7 @@ python train/ddc/train.py configs/houston/deepcoral.yaml ^
         --opt-level O2
 
 rem deepcoral
-python train/ddc/train.py configs/houston/deepcoral_1260_average.yaml ^
+python train/ddc/train.py configs/houston/deepcoral/deepcoral_1260_average.yaml ^
         --path ./runs/houston_sample/deepcoral-train ^
         --nodes 1 ^
         --gpus 1 ^

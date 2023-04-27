@@ -3,7 +3,7 @@ cd E:\zts\HSI_domain_adaptation
 set PYTHONPATH=%cd%
 
 rem nommd
-python train/nommd/train.py configs/houston/nommd.yaml ^
+python train/nommd/train.py configs/houston/nommd/nommd.yaml ^
         --path ./runs/houston/nommd-train ^
         --nodes 1 ^
         --gpus 1 ^
@@ -15,7 +15,7 @@ python train/nommd/train.py configs/houston/nommd.yaml ^
         --opt-level O2
 
 rem nommd
-python train/nommd/train.py configs/houston/nommd_1260_average.yaml ^
+python train/nommd/train.py configs/houston/nommd/nommd_1260_average.yaml ^
         --path ./runs/houston_sample/nommd-train ^
         --nodes 1 ^
         --gpus 1 ^

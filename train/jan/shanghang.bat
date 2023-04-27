@@ -3,7 +3,7 @@ cd E:\zts\HSI_domain_adaptation
 set PYTHONPATH=%cd%
 
 rem jan
-python train/ddc/train.py configs/shanghang/jan.yaml ^
+python train/ddc/train.py configs/shanghang/jan/jan.yaml ^
         --path ./runs/shanghang/jan-train ^
         --nodes 1 ^
         --gpus 1 ^
@@ -15,7 +15,7 @@ python train/ddc/train.py configs/shanghang/jan.yaml ^
         --opt-level O2
 
 rem jan
-python train/ddc/train.py configs/shanghang/jan_540_average.yaml ^
+python train/ddc/train.py configs/shanghang/jan/jan_540_average.yaml ^
         --path ./runs/shanghang_sample/jan-train ^
         --nodes 1 ^
         --gpus 1 ^

@@ -3,7 +3,7 @@ cd E:\zts\HSI_domain_adaptation
 set PYTHONPATH=%cd%
 
 rem ddc
-python train/ddc/train.py configs/shanghang/ddc.yaml ^
+python train/ddc/train.py configs/shanghang/ddc/ddc.yaml ^
         --path ./runs/shanghang/ddc-train ^
         --nodes 1 ^
         --gpus 1 ^
@@ -15,7 +15,7 @@ python train/ddc/train.py configs/shanghang/ddc.yaml ^
         --opt-level O2
 
 rem ddc
-python train/ddc/train.py configs/shanghang/ddc_540_average.yaml ^
+python train/ddc/train.py configs/shanghang/ddc/ddc_540_average.yaml ^
         --path ./runs/shanghang_sample/ddc-train ^
         --nodes 1 ^
         --gpus 1 ^

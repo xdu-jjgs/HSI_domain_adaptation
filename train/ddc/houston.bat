@@ -3,7 +3,7 @@ cd E:\zts\HSI_domain_adaptation
 set PYTHONPATH=%cd%
 
 rem ddc
-python train/ddc/train.py configs/houston/ddc.yaml ^
+python train/ddc/train.py configs/houston/ddc/ddc.yaml ^
         --path ./runs/houston/ddc-train ^
         --nodes 1 ^
         --gpus 1 ^
@@ -15,7 +15,7 @@ python train/ddc/train.py configs/houston/ddc.yaml ^
         --opt-level O2
 
 rem ddc
-python train/ddc/train.py configs/houston/ddc_1260_average.yaml ^
+python train/ddc/train.py configs/houston/ddc/ddc_1260_average.yaml ^
         --path ./runs/houston_sample/ddc-train ^
         --nodes 1 ^
         --gpus 1 ^

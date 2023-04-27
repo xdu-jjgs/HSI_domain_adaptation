@@ -3,7 +3,7 @@ cd E:\zts\HSI_domain_adaptation
 set PYTHONPATH=%cd%
 
 rem dstda
-python train/dstda/train.py configs/houston/dstda_1_1_1_1_07_2.yaml ^
+python train/dstda/train.py configs/houston/dstda/dstda_1_1_1_1_07_2.yaml ^
         --path ./runs/houston/dstda_1_1_1_1_07_2-train ^
         --nodes 1 ^
         --gpus 1 ^
@@ -15,7 +15,7 @@ python train/dstda/train.py configs/houston/dstda_1_1_1_1_07_2.yaml ^
         --opt-level O2
 
 rem dstda
-python train/dstda/train.py configs/houston/dstda_1_1_1_1_07_2_1260_average.yaml ^
+python train/dstda/train.py configs/houston/dstda/dstda_1_1_1_1_07_2_1260_average.yaml ^
         --path ./runs/houston_sample/dstda_1_1_1_1_07_2-train ^
         --nodes 1 ^
         --gpus 1 ^

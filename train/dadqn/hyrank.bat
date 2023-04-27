@@ -3,7 +3,7 @@ cd E:\zts\HSI_domain_adaptation
 set PYTHONPATH=%cd%
 
 rem nommd
-python train/dadqn/train_nommd.py configs/hyrank/dqn_nommd_bs16.yaml ^
+python train/dadqn/train_nommd.py configs/hyrank/dqn/dqn_nommd_bs16.yaml ^
         --path ./runs/hyrank/dqn_nommd_bs16-train ^
         --nodes 1 ^
         --gpus 1 ^

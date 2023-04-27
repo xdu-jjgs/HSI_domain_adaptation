@@ -3,7 +3,7 @@ cd E:\zts\HSI_domain_adaptation
 set PYTHONPATH=%cd%
 
 rem mcd
-python train/mcd/train.py configs/shanghang/mcd.yaml ^
+python train/mcd/train.py configs/shanghang/mcd/mcd.yaml ^
         --path ./runs/shanghang/mcd-train ^
         --nodes 1 ^
         --gpus 1 ^
@@ -15,7 +15,7 @@ python train/mcd/train.py configs/shanghang/mcd.yaml ^
         --opt-level O2
 
 rem mcd
-python train/mcd/train.py configs/shanghang/mcd_540_average.yaml ^
+python train/mcd/train.py configs/shanghang/mcd/mcd_540_average.yaml ^
         --path ./runs/shanghang_sample/mcd-train ^
         --nodes 1 ^
         --gpus 1 ^

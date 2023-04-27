@@ -3,7 +3,7 @@ cd E:\zts\HSI_domain_adaptation
 set PYTHONPATH=%cd%
 
 rem nommd
-python train/nommd/train.py configs/shanghang/nommd.yaml ^
+python train/nommd/train.py configs/shanghang/nommd/nommd.yaml ^
         --path ./runs/shanghang/nommd-train ^
         --nodes 1 ^
         --gpus 1 ^
@@ -15,7 +15,7 @@ python train/nommd/train.py configs/shanghang/nommd.yaml ^
         --opt-level O2
 
 rem nommd
-python train/nommd/train.py configs/shanghang/nommd_540_average.yaml ^
+python train/nommd/train.py configs/shanghang/nommd/nommd_540_average.yaml ^
         --path ./runs/shanghang_sample/nommd-train ^
         --nodes 1 ^
         --gpus 1 ^
