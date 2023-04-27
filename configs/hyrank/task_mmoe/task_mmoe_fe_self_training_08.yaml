@@ -13,7 +13,7 @@ DATALOADER:
     ITERATION: 626
 
 MODEL:
-    NAME: 'mmoe_ddc'
+    NAME: 'task_mmoe_dann'
     EXPERTS:
         - 'fe'
         - 'fe'
@@ -21,11 +21,11 @@ MODEL:
 CRITERION:
     ITEMS:
       - 'softmax+ce'
-      - 'mmd'
+      - 'cbst'
     WEIGHTS:
       - 1.0
       - 1.0
-    KERNEL_NUM: 5
+    THRESHOLD: 0.8
 
 OPTIMIZER:
     NAME: 'adam'

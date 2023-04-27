@@ -4,20 +4,24 @@ import torch.nn as nn
 from typing import List
 
 from models.backbone import Gate, ImageClassifier
+from tllib.modules.grl import WarmStartGradientReverseLayer
 
 
-class MMOEDDC(nn.Module):
-    def __init__(self, num_task_classes: List[int], experts: List[nn.Module]):
-        super(MMOEDDC, self).__init__()
+class FEMMOEDANN(nn.Module):
+    def __init__(self, num_classes: int, experts: List[nn.Module]):
+        super(FEMMOEDANN, self).__init__()
         # backbone输入通道数
         self.num_channels = experts[0].in_channels
-        self.num_task = len(num_task_classes)
-        self.num_task_classes = num_task_classes
+        self.num_task = 2 # source domain and target domain
+        self.num_classes = num_classes
         self.experts = nn.ModuleList(experts)
+        # TODO
         self.gates = nn.ModuleList([Gate(self.num_channels, len(experts)) for _ in range(self.num_task)])
-        self.towers = nn.ModuleList([ImageClassifier(experts[0].out_channels, num_classes)
+        self.towers = nn.ModuleList([ImageClassifier(experts[0].out_channels,
+                                                     num_classes if num_classes > 0 else -num_classes)
                                      for num_classes in num_task_classes])
         self.gap = nn.AdaptiveAvgPool2d((1, 1))
+        self.grl_layer = WarmStartGradientReverseLayer(alpha=1.0, lo=0.0, hi=0.1, max_iters=1000, auto_step=False)
 
     def forward(self, x):
         experts_features = [i(x) for i in self.experts]
@@ -33,6 +37,9 @@ class MMOEDDC(nn.Module):
             features = torch.matmul(task_weights[i], experts_features)
             features = features.squeeze(1)
             # print(features.size())
+            # -2 for adding reverse layer
+            if self.num_task_classes[i] < 0:
+                features = self.grl_layer(features)
             outs.append(self.towers[i](features))
         outs.append(task_weights)
         return outs

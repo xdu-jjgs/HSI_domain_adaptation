@@ -147,10 +147,10 @@ def worker(rank_gpu, args):
     # build data iteration
     source_iterator = build_iterator(source_dataloader)
     target_iterator = build_iterator(target_dataloader)
-    # build mmoe
+    # build task_mmoe
     mmoe = build_model(NUM_CHANNELS, [NUM_CLASSES, NUM_CLASSES])
     mmoe.to(device)
-    # print(mmoe)
+    # print(task_mmoe)
 
     # build criterion
     loss_names = CFG.CRITERION.ITEMS
@@ -186,7 +186,7 @@ def worker(rank_gpu, args):
         if not os.path.isfile(args.checkpoint):
             raise RuntimeError('checkpoint {} not found'.format(args.checkpoint))
         checkpoint = torch.load(args.checkpoint)
-        mmoe.load_state_dict(checkpoint['mmoe']['state_dict'])
+        mmoe.load_state_dict(checkpoint['task_mmoe']['state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer']['state_dict'])
         epoch = checkpoint['optimizer']['epoch']
         iteration = checkpoint['optimizer']['iteration']
@@ -213,7 +213,7 @@ def worker(rank_gpu, args):
 
         # train
         # 一个K分类器，一个mmd对齐
-        mmoe.train()  # set mmoe to training mode
+        mmoe.train()  # set task_mmoe to training mode
         metric_cls.reset()  # reset metric
         metric_pse.reset()
         train_bar = tqdm(range(1, CFG.DATALOADER.ITERATION + 1), desc='training', ascii=True)
@@ -291,7 +291,7 @@ def worker(rank_gpu, args):
         # validate
         if args.no_validate:
             continue
-        mmoe.eval()  # set mmoe to evaluation mode
+        mmoe.eval()  # set task_mmoe to evaluation mode
         metric_cls.reset()  # reset metric
         metric_st.reset()
         val_bar = tqdm(val_dataloader, desc='validating', ascii=True)
@@ -366,7 +366,7 @@ def worker(rank_gpu, args):
         # save checkpoint
         if dist.get_rank() == 0:
             checkpoint = {
-                'mmoe': {
+                'task_mmoe': {
                     'state_dict': mmoe.state_dict(),
                 },
                 'optimizer': {
