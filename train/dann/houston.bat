@@ -3,7 +3,7 @@ cd E:\zts\HSI_domain_adaptation
 set PYTHONPATH=%cd%
 
 rem dann
-python train/dann/train.py configs/houston/dann.yaml ^
+python train/dann/train.py configs/houston/dann/dann.yaml ^
         --path ./runs/houston/dann-train ^
         --nodes 1 ^
         --gpus 1 ^
@@ -15,7 +15,7 @@ python train/dann/train.py configs/houston/dann.yaml ^
         --opt-level O2
 
 rem dann
-python train/dann/train.py configs/houston/dann_1260_average.yaml ^
+python train/dann/train.py configs/houston/dann/dann_1260_average.yaml ^
         --path ./runs/houston_sample/dann-train ^
         --nodes 1 ^
         --gpus 1 ^

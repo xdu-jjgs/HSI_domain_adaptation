@@ -3,7 +3,7 @@ cd E:\zts\HSI_domain_adaptation
 set PYTHONPATH=%cd%
 
 rem mcd
-python train/mcd/train.py configs/hyrank/mcd.yaml ^
+python train/mcd/train.py configs/hyrank/mcd/mcd.yaml ^
         --path ./runs/hyrank/mcd-train ^
         --nodes 1 ^
         --gpus 1 ^
@@ -15,7 +15,7 @@ python train/mcd/train.py configs/hyrank/mcd.yaml ^
         --opt-level O2
 
 rem mcd
-python train/mcd/train.py configs/hyrank/mcd_1800_average.yaml ^
+python train/mcd/train.py configs/hyrank/mcd/mcd_1800_average.yaml ^
         --path ./runs/hyrank_sample/mcd-train ^
         --nodes 1 ^
         --gpus 1 ^

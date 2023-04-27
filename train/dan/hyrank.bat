@@ -3,7 +3,7 @@ cd E:\zts\HSI_domain_adaptation
 set PYTHONPATH=%cd%
 
 rem dan
-python train/ddc/train.py configs/hyrank/dan.yaml ^
+python train/ddc/train.py configs/hyrank/dan/dan.yaml ^
         --path ./runs/hyrank/dan-train ^
         --nodes 1 ^
         --gpus 1 ^
@@ -15,7 +15,7 @@ python train/ddc/train.py configs/hyrank/dan.yaml ^
         --opt-level O2
 
 rem dan
-python train/ddc/train.py configs/hyrank/dan_1800_average.yaml ^
+python train/ddc/train.py configs/hyrank/dan/dan_1800_average.yaml ^
         --path ./runs/hyrank_sample/dan-train ^
         --nodes 1 ^
         --gpus 1 ^

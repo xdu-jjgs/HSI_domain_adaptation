@@ -3,7 +3,7 @@ cd E:\zts\HSI_domain_adaptation
 set PYTHONPATH=%cd%
 
 rem dann
-python train/dann/train.py configs/shanghang/dann.yaml ^
+python train/dann/train.py configs/shanghang/dann/dann.yaml ^
         --path ./runs/shanghang/dann-train ^
         --nodes 1 ^
         --gpus 1 ^
@@ -15,7 +15,7 @@ python train/dann/train.py configs/shanghang/dann.yaml ^
         --opt-level O2
 
 rem dann
-python train/dann/train.py configs/shanghang/dann_540_average.yaml ^
+python train/dann/train.py configs/shanghang/dann/dann_540_average.yaml ^
         --path ./runs/shanghang_sample/dann-train ^
         --nodes 1 ^
         --gpus 1 ^
