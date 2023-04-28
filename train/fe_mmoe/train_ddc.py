@@ -148,7 +148,7 @@ def worker(rank_gpu, args):
     source_iterator = build_iterator(source_dataloader)
     target_iterator = build_iterator(target_dataloader)
     # build task_mmoe
-    mmoe = build_model(NUM_CHANNELS, [NUM_CLASSES, NUM_CLASSES])
+    mmoe = build_model(NUM_CHANNELS, NUM_CLASSES)
     mmoe.to(device)
     # print(task_mmoe)
 
@@ -269,9 +269,8 @@ def worker(rank_gpu, args):
             writer.add_scalar('train/PA-epoch', PA, epoch)
             writer.add_scalar('train/mPA-epoch', mPA, epoch)
             writer.add_scalar('train/KC-epoch', KC, epoch)
-
             for ind, ele in enumerate(expert_weights_epoch):
-                writer.add_scalar('train/weight_expert{}'.format(ind+1), ele[0], epoch)
+                writer.add_scalar('train/weight_expert{}'.format(ind+1), ele, epoch)
         logging.info(
             'rank{} train epoch={} | loss_total={:.3f} loss_cls={:.3f} loss_trans={:.3f}'.format(
                 dist.get_rank() + 1, epoch, total_loss_epoch, cls_loss_epoch, trans_loss_epoch))
@@ -294,7 +293,7 @@ def worker(rank_gpu, args):
             for x_t, label in val_bar:
                 x_t, label = x_t.to(device), label.to(device)
 
-                out_t, _, expert_weights = mmoe(x_t, 2)
+                out_t, expert_weights = mmoe(x_t, 2)
                 f_t, y_t = out_t
                 expert_weights_epoch += expert_weights.sum(dim=0).squeeze(0).detach().cpu().numpy()
 
@@ -323,7 +322,7 @@ def worker(rank_gpu, args):
             writer.add_scalar('val/KC-epoch', KC, epoch)
 
             for ind, ele in enumerate(expert_weights_epoch):
-                writer.add_scalar('val/weight_expert{}'.format(ind+1), ele[0], epoch)
+                writer.add_scalar('val/weight_expert{}'.format(ind+1), ele, epoch)
         if PA > best_PA:
             best_epoch = epoch
 

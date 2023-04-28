@@ -2,6 +2,7 @@ from .ddc import DDC
 from .dqn import DQN
 from .dst import DST
 from .dann import DANN
+from .fe_mmoe import FEMMOEDDC, FEMMOEDANN
 from .task_mmoe import TaskMMOEDDC, TaskMMOEDANN
 from .dstda import DSTDA, DSTDAMapping
 
@@ -35,6 +36,10 @@ def build_model(num_channels, num_classes):
         return TaskMMOEDDC(num_classes, backbone_)
     elif CFG.MODEL.NAME == 'task_mmoe_dann':
         return TaskMMOEDANN(num_classes, backbone_)
+    elif CFG.MODEL.NAME == 'fe_mmoe_ddc':
+        return FEMMOEDDC(num_classes, backbone_)
+    elif CFG.MODEL.NAME == 'fe_mmoe_dann':
+        return FEMMOEDANN(num_classes, backbone_)
     # elif CFG.MODEL.NAME == 'dqn':
     #     return DQN(backbone_.out_channels, num_classes)
     raise NotImplementedError('invalid model: {}'.format(CFG.MODEL.NAME))

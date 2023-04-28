@@ -30,10 +30,9 @@ class FEMMOEDDC(nn.Module):
         else:
             task_weight = self.gates[1](x_gap)[-1].softmax(dim=1).unsqueeze(1)
 
-        print(task_weight.size(), experts_features.size())
+        # print(task_weight.size(), experts_features.size())
         features = torch.matmul(task_weight, experts_features)
         features = features.squeeze(1)
-        print(features.size())
+        # print(features.size())
         out = self.classifier(features)
-        raise NotImplementedError
         return out, task_weight
