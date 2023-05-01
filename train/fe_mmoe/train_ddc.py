@@ -228,7 +228,7 @@ def worker(rank_gpu, args):
 
             mmoe.eval()
             with torch.no_grad():
-                out_t, _, target_weights = mmoe(x_t, 2)
+                out_t, target_weights = mmoe(x_t, 2)
                 f_t, y_t = out_t
                 target_weights_epoch += target_weights.sum(dim=0).squeeze(0).detach().cpu().numpy()
             mmoe.train()

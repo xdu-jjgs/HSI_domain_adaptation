@@ -172,7 +172,7 @@ def worker(rank_gpu, args):
     # mixed precision
     mmoe, optimizer = amp.initialize(mmoe, optimizer, opt_level=args.opt_level)
     # DDP
-    mmoe = DistributedDataParallel(mmoe, broadcast_buffers=False, find_unused_parameters=True)
+    mmoe = DistributedDataParallel(mmoe, broadcast_buffers=False)
 
     epoch = 0
     iteration = 0
@@ -304,7 +304,7 @@ def worker(rank_gpu, args):
             for x_t, label in val_bar:
                 x_t, label = x_t.to(device), label.to(device)
 
-                out_t, _,target_weights = mmoe(x_t, 0, 2)
+                out_t, _, target_weights = mmoe(x_t, 0, 2)
                 _, y_t = out_t
                 target_weights_epoch += target_weights.sum(dim=0).squeeze(0).detach().cpu().numpy()
 
