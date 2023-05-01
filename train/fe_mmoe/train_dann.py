@@ -157,9 +157,9 @@ def worker(rank_gpu, args):
     loss_weights = CFG.CRITERION.WEIGHTS
     assert len(loss_names) == len(loss_weights)
     cls_criterion = build_criterion(loss_names[0])
-    trans_criterion = build_criterion(loss_names[1])
     cls_criterion.to(device)
-    trans_criterion.to(device)
+    domain_criterion = build_criterion(loss_names[1])
+    domain_criterion.to(device)
     val_criterion = build_criterion('softmax+ce')
     val_criterion.to(device)
     # build metric
@@ -213,32 +213,38 @@ def worker(rank_gpu, args):
         mmoe.train()  # set task_mmoe to training mode
         metric.reset()  # reset metric
         train_bar = tqdm(range(1, CFG.DATALOADER.ITERATION + 1), desc='training', ascii=True)
-        total_loss_epoch, cls_loss_epoch, trans_loss_epoch = 0., 0., 0.
+        total_loss_epoch, cls_loss_epoch, domain_s_loss_epoch, domain_t_loss_epoch = 0., 0., 0., 0.
         source_weights_epoch = np.zeros((len(mmoe.module.experts)))
         target_weights_epoch = np.zeros((len(mmoe.module.experts)))
+        p = float(iteration + epoch * len(source_dataloader)) / CFG.EPOCHS / len(source_dataloader)
+        alpha = 2. / (1. + np.exp(-10 * p)) - 1
         for iteration in train_bar:
             x_s, label = next(source_iterator)
             x_t, _ = next(target_iterator)
             x_s, label = x_s.to(device), label.to(device)
             x_t = x_t.to(device)
 
-            out_s, source_weights = mmoe(x_s, 1)
-            f_s, y_s = out_s
+            out_s, out_domain_s, source_weights = mmoe(x_s, alpha, 1)
+            _, y_s = out_s
+            _, domain_out_s = out_domain_s
+            out_t, out_domain_t, target_weights = mmoe(x_t, alpha, 2)
+            _, y_t = out_t
+            _, domain_out_t = out_domain_t
             source_weights_epoch += source_weights.sum(dim=0).squeeze(0).detach().cpu().numpy()
+            target_weights_epoch += target_weights.sum(dim=0).squeeze(0).detach().cpu().numpy()
 
-            mmoe.eval()
-            with torch.no_grad():
-                out_t, _, target_weights = mmoe(x_t, 2)
-                f_t, y_t = out_t
-                target_weights_epoch += target_weights.sum(dim=0).squeeze(0).detach().cpu().numpy()
-            mmoe.train()
+            domain_label_s = torch.zeros(len(label))
+            domain_label_t = torch.ones(len(label))
+            domain_label_s, domain_label_t = domain_label_s.to(device), domain_label_t.to(device)
 
             cls_loss = cls_criterion(label_s=label, y_s=y_s) * loss_weights[0]
-            trans_loss = trans_criterion(f_s=f_s, f_t=f_t, label_s=label, y_s=y_s, y_t=y_t) * loss_weights[1]
-            total_loss = cls_loss + trans_loss
+            domain_s_loss = domain_criterion(y_s=domain_out_s, label_s=domain_label_s) * loss_weights[1]
+            domain_t_loss = domain_criterion(y_s=domain_out_t, label_s=domain_label_t) * loss_weights[1]
+            total_loss = cls_loss + domain_s_loss + domain_t_loss
 
             cls_loss_epoch += cls_loss.item()
-            trans_loss_epoch += trans_loss.item()
+            domain_s_loss_epoch += domain_s_loss.item()
+            domain_t_loss_epoch += domain_t_loss.item()
             total_loss_epoch += total_loss.item()
 
             optimizer.zero_grad()
@@ -259,24 +265,26 @@ def worker(rank_gpu, args):
 
         total_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
         cls_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
-        trans_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
+        domain_s_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
+        domain_t_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
         source_weights_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
         target_weights_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
         PA, mPA, Ps, Rs, F1S, KC = metric.PA(), metric.mPA(), metric.Ps(), metric.Rs(), metric.F1s(), metric.KC()
         if dist.get_rank() == 0:
             writer.add_scalar('train/loss_total-epoch', total_loss_epoch, epoch)
             writer.add_scalar('train/loss_cls-epoch', cls_loss_epoch, epoch)
-            writer.add_scalar('train/loss_trans-epoch', trans_loss_epoch, epoch)
+            writer.add_scalar('train/loss_domain_s-epoch', domain_s_loss_epoch, epoch)
+            writer.add_scalar('train/loss_domain_t-epoch', domain_t_loss_epoch, epoch)
 
             writer.add_scalar('train/PA-epoch', PA, epoch)
             writer.add_scalar('train/mPA-epoch', mPA, epoch)
             writer.add_scalar('train/KC-epoch', KC, epoch)
             for ind in range(len(source_weights_epoch)):
-                writer.add_scalar('train/source_weight_expert{}'.format(ind+1), source_weights_epoch[ind], epoch)
+                writer.add_scalar('train/source_weight_expert{}'.format(ind + 1), source_weights_epoch[ind], epoch)
                 writer.add_scalar('train/target_weight_expert{}'.format(ind + 1), target_weights_epoch[ind], epoch)
         logging.info(
-            'rank{} train epoch={} | loss_total={:.3f} loss_cls={:.3f} loss_trans={:.3f}'.format(
-                dist.get_rank() + 1, epoch, total_loss_epoch, cls_loss_epoch, trans_loss_epoch))
+            'rank{} train epoch={} | loss_total={:.3f} loss_cls={:.3f} loss_domain_s={:.3f} loss_domain_t={:.3f}'.format(
+                dist.get_rank() + 1, epoch, total_loss_epoch, cls_loss_epoch, domain_s_loss_epoch, domain_t_loss_epoch))
         logging.info(
             'rank{} train epoch={} | PA={:.3f} mPA={:.3f} KC={:.3f}'.format(dist.get_rank() + 1, epoch, PA, mPA, KC))
         for c in range(NUM_CLASSES):
@@ -296,7 +304,7 @@ def worker(rank_gpu, args):
             for x_t, label in val_bar:
                 x_t, label = x_t.to(device), label.to(device)
 
-                out_t, target_weights = mmoe(x_t, 2)
+                out_t, _,target_weights = mmoe(x_t, 0, 2)
                 _, y_t = out_t
                 target_weights_epoch += target_weights.sum(dim=0).squeeze(0).detach().cpu().numpy()
 
@@ -315,7 +323,6 @@ def worker(rank_gpu, args):
                 })
         val_loss /= len(val_dataloader)
         target_weights_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
-
         PA, mPA, Ps, Rs, F1S, KC = metric.PA(), metric.mPA(), metric.Ps(), metric.Rs(), metric.F1s(), metric.KC()
         if dist.get_rank() == 0:
             writer.add_scalar('val/loss-epoch', val_loss, epoch)
