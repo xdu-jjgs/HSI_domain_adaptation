@@ -325,8 +325,8 @@ def worker(rank_gpu, args):
                     'KC': f'{metric.KC():.3f}'
                 })
         val_loss /= len(val_dataloader)
-        cls_weight_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
-        domain_weight_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
+        cls_weight_epoch /= len(val_dataloader)
+        domain_weight_epoch /= len(val_dataloader)
         
         PA, mPA, Ps, Rs, F1S, KC = metric.PA(), metric.mPA(), metric.Ps(), metric.Rs(), metric.F1s(), metric.KC()
         if dist.get_rank() == 0:

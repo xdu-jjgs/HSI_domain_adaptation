@@ -51,8 +51,8 @@ python train/fe_mmoe/train_dann.py configs/hyrank/fe_mmoe/fe_mmoe_fe_dann.yaml ^
         --opt-level O0
 
 rem mmoe-self_training
-python train/fe_mmoe/train_self_training.py configs/hyrank/fe_mmoe/fe_mmoe_fe_self_training.yaml ^
-        --path ./runs/hyrank/fe_mmoe/fe_mmoe_fe_self_training-train ^
+python train/fe_mmoe/train_self_training.py configs/hyrank/fe_mmoe/fe_mmoe_fe_self_training_08.yaml ^
+        --path ./runs/hyrank/fe_mmoe/fe_mmoe_fe_self_training_08-train ^
         --nodes 1 ^
         --gpus 1 ^
         --rank-node 0 ^
