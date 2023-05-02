@@ -331,9 +331,9 @@ def worker(rank_gpu, args):
                     'PA': f'{metric_cls.PA():.3f}',
                     'KC': f'{metric_cls.KC():.3f}'
                 })
-        val_loss /= len(val_dataloader) * 2
-        cls_weight_epoch /= len(val_dataloader)
-        st_weight_epoch /= len(val_dataloader)
+        val_loss /= len(val_dataloader) * CFG.DATALOADER.BATCH_SIZE * 2
+        cls_weight_epoch /= len(val_dataloader) * CFG.DATALOADER.BATCH_SIZE
+        st_weight_epoch /= len(val_dataloader) * CFG.DATALOADER.BATCH_SIZE
 
         PA_cls, mPA_cls, Ps_cls, Rs_cls, F1S_cls, KC_cls = \
             metric_cls.PA(), metric_cls.mPA(), metric_cls.Ps(), metric_cls.Rs(), metric_cls.F1s(), metric_cls.KC()

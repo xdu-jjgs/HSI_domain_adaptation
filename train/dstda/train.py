@@ -353,7 +353,7 @@ def worker(rank_gpu, args):
                     'PA': f'{metric_cls.PA():.3f}',
                     'KC': f'{metric_cls.KC():.3f}'
                 })
-        val_loss /= len(val_dataloader)
+        val_loss /= len(val_dataloader) * CFG.DATALOADER.BATCH_SIZE
 
         PA, mPA, Ps, Rs, F1S, KC = metric_cls.PA(), metric_cls.mPA(), metric_cls.Ps(), metric_cls.Rs(), metric_cls.F1s(), metric_cls.KC()
         if dist.get_rank() == 0:
