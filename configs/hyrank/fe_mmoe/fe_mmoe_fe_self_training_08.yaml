@@ -13,7 +13,7 @@ DATALOADER:
     ITERATION: 626
 
 MODEL:
-    NAME: 'fe_mmoe_dann'
+    NAME: 'fe_mmoe_ddc'
     EXPERTS:
         - 'fe'
         - 'fe'

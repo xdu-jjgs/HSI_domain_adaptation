@@ -49,3 +49,15 @@ python train/fe_mmoe/train_dann.py configs/hyrank/fe_mmoe/fe_mmoe_fe_dann.yaml ^
         --master-port 8890 ^
         --seed %~1% ^
         --opt-level O0
+
+rem mmoe-self_training
+python train/fe_mmoe/train_self_training.py configs/hyrank/fe_mmoe/fe_mmoe_fe_self_training.yaml ^
+        --path ./runs/hyrank/fe_mmoe/fe_mmoe_fe_self_training-train ^
+        --nodes 1 ^
+        --gpus 1 ^
+        --rank-node 0 ^
+        --backend gloo ^
+        --master-ip localhost ^
+        --master-port 8890 ^
+        --seed %~1% ^
+        --opt-level O0
