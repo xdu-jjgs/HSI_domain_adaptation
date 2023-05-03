@@ -2,9 +2,11 @@ import torch
 import torch.nn as nn
 
 from typing import List
-
-from models.backbone import Gate, ImageClassifier
 from tllib.modules.grl import WarmStartGradientReverseLayer
+
+from models.backbone import ImageClassifier
+from models.modules import Gate, ReverseLayerF
+
 
 
 class TaskMMOEDANN(nn.Module):

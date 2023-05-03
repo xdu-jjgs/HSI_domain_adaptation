@@ -3,7 +3,8 @@ import torch.nn as nn
 
 from typing import List
 
-from models.backbone import Gate, ImageClassifier
+from models.backbone import ImageClassifier
+from models.modules import Gate
 
 
 class FEMMOEDDC(nn.Module):
