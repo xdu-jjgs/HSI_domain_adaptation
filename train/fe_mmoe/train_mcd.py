@@ -74,6 +74,7 @@ def parse_args():
                         default='O0',
                         help='optimization level for nvidia/apex')
     args = parser.parse_args()
+    args.path = os.path.join(args.path, str(args.seed))
     # number of GPUs totally, which equals to the number of processes
     args.world_size = args.nodes * args.gpus
     return args
@@ -130,7 +131,8 @@ def worker(rank_gpu, args):
     target_dataset = build_dataset('test')
     val_dataset = target_dataset
     assert source_dataset.num_classes == val_dataset.num_classes
-    logging.info("Number of train {}, val {}, test {}".format(len(source_dataset), len(val_dataset), len(target_dataset)))
+    logging.info(
+        "Number of train {}, val {}, test {}".format(len(source_dataset), len(val_dataset), len(target_dataset)))
     NUM_CHANNELS = source_dataset.num_channels
     NUM_CLASSES = source_dataset.num_classes
     logging.info("Number of class: {}".format(NUM_CLASSES))
@@ -145,7 +147,6 @@ def worker(rank_gpu, args):
     # build data iteration
     source_iterator = build_iterator(source_dataloader)
     target_iterator = build_iterator(target_dataloader)
-
     # build model
     FE, C1, C2 = build_model(NUM_CHANNELS, NUM_CLASSES)
     FE.to(device)
@@ -187,6 +188,7 @@ def worker(rank_gpu, args):
     iteration = 0
     best_epoch = 0
     best_PA = 0.
+    experts_order = []
 
     # load checkpoint if specified
     if args.checkpoint is not None:
@@ -229,6 +231,8 @@ def worker(rank_gpu, args):
         metric.reset()  # reset metric
         train_bar = tqdm(range(1, CFG.DATALOADER.ITERATION + 1), desc='training', ascii=True)
         step1_loss_epoch, step2_loss_epoch, step3_loss_epoch = 0., 0., 0.
+        source_weights_epoch = np.zeros((len(FE.module.experts)))
+        target_weights_epoch = np.zeros((len(FE.module.experts)))
         for iteration in train_bar:
             x_s, label = next(source_iterator)
             x_t, _ = next(target_iterator)
@@ -236,7 +240,7 @@ def worker(rank_gpu, args):
             x_t = x_t.to(device)
 
             # step1: train FE、C1 and C2
-            f_s = FE(x_s)
+            f_s, _ = FE(x_s, 1)
             p1_s, p2_s = C1(f_s)[-1], C2(f_s)[-1]
             step1_loss = cls_criterion(p1_s, label) + cls_criterion(p2_s, label)
             step1_loss_epoch += step1_loss.item()
@@ -253,13 +257,16 @@ def worker(rank_gpu, args):
             # step2: fix FE then train C1 and C2
             FE.eval()
             with torch.no_grad():
-                f_s, f_t = FE(x_s), FE(x_t)
+                f_s, source_weights = FE(x_s, 1)
+                f_t, target_weights = FE(x_t, 2)
             p1_s, p2_s = C1(f_s)[-1], C2(f_s)[-1]
             p1_t, p2_t = C1(f_t)[-1], C2(f_t)[-1]
             cls_loss = cls_criterion(p1_s, label) + cls_criterion(p2_s, label)
             dis_loss = -1 * dis_criterion(p1_t, p2_t)
             step2_loss_epoch += dis_loss.item()
             step2_loss = cls_loss + dis_loss
+            source_weights_epoch += source_weights.sum(dim=0).squeeze(0).detach().cpu().numpy()
+            target_weights_epoch += target_weights.sum(dim=0).squeeze(0).detach().cpu().numpy()
 
             optimizer_fe.zero_grad()
             optimizer_c1.zero_grad()
@@ -274,7 +281,7 @@ def worker(rank_gpu, args):
             C1.eval()
             C2.eval()
             for i in range(CFG.EPOCHK):
-                f_t = FE(x_t)
+                f_t, _ = FE(x_t, 2)
                 p1_t, p2_t = C1(f_t)[-1], C2(f_t)[-1]
                 step3_loss = dis_criterion(p1_t, p2_t)
                 step3_loss_epoch += step3_loss.item()
@@ -293,12 +300,14 @@ def worker(rank_gpu, args):
                 'loss_step2': f'{step2_loss.item():.3f}',
                 'mP': f'{metric.mPA():.3f}',
                 'PA': f'{metric.PA():.3f}',
-                'KC': f'{metric.KC():.3f}'
+                'KC': f'{metric.KC():.3f}',
             })
 
         step1_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
         step2_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
         step3_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE * CFG.EPOCHK
+        source_weights_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
+        target_weights_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
         PA, mPA, Ps, Rs, F1S, KC = metric.PA(), metric.mPA(), metric.Ps(), metric.Rs(), metric.F1s(), metric.KC()
         if dist.get_rank() == 0:
             writer.add_scalar('train/loss_step1-epoch', step1_loss_epoch, epoch)
@@ -308,6 +317,12 @@ def worker(rank_gpu, args):
             writer.add_scalar('train/PA-epoch', PA, epoch)
             writer.add_scalar('train/mPA-epoch', mPA, epoch)
             writer.add_scalar('train/KC-epoch', KC, epoch)
+            if not experts_order:
+                # sorting according to source weights
+                experts_order = np.argsort(source_weights_epoch)
+            for ind, ele in enumerate(experts_order):
+                writer.add_scalar('train/source_weight_expert{}'.format(ind + 1), source_weights_epoch[ele], epoch)
+                writer.add_scalar('train/target_weight_expert{}'.format(ind + 1), target_weights_epoch[ele], epoch)
         logging.info(
             'rank{} train epoch={} | loss_step1={:.3f} loss_step2={:.3f} loss_step3={:.3f}'.format(
                 dist.get_rank() + 1, epoch, step1_loss_epoch, step2_loss_epoch, step3_loss_epoch))
@@ -324,19 +339,20 @@ def worker(rank_gpu, args):
         FE.eval()  # set model to evaluation mode
         C1.eval()  # set model to evaluation mode
         C2.eval()  # set model to evaluation mode
-        # 由于 retain graph = true 此处不能用eval() 否则计算图会被free掉 导致模型失效
         metric.reset()  # reset metric
         val_bar = tqdm(val_dataloader, desc='validating', ascii=True)
         val_loss = 0.
+        target_weights_epoch = np.zeros((len(FE.module.experts)))
         with torch.no_grad():  # disable gradient back-propagation
             for x_t, label in val_bar:
                 x_t, label = x_t.to(device), label.to(device)
 
-                f_t = FE(x_t)
+                f_t, target_weights = FE(x_t)
                 p1_t, p2_t = C1(f_t)[-1], C2(f_t)[-1]
                 y_t = (p1_t + p2_t) / 2
 
-                cls_loss = val_criterion(y_t, label)
+                target_weights_epoch += target_weights.sum(dim=0).squeeze(0).detach().cpu().numpy()
+                cls_loss = val_criterion(y_s=y_t, label_s=label)
                 val_loss += cls_loss.item()
 
                 pred = y_t.argmax(axis=1)
@@ -350,13 +366,17 @@ def worker(rank_gpu, args):
                     'KC': f'{metric.KC():.3f}'
                 })
         val_loss /= len(val_dataloader) * CFG.DATALOADER.BATCH_SIZE
-
+        target_weights_epoch /= len(val_dataloader) * CFG.DATALOADER.BATCH_SIZE
         PA, mPA, Ps, Rs, F1S, KC = metric.PA(), metric.mPA(), metric.Ps(), metric.Rs(), metric.F1s(), metric.KC()
         if dist.get_rank() == 0:
             writer.add_scalar('val/loss-epoch', val_loss, epoch)
+
             writer.add_scalar('val/PA-epoch', PA, epoch)
             writer.add_scalar('val/mPA-epoch', mPA, epoch)
             writer.add_scalar('val/KC-epoch', KC, epoch)
+
+            for ind in range(len(target_weights_epoch)):
+                writer.add_scalar('val/target_weight_expert{}'.format(ind + 1), target_weights_epoch[ind], epoch)
         if PA > best_PA:
             best_epoch = epoch
 
@@ -376,50 +396,50 @@ def worker(rank_gpu, args):
                 except TypeError:
                     s.step(val_loss)
 
-        # save checkpoint
-        if dist.get_rank() == 0:
-            checkpoint = {
-                'FE': {
-                    'state_dict': FE.state_dict(),
-                },
-                'C1': {
-                    'state_dict': C1.state_dict(),
-                },
-                'C2': {
-                    'state_dict': C2.state_dict(),
-                },
-                'optimizer_fe': {
-                    'state_dict': optimizer_fe.state_dict(),
-                    'epoch': epoch,
-                    'best_epoch': best_epoch,
-                    'iteration': iteration
-                },
-                'optimizer_c1': {
-                    'state_dict': optimizer_c1.state_dict(),
-                    'epoch': epoch,
-                    'best_epoch': best_epoch,
-                    'iteration': iteration
-                },
-                'optimizer_c2': {
-                    'state_dict': optimizer_c2.state_dict(),
-                    'epoch': epoch,
-                    'best_epoch': best_epoch,
-                    'iteration': iteration
-                },
-                'metric': {
-                    'PA': PA,
-                    'mPA': mPA,
-                    'Ps': Ps,
-                    'Rs': Rs,
-                    'F1S': F1S,
-                    'KC': KC
-                },
-            }
-            torch.save(checkpoint, os.path.join(args.path, 'last.pth'))
-            if PA > best_PA:
-                best_PA = PA
-                torch.save(checkpoint, os.path.join(args.path, 'best.pth'))
-            writer.add_scalar('best-PA', best_PA, epoch)
+            # save checkpoint
+            if dist.get_rank() == 0:
+                checkpoint = {
+                    'FE': {
+                        'state_dict': FE.state_dict(),
+                    },
+                    'C1': {
+                        'state_dict': C1.state_dict(),
+                    },
+                    'C2': {
+                        'state_dict': C2.state_dict(),
+                    },
+                    'optimizer_fe': {
+                        'state_dict': optimizer_fe.state_dict(),
+                        'epoch': epoch,
+                        'best_epoch': best_epoch,
+                        'iteration': iteration
+                    },
+                    'optimizer_c1': {
+                        'state_dict': optimizer_c1.state_dict(),
+                        'epoch': epoch,
+                        'best_epoch': best_epoch,
+                        'iteration': iteration
+                    },
+                    'optimizer_c2': {
+                        'state_dict': optimizer_c2.state_dict(),
+                        'epoch': epoch,
+                        'best_epoch': best_epoch,
+                        'iteration': iteration
+                    },
+                    'metric': {
+                        'PA': PA,
+                        'mPA': mPA,
+                        'Ps': Ps,
+                        'Rs': Rs,
+                        'F1S': F1S,
+                        'KC': KC
+                    },
+                }
+                torch.save(checkpoint, os.path.join(args.path, 'last.pth'))
+                if PA > best_PA:
+                    best_PA = PA
+                    torch.save(checkpoint, os.path.join(args.path, 'best.pth'))
+                writer.add_scalar('best-PA', best_PA, epoch)
 
 
 def main():

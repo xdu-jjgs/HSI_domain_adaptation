@@ -1,38 +1,38 @@
 DATASET:
-    NAME: 'ShangHang'
-    ROOT: 'E:/zzy/GAN/data/ShanghaiHangzhou'
-    PATCH:
-        HEIGHT: 27
-        WIDTH: 27
-        PAD_MODE: 'symmetric'
+  NAME: 'ShangHang'
+  ROOT: 'E:/zzy/GAN/data/ShanghaiHangzhou'
+  PATCH:
+    HEIGHT: 27
+    WIDTH: 27
+    PAD_MODE: 'symmetric'
 
 
 DATALOADER:
-    BATCH_SIZE: 128
-    NUM_WORKERS: 0
-    ITERATION: 1060
+  BATCH_SIZE: 128
+  NUM_WORKERS: 0
+  ITERATION: 1060
 
 MODEL:
-    NAME: 'ddc'
-    BACKBONE: 'fe'
+  NAME: 'ddc'
+  BACKBONE: 'fe'
 
 CRITERION:
-    ITEMS:
-      - 'softmax+ce'
-      - 'jmmd'
-    WEIGHTS:
-      - 1.0
-      - 1.0
-    KERNEL_NUM: 5
+  ITEMS:
+    - 'softmax+ce'
+    - 'jmmd'
+  WEIGHTS:
+    - 1.0
+    - 1.0
+  KERNEL_NUM: 5
 
 OPTIMIZER:
-    NAME: 'adam'
-    LR: 0.0001
+  NAME: 'adam'
+  LR: 0.0001
 
 SCHEDULER:
-    NAME: 'plateau'
-    MODE: 'min'
-    FACTOR: 0.1
-    PATIENCE: 2
+  NAME: 'plateau'
+  MODE: 'min'
+  FACTOR: 0.1
+  PATIENCE: 2
 
 EPOCHS: 5

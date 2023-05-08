@@ -1,6 +1,6 @@
 DATASET:
-  NAME: 'ShangHang'
-  ROOT: 'E:/zzy/GAN/data/ShanghaiHangzhou'
+  NAME: 'HyRANK'
+  ROOT: 'E:/zzy/GAN/data/HyRANK'
   PATCH:
     HEIGHT: 27
     WIDTH: 27
@@ -8,18 +8,20 @@ DATASET:
 
 
 DATALOADER:
-  BATCH_SIZE: 128
+  BATCH_SIZE: 32
   NUM_WORKERS: 0
-  ITERATION: 1060
+  ITERATION: 626
 
 MODEL:
-  NAME: 'dann'
-  BACKBONE: 'fe'
+  NAME: 'fe_mmoe_dann'
+  EXPERTS:
+    - 'fe_pos'
+    - 'fe_can'
 
 CRITERION:
   ITEMS:
     - 'softmax+ce'
-    - 'softmax+ce'
+    - 'softmax+l1dis'
   WEIGHTS:
     - 1.0
     - 1.0
@@ -34,4 +36,5 @@ SCHEDULER:
   FACTOR: 0.1
   PATIENCE: 2
 
-EPOCHS: 5
+EPOCHS: 20
+EPOCHK: 2

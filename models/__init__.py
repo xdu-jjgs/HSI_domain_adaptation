@@ -2,7 +2,7 @@ from .ddc import DDC
 from .dqn import DQN
 from .dst import DST
 from .dann import DANN
-from .fe_mmoe import FEMMOEDDC, FEMMOEDANN
+from .fe_mmoe import FEMMOEDDC, FEMMOEDANN, FEMMOEMCD
 from .task_mmoe import TaskMMOEDDC, TaskMMOEDANN
 from .dstda import DSTDA, DSTDAMapping
 
@@ -40,6 +40,11 @@ def build_model(num_channels, num_classes):
         return FEMMOEDDC(num_classes, backbone_)
     elif CFG.MODEL.NAME == 'fe_mmoe_dann':
         return FEMMOEDANN(num_classes, backbone_)
+    elif CFG.MODEL.NAME == 'fe_mmoe_mcd':
+        FE = FEMMOEMCD(num_classes, backbone_)
+        C1 = ImageClassifier(backbone_[0].out_channels, num_classes)
+        C2 = ImageClassifier(backbone_[0].out_channels, num_classes)
+        return FE, C1, C2
     # elif CFG.MODEL.NAME == 'dqn':
     #     return DQN(backbone_.out_channels, num_classes)
     raise NotImplementedError('invalid model: {}'.format(CFG.MODEL.NAME))
