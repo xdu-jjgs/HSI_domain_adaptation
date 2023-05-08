@@ -180,7 +180,7 @@ def worker(rank_gpu, args):
                                                                                optimizer_c2],
                                                                               opt_level=args.opt_level)
     # DDP
-    FE = DistributedDataParallel(FE)
+    FE = DistributedDataParallel(FE, find_unused_parameters=True)
     C1 = DistributedDataParallel(C1)
     C2 = DistributedDataParallel(C2)
 
@@ -347,7 +347,7 @@ def worker(rank_gpu, args):
             for x_t, label in val_bar:
                 x_t, label = x_t.to(device), label.to(device)
 
-                f_t, target_weights = FE(x_t)
+                f_t, target_weights = FE(x_t, 2)
                 p1_t, p2_t = C1(f_t)[-1], C2(f_t)[-1]
                 y_t = (p1_t + p2_t) / 2
 
