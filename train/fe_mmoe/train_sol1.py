@@ -188,7 +188,7 @@ def worker(rank_gpu, args):
     iteration = 0
     best_epoch = 0
     best_PA = 0.
-    experts_order = []
+    experts_order = None
 
     # load checkpoint if specified
     if args.checkpoint is not None:
@@ -259,10 +259,12 @@ def worker(rank_gpu, args):
             with torch.no_grad():
                 e_s, f_s, source_weights = FE(x_s, 1)
                 e_t, _, target_weights = FE(x_t, 2)
-            print(e_s.size(), e_t.size())
             p1_s, p2_s = C1(f_s)[-1], C2(f_s)[-1]
             # p1_es, p2_es = C1(e_s)[-1], C2(e_s)[-1]
-            p1_et, p2_et = C1(e_t)[-1], C2(e_t)[-1]
+            chunks_t = torch.chunk(e_t, len(FE.module.experts), dim=1)
+            p1_et = torch.stack([C1(i)[-1] for i in chunks_t], dim=0)
+            p2_et = torch.stack([C2(i)[-1] for i in chunks_t], dim=0)
+            # print(p1_et.size(), p2_et.size())
             cls_loss = cls_criterion(p1_s, label) + cls_criterion(p2_s, label)
             dis_loss = dis_criterion(p1_et, p2_et)
             step2_loss = cls_loss + dis_loss
@@ -320,7 +322,7 @@ def worker(rank_gpu, args):
             writer.add_scalar('train/PA-epoch', PA, epoch)
             writer.add_scalar('train/mPA-epoch', mPA, epoch)
             writer.add_scalar('train/KC-epoch', KC, epoch)
-            if not experts_order:
+            if experts_order is None:
                 # sorting according to source weights
                 experts_order = np.argsort(source_weights_epoch)
             for ind, ele in enumerate(experts_order):

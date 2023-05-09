@@ -188,7 +188,7 @@ def worker(rank_gpu, args):
     iteration = 0
     best_epoch = 0
     best_PA = 0.
-    experts_order = []
+    experts_order = None
 
     # load checkpoint if specified
     if args.checkpoint is not None:
@@ -317,7 +317,7 @@ def worker(rank_gpu, args):
             writer.add_scalar('train/PA-epoch', PA, epoch)
             writer.add_scalar('train/mPA-epoch', mPA, epoch)
             writer.add_scalar('train/KC-epoch', KC, epoch)
-            if not experts_order:
+            if experts_order is None:
                 # sorting according to source weights
                 experts_order = np.argsort(source_weights_epoch)
             for ind, ele in enumerate(experts_order):

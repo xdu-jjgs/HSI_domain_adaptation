@@ -31,8 +31,8 @@ class ImageClassifier(nn.Module):
         initialize_weights(self.head)
 
     def forward(self, x):
-        while len(x.size()) > 2:
-            x = torch.squeeze(x, 2)
+        if len(x.size()) > 2:
+            x = torch.squeeze(x)
         x = self.layer1(x)
         x = self.layer2(x)
         out = self.head(x)
