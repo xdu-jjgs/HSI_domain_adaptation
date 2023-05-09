@@ -380,8 +380,8 @@ def worker(rank_gpu, args):
             writer.add_scalar('val/mPA-epoch', mPA, epoch)
             writer.add_scalar('val/KC-epoch', KC, epoch)
 
-            for ind in range(len(target_weights_epoch)):
-                writer.add_scalar('val/target_weight_expert{}'.format(ind + 1), target_weights_epoch[ind], epoch)
+            for ind, ele in enumerate(experts_order):
+                writer.add_scalar('train/target_weight_expert{}'.format(ind + 1), target_weights_epoch[ele], epoch)
         if PA > best_PA:
             best_epoch = epoch
 
