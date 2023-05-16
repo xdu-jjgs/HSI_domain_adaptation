@@ -38,6 +38,8 @@ def get_confidence(pred):
     w = torch.sum(w, dim=1)
     w = 1.0 + torch.exp(-w)
     # w, _ = torch.max(pred_class, dim=1)
-    w *= 10
+    # w *= 10
+    # w *= 2
+    w *= 5
     return w
 

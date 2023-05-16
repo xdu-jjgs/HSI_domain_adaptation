@@ -25,7 +25,7 @@ class CapsuleLayer(nn.Module):
             self.route_weights = nn.Parameter(torch.randn(num_capsules, num_route_nodes, in_channels, out_channels))
         else:
             self.capsules = nn.ModuleList(
-                [nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=0) for _ in
+                [nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=1) for _ in
                  range(num_capsules)])
 
     def squash(self, tensor, dim=-1):
@@ -57,10 +57,27 @@ class CapsuleNet(nn.Module):
     def __init__(self, num_channel, num_class):
         super(CapsuleNet, self).__init__()
 
-        self.conv1 = nn.Conv2d(in_channels=num_channel, out_channels=256, kernel_size=3, stride=2)    # 27--》13
-        self.primary_capsules = CapsuleLayer(num_capsules=8, num_route_nodes=-1, in_channels=256, out_channels=32,
-                                             kernel_size=3, stride=2)    # 13--》6
-        self.digit_capsules = CapsuleLayer(num_capsules=num_class, num_route_nodes=32 * 6 * 6, in_channels=8,
+        # self.conv1 = nn.Conv2d(in_channels=num_channel, out_channels=256, kernel_size=3, stride=2)    # 27--》13
+        self.model = nn.Sequential(
+            nn.Conv2d(num_channel, 256, 3, 2, 1),  # 27*27==>14*14
+            nn.BatchNorm2d(256),
+            nn.ReLU(),
+
+            nn.Conv2d(256, 128, 3, 2, 1),  # 7*7
+            nn.BatchNorm2d(128),
+            nn.ReLU(),
+
+            # nn.Conv2d(128, 256, 3, 2, 1),  # 4*4
+            # nn.BatchNorm2d(256),
+            # nn.ReLU(),
+
+            # nn.Conv2d(256, out_channels, 3, 2, 0),  # 1*1
+            # nn.BatchNorm2d(out_channels),
+            # nn.ReLU()
+        )
+        self.primary_capsules = CapsuleLayer(num_capsules=32, num_route_nodes=-1, in_channels=128, out_channels=64,
+                                             kernel_size=3, stride=2)    # 7--》4
+        self.digit_capsules = CapsuleLayer(num_capsules=num_class, num_route_nodes=64 * 4 * 4, in_channels=32,
                                            out_channels=16)
 
         # self.decoder = nn.Sequential(
@@ -73,13 +90,13 @@ class CapsuleNet(nn.Module):
         # )
 
     def forward(self, x, y=None):
-        x = F.relu(self.conv1(x), inplace=True)
+        # x = F.relu(self.conv1(x), inplace=True)
+        x = self.model(x)
         x = self.primary_capsules(x)
         x = self.digit_capsules(x).squeeze().transpose(0, 1)
 
         classes = (x ** 2).sum(dim=-1) ** 0.5
         classes = F.softmax(classes, dim=-1)
-
         # if y is None:
         #     # In all batches, get the most active capsule.
         #     _, max_length_indices = classes.max(dim=1)
@@ -89,6 +106,5 @@ class CapsuleNet(nn.Module):
 
         # return classes, reconstructions
         return classes
-
 
 

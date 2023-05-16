@@ -1,12 +1,15 @@
 from configs import CFG
 from models.ddc.ddc import *
 from .dann import DANN
+from .towbranchcaps import TwoBranchCaps
 from models.backbone.generator import *
+from models.backbone.generator_3d import *
 from models.backbone.extractor import FeatureExtractor
 from models.backbone.classifier import ImageClassifier
 from models.backbone.discriminator import Discriminator
 from models.backbone.resnet import ResNet
 from models.backbone.capsnet import CapsuleNet
+from models.backbone.capsnet_3d import CapsuleNet_3D
 from models.backbone.rescaps import ResCaps
 
 
@@ -31,5 +34,14 @@ def build_model(num_channels, num_classes):
         domain_discriminator = DDC(num_channels, num_classes=2)
         # class_dicriminator = CapsuleNet(num_channels, num_classes)
         class_dicriminator = ResCaps(num_channels, num_classes, depth=18, pretrained=False)
+        return G, domain_discriminator, class_dicriminator
+    elif CFG.MODEL.NAME == 'pixelda-caps-3d':
+        G = GeneratorImage(num_channels, num_classes)
+        # G = GeneratorImage_3D(num_channels, num_classes)
+        domain_discriminator = DDC(num_channels, num_classes=2)
+        class_dicriminator = TwoBranchCaps(num_channels, num_classes)
+        # class_dicriminator = CapsuleNet(num_channels, num_classes)
+        # class_dicriminator = CapsuleNet_3D(num_channels, num_classes)
+        # class_dicriminator = ResCaps(num_channels, num_classes, depth=18, pretrained=False)
         return G, domain_discriminator, class_dicriminator
     raise NotImplementedError('invalid model: {}'.format(CFG.MODEL.NAME))
