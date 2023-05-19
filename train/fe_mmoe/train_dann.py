@@ -178,7 +178,8 @@ def worker(rank_gpu, args):
     iteration = 0
     best_epoch = 0
     best_PA = 0.
-    experts_order = None
+    experts = CFG.MODEL.EXPERTS
+    # experts_order = None
 
     # load checkpoint if specified
     if args.checkpoint is not None:
@@ -280,14 +281,19 @@ def worker(rank_gpu, args):
             writer.add_scalar('train/PA-epoch', PA, epoch)
             writer.add_scalar('train/mPA-epoch', mPA, epoch)
             writer.add_scalar('train/KC-epoch', KC, epoch)
-            if experts_order is None:
-                # sorting according to source weights
-                experts_order = np.argsort(source_weights_epoch)
-            for ind, ele in enumerate(experts_order):
-                writer.add_scalar('train/source_weight_expert{}'.format(ind + 1), source_weights_epoch[ele], epoch)
-                writer.add_scalar('train/target_weight_expert{}'.format(ind + 1), target_weights_epoch[ele], epoch)
-                writer.add_scalar('train/diff_weight_expert{}'.format(ind + 1),
-                                  source_weights_epoch[ele] - target_weights_epoch[ele], epoch)
+            # if experts_order is None:
+            #     # sorting according to source weights
+            #     experts_order = np.argsort(source_weights_epoch)
+            # for ind, ele in enumerate(experts_order):
+            #     writer.add_scalar('train/source_weight_expert{}'.format(ind + 1), source_weights_epoch[ele], epoch)
+            #     writer.add_scalar('train/target_weight_expert{}'.format(ind + 1), target_weights_epoch[ele], epoch)
+            #     writer.add_scalar('train/diff_weight_expert{}'.format(ind + 1),
+            #                       source_weights_epoch[ele] - target_weights_epoch[ele], epoch)
+            for ind, ele in enumerate(experts):
+                writer.add_scalar('train/source_weight_expert_{}_{}'.format(ele, ind+1), source_weights_epoch[ind], epoch)
+                writer.add_scalar('train/target_weight_expert_{}_{}'.format(ele, ind+1), target_weights_epoch[ind], epoch)
+                writer.add_scalar('train/diff_weight_expert_{}_{}'.format(ele, ind+1),
+                                  source_weights_epoch[ind] - target_weights_epoch[ind], epoch)
         logging.info(
             'rank{} train epoch={} | loss_total={:.3f} loss_cls={:.3f} loss_domain_s={:.3f} loss_domain_t={:.3f}'.format(
                 dist.get_rank() + 1, epoch, total_loss_epoch, cls_loss_epoch, domain_s_loss_epoch, domain_t_loss_epoch))
@@ -336,9 +342,10 @@ def worker(rank_gpu, args):
             writer.add_scalar('val/PA-epoch', PA, epoch)
             writer.add_scalar('val/mPA-epoch', mPA, epoch)
             writer.add_scalar('val/KC-epoch', KC, epoch)
-
-            for ind, ele in enumerate(experts_order):
-                writer.add_scalar('val/target_weight_expert{}'.format(ind + 1), target_weights_epoch[ele], epoch)
+            # for ind, ele in enumerate(experts_order):
+            #     writer.add_scalar('val/target_weight_expert{}'.format(ind + 1), target_weights_epoch[ele], epoch)
+            for ind, ele in enumerate(experts):
+                writer.add_scalar('val/target_weight_expert_{}_{}'.format(ele, ind+1), target_weights_epoch[ind], epoch)
         if PA > best_PA:
             best_epoch = epoch
 
