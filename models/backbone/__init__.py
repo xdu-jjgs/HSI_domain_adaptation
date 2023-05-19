@@ -24,7 +24,7 @@ def build_backbone(num_channels, model_name):
     elif model_name == 'fe':
         return FeatureExtractor(num_channels)
     elif model_name == 'fe_pos':
-        return AttentionFeatureExtractor(num_channels,attention='pos')
+        return AttentionFeatureExtractor(num_channels, attention='pos')
     elif model_name == 'fe_can':
-        return AttentionFeatureExtractor(num_channels,attention='can')
+        return AttentionFeatureExtractor(num_channels, attention='can')
     raise NotImplementedError('invalid model: {}'.format(model_name))
