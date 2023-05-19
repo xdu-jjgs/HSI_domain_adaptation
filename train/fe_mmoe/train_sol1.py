@@ -328,6 +328,8 @@ def worker(rank_gpu, args):
             for ind, ele in enumerate(experts_order):
                 writer.add_scalar('train/source_weight_expert{}'.format(ind + 1), source_weights_epoch[ele], epoch)
                 writer.add_scalar('train/target_weight_expert{}'.format(ind + 1), target_weights_epoch[ele], epoch)
+                writer.add_scalar('train/diff_weight_expert{}'.format(ind + 1),
+                                  source_weights_epoch[ele] - target_weights_epoch[ele], epoch)
         logging.info(
             'rank{} train epoch={} | loss_step1={:.3f} loss_step2={:.3f} loss_step3={:.3f}'.format(
                 dist.get_rank() + 1, epoch, step1_loss_epoch, step2_loss_epoch, step3_loss_epoch))
@@ -381,7 +383,7 @@ def worker(rank_gpu, args):
             writer.add_scalar('val/KC-epoch', KC, epoch)
 
             for ind, ele in enumerate(experts_order):
-                writer.add_scalar('train/target_weight_expert{}'.format(ind + 1), target_weights_epoch[ele], epoch)
+                writer.add_scalar('val/target_weight_expert{}'.format(ind + 1), target_weights_epoch[ele], epoch)
         if PA > best_PA:
             best_epoch = epoch
 
