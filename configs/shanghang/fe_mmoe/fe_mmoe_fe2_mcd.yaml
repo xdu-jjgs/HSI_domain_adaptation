@@ -5,8 +5,6 @@ DATASET:
     HEIGHT: 27
     WIDTH: 27
     PAD_MODE: 'symmetric'
-  SAMPLE_NUM: 540
-  SAMPLE_ORDER: 'average'
 
 DATALOADER:
   BATCH_SIZE: 128
@@ -14,17 +12,18 @@ DATALOADER:
   ITERATION: 1060
 
 MODEL:
-  NAME: 'ddc'
-  BACKBONE: 'fe'
+  NAME: 'fe_mmoe_mcd'
+  EXPERTS:
+    - 'fe'
+    - 'fe'
 
 CRITERION:
   ITEMS:
     - 'softmax+ce'
-    - 'jmmd'
+    - 'softmax+l1dis'
   WEIGHTS:
     - 1.0
     - 1.0
-  KERNEL_NUM: 5
 
 OPTIMIZER:
   NAME: 'adam'
@@ -37,3 +36,4 @@ SCHEDULER:
   PATIENCE: 2
 
 EPOCHS: 5
+EPOCHK: 2

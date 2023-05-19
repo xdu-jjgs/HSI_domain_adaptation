@@ -6,7 +6,6 @@ DATASET:
     WIDTH: 27
     PAD_MODE: 'symmetric'
 
-
 DATALOADER:
   BATCH_SIZE: 128
   NUM_WORKERS: 0
@@ -24,7 +23,6 @@ CRITERION:
     - 1.0
     - 1.0
 
-
 OPTIMIZER:
   NAME: 'adam'
   LR: 0.001
@@ -36,5 +34,4 @@ SCHEDULER:
   PATIENCE: 2
 
 EPOCHS: 5
-
 EPOCHK: 2
