@@ -62,3 +62,9 @@ class ExpMSE(nn.Module):
         mse = F.mse_loss(prediction, target, reduction=self.reduction)
         loss = torch.exp(mse)
         return loss
+
+class VarLoss(nn.Module):
+    def forward(self, y, **kwargs):
+        loss = torch.var(y)
+        loss = torch.mean(loss)
+        return loss

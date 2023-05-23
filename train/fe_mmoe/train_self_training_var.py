@@ -158,8 +158,10 @@ def worker(rank_gpu, args):
     assert len(loss_names) == len(loss_weights)
     cls_criterion = build_criterion(loss_names[0])
     st_criterion = build_criterion(loss_names[1])
+    var_criterion = build_criterion(loss_names[2])
     cls_criterion.to(device)
     st_criterion.to(device)
+    var_criterion.to(device)
     val_criterion = build_criterion('softmax+ce')
     val_criterion.to(device)
     # build metric
@@ -217,7 +219,7 @@ def worker(rank_gpu, args):
         metric_cls.reset()  # reset metric
         metric_st.reset()
         train_bar = tqdm(range(1, CFG.DATALOADER.ITERATION + 1), desc='training', ascii=True)
-        total_loss_epoch, cls_loss_epoch, st_loss_epoch = 0., 0., 0.
+        total_loss_epoch, cls_loss_epoch, st_loss_epoch, var_s_loss_epoch = 0., 0., 0., 0.
         source_weights_epoch = np.zeros((len(mmoe.module.experts)))
         target_weights_epoch = np.zeros((len(mmoe.module.experts)))
         for iteration in train_bar:
@@ -235,11 +237,13 @@ def worker(rank_gpu, args):
             target_weights_epoch += target_weights.sum(dim=0).squeeze(0).detach().cpu().numpy()
 
             cls_loss = cls_criterion(label_s=label, y_s=y_s) * loss_weights[0]
-            st_loss, mask, pseudo_labels = st_criterion(y_t, y_t)
-            total_loss = cls_loss + st_loss
+            st_loss, mask, pseudo_labels = st_criterion(y_t, y_t) * loss_weights[1]
+            var_s_loss = var_criterion(y=source_weights) * loss_weights[2]
+            total_loss = cls_loss + st_loss + var_s_loss
 
             cls_loss_epoch += cls_loss.item()
             st_loss_epoch += st_loss.item()
+            var_s_loss_epoch += var_s_loss.item()
             total_loss_epoch += total_loss.item()
 
             optimizer.zero_grad()
@@ -263,6 +267,7 @@ def worker(rank_gpu, args):
         total_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
         cls_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
         st_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
+        var_s_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
         source_weights_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
         target_weights_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
         PA, mPA, Ps, Rs, F1S, KC = \
@@ -273,6 +278,7 @@ def worker(rank_gpu, args):
             writer.add_scalar('train/loss_total-epoch', total_loss_epoch, epoch)
             writer.add_scalar('train/loss_cls-epoch', cls_loss_epoch, epoch)
             writer.add_scalar('train/loss_trans-epoch', st_loss_epoch, epoch)
+            writer.add_scalar('train/loss_var-epoch', var_s_loss_epoch, epoch)
 
             writer.add_scalar('train/PA-epoch', PA, epoch)
             writer.add_scalar('train/mPA-epoch', mPA, epoch)
@@ -349,7 +355,7 @@ def worker(rank_gpu, args):
         for c in range(NUM_CLASSES):
             logging.info(
                 'rank{} val epoch={} | class={} P={:.3f} R={:.3f} F1={:.3f}'.format(dist.get_rank() + 1, epoch, c,
-                                                                                     Ps[c], Rs[c], F1S[c]))
+                                                                                    Ps[c], Rs[c], F1S[c]))
 
         # adjust learning rate if specified
         if scheduler is not None:
