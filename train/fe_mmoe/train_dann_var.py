@@ -217,7 +217,7 @@ def worker(rank_gpu, args):
         mmoe.train()  # set task_mmoe to training mode
         metric.reset()  # reset metric
         train_bar = tqdm(range(1, CFG.DATALOADER.ITERATION + 1), desc='training', ascii=True)
-        total_loss_epoch, cls_loss_epoch, domain_s_loss_epoch, domain_t_loss_epoch, var_s_loss_epoch =\
+        total_loss_epoch, cls_loss_epoch, domain_s_loss_epoch, domain_t_loss_epoch, var_s_loss_epoch = \
             0., 0., 0., 0., 0.
         source_weights_epoch = np.zeros((len(mmoe.module.experts)))
         target_weights_epoch = np.zeros((len(mmoe.module.experts)))
@@ -297,13 +297,15 @@ def worker(rank_gpu, args):
             #     writer.add_scalar('train/diff_weight_expert{}'.format(ind + 1),
             #                       source_weights_epoch[ele] - target_weights_epoch[ele], epoch)
             for ind in range(len(experts)):
-                writer.add_scalar('train/source_weight_expert_{}'.format(ind+1), source_weights_epoch[ind], epoch)
-                writer.add_scalar('train/target_weight_expert_{}'.format(ind+1), target_weights_epoch[ind], epoch)
-                writer.add_scalar('train/diff_weight_expert_{}'.format(ind+1),
+                writer.add_scalar('train/source_weight_expert_{}'.format(ind + 1), source_weights_epoch[ind], epoch)
+                writer.add_scalar('train/target_weight_expert_{}'.format(ind + 1), target_weights_epoch[ind], epoch)
+                writer.add_scalar('train/diff_weight_expert_{}'.format(ind + 1),
                                   source_weights_epoch[ind] - target_weights_epoch[ind], epoch)
         logging.info(
-            'rank{} train epoch={} | loss_total={:.3f} loss_cls={:.3f} loss_domain_s={:.3f} loss_domain_t={:.3f}'.format(
-                dist.get_rank() + 1, epoch, total_loss_epoch, cls_loss_epoch, domain_s_loss_epoch, domain_t_loss_epoch))
+            'rank{} train epoch={} | loss_total={:.3f} loss_cls={:.3f} '
+            'loss_domain_s={:.3f} loss_domain_t={:.3f} loss_var={:.3f}'.format(
+                dist.get_rank() + 1, epoch, total_loss_epoch, cls_loss_epoch,
+                domain_s_loss_epoch, domain_t_loss_epoch, var_s_loss_epoch))
         logging.info(
             'rank{} train epoch={} | PA={:.3f} mPA={:.3f} KC={:.3f}'.format(dist.get_rank() + 1, epoch, PA, mPA, KC))
         for c in range(NUM_CLASSES):
@@ -352,7 +354,7 @@ def worker(rank_gpu, args):
             # for ind, ele in enumerate(experts_order):
             #     writer.add_scalar('val/target_weight_expert{}'.format(ind + 1), target_weights_epoch[ele], epoch)
             for ind in range(len(experts)):
-                writer.add_scalar('val/target_weight_expert_{}'.format(ind+1), target_weights_epoch[ind], epoch)
+                writer.add_scalar('val/target_weight_expert_{}'.format(ind + 1), target_weights_epoch[ind], epoch)
         if PA > best_PA:
             best_epoch = epoch
 

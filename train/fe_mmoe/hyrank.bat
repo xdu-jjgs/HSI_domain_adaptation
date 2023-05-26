@@ -220,7 +220,7 @@ python train/fe_mmoe/train_mcd.py configs/hyrank/fe_mmoe/fe_mmoe_att4_mcd.yaml ^
         --opt-level O0
 
 rem mmoe-dan
-python train/fe_mmoe/train_ddc.py configs/hyrank/fe_mmoe/fe_mmoe_att3_dan_var.yaml ^
+python train/fe_mmoe/train_ddc_var.py configs/hyrank/fe_mmoe/fe_mmoe_att3_dan_var.yaml ^
         --path ./runs/hyrank/fe_mmoe/fe_mmoe_att3_dan_var-train ^
         --nodes 1 ^
         --gpus 1 ^
@@ -232,7 +232,7 @@ python train/fe_mmoe/train_ddc.py configs/hyrank/fe_mmoe/fe_mmoe_att3_dan_var.ya
         --opt-level O0
 
 rem mmoe-dann
-python train/fe_mmoe/train_dann.py configs/hyrank/fe_mmoe/fe_mmoe_att3_dann_var.yaml ^
+python train/fe_mmoe/train_dann_var.py configs/hyrank/fe_mmoe/fe_mmoe_att3_dann_var.yaml ^
         --path ./runs/hyrank/fe_mmoe/fe_mmoe_att3_dann_var-train ^
         --nodes 1 ^
         --gpus 1 ^
@@ -244,7 +244,7 @@ python train/fe_mmoe/train_dann.py configs/hyrank/fe_mmoe/fe_mmoe_att3_dann_var.
         --opt-level O0
 
 rem mmoe-self_training
-python train/fe_mmoe/train_self_training.py configs/hyrank/fe_mmoe/fe_mmoe_att3_self_training_08_var.yaml ^
+python train/fe_mmoe/train_self_training_var.py configs/hyrank/fe_mmoe/fe_mmoe_att3_self_training_08_var.yaml ^
         --path ./runs/hyrank/fe_mmoe/fe_mmoe_att3_self_training_08_var-train ^
         --nodes 1 ^
         --gpus 1 ^
@@ -256,7 +256,7 @@ python train/fe_mmoe/train_self_training.py configs/hyrank/fe_mmoe/fe_mmoe_att3_
         --opt-level O0
 
 rem mmoe-mcd
-python train/fe_mmoe/train_mcd.py configs/hyrank/fe_mmoe/fe_mmoe_att3_mcd_var.yaml ^
+python train/fe_mmoe/train_mcd_var.py configs/hyrank/fe_mmoe/fe_mmoe_att3_mcd_var.yaml ^
         --path ./runs/hyrank/fe_mmoe/fe_mmoe_att3_mcd_var-train ^
         --nodes 1 ^
         --gpus 1 ^

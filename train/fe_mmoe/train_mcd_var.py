@@ -234,6 +234,7 @@ def worker(rank_gpu, args):
         metric.reset()  # reset metric
         train_bar = tqdm(range(1, CFG.DATALOADER.ITERATION + 1), desc='training', ascii=True)
         step1_loss_epoch, step2_loss_epoch, step3_loss_epoch = 0., 0., 0.
+        var_s_loss_epoch = 0.
         source_weights_epoch = np.zeros((len(FE.module.experts)))
         target_weights_epoch = np.zeros((len(FE.module.experts)))
         for iteration in train_bar:
@@ -249,6 +250,7 @@ def worker(rank_gpu, args):
             var_s_loss = var_criterion(y=source_weights)
             step1_loss = cls_loss + var_s_loss
             step1_loss_epoch += step1_loss.item()
+            var_s_loss_epoch += var_s_loss.item()
 
             optimizer_fe.zero_grad()
             optimizer_c1.zero_grad()
@@ -311,6 +313,7 @@ def worker(rank_gpu, args):
         step1_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
         step2_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
         step3_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE * CFG.EPOCHK
+        var_s_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
         source_weights_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
         target_weights_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
         PA, mPA, Ps, Rs, F1S, KC = metric.PA(), metric.mPA(), metric.Ps(), metric.Rs(), metric.F1s(), metric.KC()
@@ -318,6 +321,7 @@ def worker(rank_gpu, args):
             writer.add_scalar('train/loss_step1-epoch', step1_loss_epoch, epoch)
             writer.add_scalar('train/loss_step2-epoch', step2_loss_epoch, epoch)
             writer.add_scalar('train/loss_step3-epoch', step3_loss_epoch, epoch)
+            writer.add_scalar('train/loss_var-epoch', var_s_loss_epoch, epoch)
 
             writer.add_scalar('train/PA-epoch', PA, epoch)
             writer.add_scalar('train/mPA-epoch', mPA, epoch)
@@ -329,8 +333,8 @@ def worker(rank_gpu, args):
                 writer.add_scalar('train/diff_weight_expert_{}'.format(ind+1),
                                   source_weights_epoch[ind] - target_weights_epoch[ind], epoch)
         logging.info(
-            'rank{} train epoch={} | loss_step1={:.3f} loss_step2={:.3f} loss_step3={:.3f}'.format(
-                dist.get_rank() + 1, epoch, step1_loss_epoch, step2_loss_epoch, step3_loss_epoch))
+            'rank{} train epoch={} | loss_step1={:.3f} loss_step2={:.3f} loss_step3={:.3f} loss_var={:.3f}'.format(
+                dist.get_rank() + 1, epoch, step1_loss_epoch, step2_loss_epoch, step3_loss_epoch, var_s_loss_epoch))
         logging.info(
             'rank{} train epoch={} | PA={:.3f} mPA={:.3f} KC={:.3f}'.format(dist.get_rank() + 1, epoch, PA, mPA, KC))
         for c in range(NUM_CLASSES):

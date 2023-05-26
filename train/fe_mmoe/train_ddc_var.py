@@ -286,8 +286,8 @@ def worker(rank_gpu, args):
                 writer.add_scalar('train/diff_weight_expert_{}'.format(ind+1),
                                   source_weights_epoch[ind] - target_weights_epoch[ind], epoch)
         logging.info(
-            'rank{} train epoch={} | loss_total={:.3f} loss_cls={:.3f} loss_trans={:.3f}'.format(
-                dist.get_rank() + 1, epoch, total_loss_epoch, cls_loss_epoch, trans_loss_epoch))
+            'rank{} train epoch={} | loss_total={:.3f} loss_cls={:.3f} loss_trans={:.3f} loss_var={:.3f}'.format(
+                dist.get_rank() + 1, epoch, total_loss_epoch, cls_loss_epoch, trans_loss_epoch, var_s_loss_epoch))
         logging.info(
             'rank{} train epoch={} | PA={:.3f} mPA={:.3f} KC={:.3f}'.format(dist.get_rank() + 1, epoch, PA, mPA, KC))
         for c in range(NUM_CLASSES):

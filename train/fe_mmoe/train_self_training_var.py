@@ -237,7 +237,8 @@ def worker(rank_gpu, args):
             target_weights_epoch += target_weights.sum(dim=0).squeeze(0).detach().cpu().numpy()
 
             cls_loss = cls_criterion(label_s=label, y_s=y_s) * loss_weights[0]
-            st_loss, mask, pseudo_labels = st_criterion(y_t, y_t) * loss_weights[1]
+            st_loss, mask, pseudo_labels = st_criterion(y_t, y_t)
+            st_loss *= loss_weights[1]
             var_s_loss = var_criterion(y=source_weights) * loss_weights[2]
             total_loss = cls_loss + st_loss + var_s_loss
 
@@ -291,8 +292,8 @@ def worker(rank_gpu, args):
                                   source_weights_epoch[ind] - target_weights_epoch[ind], epoch)
         logging.info(
             'rank{} train epoch={} | '
-            'loss_total={:.3f} loss_cls_s={:.3f} loss_cls_t={:.3f}'.format(
-                dist.get_rank() + 1, epoch, total_loss_epoch, cls_loss_epoch, st_loss_epoch))
+            'loss_total={:.3f} loss_cls_s={:.3f} loss_cls_t={:.3f} loss_var={:.3f}'.format(
+                dist.get_rank() + 1, epoch, total_loss_epoch, cls_loss_epoch, st_loss_epoch, var_s_loss_epoch))
         logging.info(
             'rank{} train epoch={} | '
             'PA={:.3f} mPA={:.3f} KC={:.3f} | '
