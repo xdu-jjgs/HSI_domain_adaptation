@@ -18,8 +18,8 @@ MODEL:
 
 CRITERION:
     ITEMS1:
-      - 'softmax+ce'
-      - 'softmax+ce'
+      - 'margin'
+      - 'margin'
     WEIGHTS1:
       - 1.0
       - 1.0

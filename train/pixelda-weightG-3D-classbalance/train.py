@@ -138,8 +138,8 @@ def worker(rank_gpu, args):
     NUM_CLASSES = train_dataset.num_classes
     logging.info("Number of class: {}".format(NUM_CLASSES))
     # build data sampler
-    # train_sampler = DistributedSampler(train_dataset, shuffle=True)
-    train_sampler = ImbalancedDatasetSampler(train_dataset, labels=train_dataset.get_labels(), num_samples=60000)
+    train_sampler = DistributedSampler(train_dataset, shuffle=True)
+    # train_sampler = ImbalancedDatasetSampler(train_dataset, labels=train_dataset.get_labels())
     val_sampler = DistributedSampler(val_dataset, shuffle=True)
     test_sampler = DistributedSampler(test_dataset, shuffle=True)
     # test_sampler = ImbalancedDatasetSampler(test_dataset, labels=test_dataset.get_labels())
@@ -257,13 +257,13 @@ def worker(rank_gpu, args):
             z = torch.rand([len(label), NUM_CHANNELS], dtype=torch.float)
             z_info = torch.tensor(one_hot(label, NUM_CLASSES), dtype=torch.float32)
             # label_fake = NUM_CLASSES * torch.ones(len(label), dtype=torch.int32)
-            # onehot_label = torch.eye(NUM_CLASSES)[label.long(), :]
+            onehot_label = torch.eye(NUM_CLASSES)[label.long(), :]
             domain_label_fake = torch.zeros(len(label))
             domain_label_t = torch.ones(len(label))
             x_s, label = x_s.to(device), label.to(device)
             x_t = x_t.to(device)
             z, z_info = z.to(device), z_info.to(device)
-            # onehot_label = onehot_label.to(device)
+            onehot_label = onehot_label.to(device)
             # label_fake = label_fake.to(device)
             domain_label_fake, domain_label_t = domain_label_fake.to(device), domain_label_t.to(device)
 
@@ -276,8 +276,8 @@ def worker(rank_gpu, args):
             c_fake = C(x_fake)
             c_s = C(x_s)
             # Default: ce loss, when margin loss change label to onehot_label
-            loss_c = train_criterion1(c_s, label, c_fake, label)
-            # loss_c = train_criterion1(c_s, onehot_label, c_fake, onehot_label)
+            # loss_c = train_criterion1(c_s, label, c_fake, label)
+            loss_c = train_criterion1(c_s, onehot_label, c_fake, onehot_label)
             epoch_c_loss += loss_c.item()
             with amp.scale_loss(loss_c, optimizer_c) as scaled_loss:
                 scaled_loss.backward()
