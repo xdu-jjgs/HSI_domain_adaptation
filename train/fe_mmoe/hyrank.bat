@@ -314,3 +314,39 @@ python train/fe_mmoe/train_mcd_var.py configs/hyrank/fe_mmoe/fe_mmoe_att2_mcd_va
         --master-port 8890 ^
         --seed %~1% ^
         --opt-level O0
+
+rem mmoe-dann
+python train/fe_mmoe/train_dann_var2.py configs/hyrank/fe_mmoe/fe_mmoe_att2_dann_var.yaml ^
+        --path ./runs/hyrank/fe_mmoe/fe_mmoe_att2_dann_var2-train ^
+        --nodes 1 ^
+        --gpus 1 ^
+        --rank-node 0 ^
+        --backend gloo ^
+        --master-ip localhost ^
+        --master-port 8890 ^
+        --seed %~1% ^
+        --opt-level O0
+
+rem mmoe-self_training
+python train/fe_mmoe/train_self_training_var2.py configs/hyrank/fe_mmoe/fe_mmoe_att2_self_training_08_var.yaml ^
+        --path ./runs/hyrank/fe_mmoe/fe_mmoe_att2_self_training_08_var2-train ^
+        --nodes 1 ^
+        --gpus 1 ^
+        --rank-node 0 ^
+        --backend gloo ^
+        --master-ip localhost ^
+        --master-port 8890 ^
+        --seed %~1% ^
+        --opt-level O0
+
+rem mmoe-mcd
+python train/fe_mmoe/train_mcd_var2.py configs/hyrank/fe_mmoe/fe_mmoe_att2_mcd_var.yaml ^
+        --path ./runs/hyrank/fe_mmoe/fe_mmoe_att2_mcd_var2-train ^
+        --nodes 1 ^
+        --gpus 1 ^
+        --rank-node 0 ^
+        --backend gloo ^
+        --master-ip localhost ^
+        --master-port 8890 ^
+        --seed %~1% ^
+        --opt-level O0
