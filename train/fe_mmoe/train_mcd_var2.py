@@ -337,7 +337,7 @@ def worker(rank_gpu, args):
                                   source_weights_epoch[ind] - target_weights_epoch[ind], epoch)
         logging.info(
             'rank{} train epoch={} | loss_step1={:.3f} loss_step2={:.3f} loss_step3={:.3f} loss_var={:.3f}'.format(
-                dist.get_rank() + 1, epoch, step1_loss_epoch, step2_loss_epoch, step3_loss_epoch, var_s_loss_epoch))
+                dist.get_rank() + 1, epoch, step1_loss_epoch, step2_loss_epoch, step3_loss_epoch, var_loss_epoch))
         logging.info(
             'rank{} train epoch={} | PA={:.3f} mPA={:.3f} KC={:.3f}'.format(dist.get_rank() + 1, epoch, PA, mPA, KC))
         for c in range(NUM_CLASSES):

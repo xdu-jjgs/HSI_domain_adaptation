@@ -24,6 +24,7 @@ class HoustonDataset(HSIDataset):
         self.data = sio.loadmat(self.data_path)['ori_data'].astype('float32')
         self.gt_path = os.path.join(root, gt_filename)
         self.gt = sio.loadmat(self.gt_path)['map'].astype('int')
+        self.gt_raw = self.gt.copy()
 
         self.selector = lambda x, y: y != 0
         self.coordinates, self.gt = self.cube_data()
@@ -78,6 +79,7 @@ class HyRankDataset(HSIDataset):
         self.data = sio.loadmat(self.data_path)['ori_data'].astype('float32')
         self.gt_path = os.path.join(root, gt_filename)
         self.gt = sio.loadmat(self.gt_path)['map'].astype('int')
+        self.gt_raw = self.gt.copy()
 
         self.selector = lambda x, y: y not in [0, 6, 8]
         self.coordinates, self.gt = self.cube_data()
@@ -141,7 +143,7 @@ class ShangHangDataset(HSIDataset):
         else:
             self.data = raw['DataCube1'].astype('float32')
             self.gt = raw['gt1'].astype('int')
-
+        self.gt_raw = self.gt.copy()
         self.coordinates, self.gt = self.cube_data()
 
         if self.transform is not None:
