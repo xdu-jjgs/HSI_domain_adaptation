@@ -3,8 +3,9 @@ cd E:\zzy\GAN\HSI_domain_adaptation
 set PYTHONPATH=%cd%
 
 rem ddc
-python train/pixelda-weightG-3D-classbalance/train.py configs/shanghang/pixelda-weightG-3D-classbalance.yaml ^
-        --path ./runs/shanghang/pixelda-weightG-3D-classbalance-train ^
+python plotfig/test.py configs/shanghang/plotfig.yaml ^
+        --path fig/shanghang/result_map ^
+        --checkpoint runs/shanghang/pixelda-weightG-3D-classbalance-train/best.pth ^
         --nodes 1 ^
         --gpus 1 ^
         --rank-node 0 ^

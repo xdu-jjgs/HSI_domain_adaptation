@@ -212,10 +212,10 @@ def worker(rank_gpu, args):
     plotter = plot_label(CFG.DATASET.NAME, NUM_CLASSES)
     img = plotter.plot_color(pred_map)
     ret_im = Image.fromarray(np.uint8(img)).convert('RGB')
-    ret_im.save(os.path.join(args.path, 'CCGDA.tif'))
+    ret_im.save(os.path.join(args.path, 'CCGDA_source.tif'))
     img = plotter.plot_color(gt_map)
     ret_im = Image.fromarray(np.uint8(img)).convert('RGB')
-    ret_im.save(os.path.join(args.path, 'gt.tif'))
+    ret_im.save(os.path.join(args.path, 'gt_source.tif'))
 
 
 

@@ -1,0 +1,24 @@
+DATASET:
+    NAME: 'ShangHang'
+    ROOT: 'E:/zzy/GAN/data/ShanghaiHangzhou'
+    PATCH:
+      HEIGHT: 27
+      WIDTH: 27
+      PAD_MODE: 'symmetric'
+
+DATALOADER:
+    BATCH_SIZE: 64
+    NUM_WORKERS: 0
+
+MODEL:
+    NAME: 'pixelda-caps-3d'
+
+CRITERION:
+    ITEMS4:
+      - 'softmax+ce'
+    WEIGHTS4:
+      - 1.0
+    KERNEL_NUM: 1
+
+EPOCHS: 1
+
