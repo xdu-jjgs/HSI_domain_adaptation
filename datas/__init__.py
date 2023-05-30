@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 from configs import CFG
 from datas.raw_dataset import RawHouston, RawHyRANK, RawShangHang
 from datas.preprocessed_dataset import PreprocessedHouston, PreprocessedHyRank, PreprocessedShangHang
-from datas.dynamic_dataset import DynamicDataset
+from datas.dynamic_dataset import *
 
 
 def build_transform(split):
@@ -51,6 +51,12 @@ def build_transform(split):
                 transforms.ZScoreNormalize(),
                 transforms.ToTensor(),
             ])
+    elif CFG.DATASET.NAME in ['Houston', 'HyRANK', 'ShangHang']:
+        transform = transforms.Compose([
+            transforms.LabelRenumber(),
+            transforms.ZScoreNormalize(),
+            transforms.ToTensor(),
+        ])
     else:
         raise NotImplementedError('invalid dataset: {} for transform'.format(CFG.DATASET.NAME))
     return transform
@@ -75,6 +81,19 @@ def build_dataset(split: str):
                                         CFG.DATASET.PATCH.PAD_MODE,
                                         CFG.DATASET.AUGMENT.RATIO,
                                         transform=build_transform(split))
+
+    elif CFG.DATASET.NAME == 'Houston':
+        dataset = HoustonDataset(CFG.DATASET.ROOT, split, (CFG.DATASET.PATCH.HEIGHT, CFG.DATASET.PATCH.WIDTH),
+                                 CFG.DATASET.PATCH.PAD_MODE, CFG.DATASET.SAMPLE_NUM if split == 'train' else None,
+                                 CFG.DATASET.SAMPLE_ORDER if split == 'train' else None, transform=build_transform(split))
+    elif CFG.DATASET.NAME == 'HyRANK':
+        dataset = HyRankDataset(CFG.DATASET.ROOT, split, (CFG.DATASET.PATCH.HEIGHT, CFG.DATASET.PATCH.WIDTH),
+                                CFG.DATASET.PATCH.PAD_MODE, CFG.DATASET.SAMPLE_NUM if split == 'train' else None,
+                                CFG.DATASET.SAMPLE_ORDER if split == 'train' else None, transform=build_transform(split))
+    elif CFG.DATASET.NAME == 'ShangHang':
+        dataset = ShangHangDataset(CFG.DATASET.ROOT, split, (CFG.DATASET.PATCH.HEIGHT, CFG.DATASET.PATCH.WIDTH),
+                                   CFG.DATASET.PATCH.PAD_MODE, CFG.DATASET.SAMPLE_NUM if split == 'train' else None,
+                                   CFG.DATASET.SAMPLE_ORDER if split == 'train' else None, transform=build_transform(split))
     else:
         raise NotImplementedError('invalid dataset: {} for dataset'.format(CFG.DATASET.NAME))
     return dataset
