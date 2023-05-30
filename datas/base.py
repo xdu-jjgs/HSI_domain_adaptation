@@ -107,6 +107,10 @@ class HSIDataset(Dataset):
         # e.g. ['background', 'road', 'building']
         raise NotImplementedError('names() not implemented')
 
+    @property
+    def pixels(self):
+        raise NotImplementedError('pixels() not implemented')
+
 
 class DynamicDataset(Dataset):
     def __init__(self):

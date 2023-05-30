@@ -50,6 +50,18 @@ class HoustonDataset(HSIDataset):
             'Road'
         ]
 
+    @property
+    def pixels(self):
+        return [
+            [141, 211, 199],
+            [255, 255, 179],
+            [190, 186, 218],
+            [251, 128, 114],
+            [128, 177, 211],
+            [253, 180, 98],
+            [179, 222, 105]
+        ]
+
 
 class HyRankDataset(HSIDataset):
     def __init__(self, root, split: str, window_size: Tuple[int, int], pad_mode: str, sample_num: int = None,
@@ -97,6 +109,23 @@ class HyRankDataset(HSIDataset):
             'Coastal Water'
         ]
 
+    @property
+    def pixels(self):
+        return [
+            [141, 211, 199],
+            [255, 255, 179],
+            [190, 186, 218],
+            [251, 128, 114],
+            [128, 177, 211],
+            [253, 180, 98],
+            [179, 222, 105],
+            [252, 205, 229],
+            [217, 217, 217],
+            [188, 128, 189],
+            [204, 128, 189],
+            [255, 237, 111]
+        ]
+
 
 class ShangHangDataset(HSIDataset):
     def __init__(self, root, split: str, window_size: Tuple[int, int], pad_mode: str, sample_num: int = None,
@@ -131,4 +160,12 @@ class ShangHangDataset(HSIDataset):
             'Water',
             'Land/ Building',
             'Plant'
+        ]
+
+    @property
+    def pixels(self):
+        return [
+            [141, 211, 199],
+            [255, 255, 179],
+            [190, 186, 218]
         ]
