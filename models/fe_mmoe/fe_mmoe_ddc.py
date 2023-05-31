@@ -34,6 +34,6 @@ class FEMMOEDDC(nn.Module):
         # print(task_weight.size(), experts_features.size())
         features = torch.matmul(task_weight, experts_features)
         features = features.squeeze(1)
-        # print(features.size())
         out = self.classifier(features)
+        # print(features.size(), out.size())
         return out, task_weight

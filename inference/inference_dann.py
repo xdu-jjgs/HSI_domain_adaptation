@@ -134,7 +134,7 @@ def worker(rank_gpu, args):
     with torch.no_grad():  # disable gradient back-propagation
         for batch, (x, label) in enumerate(test_bar):
             x, label = x.to(device), label.to(device)
-            _, y = model(x)
+            _, y, _ = model(x, alpha=0)
 
             pred = y.argmax(axis=1)
 

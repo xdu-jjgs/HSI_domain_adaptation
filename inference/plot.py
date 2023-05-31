@@ -8,7 +8,7 @@ from datas.base import HSIDataset
 def plot_confusion_matrix(confusion_matrix, path, normalize: bool = True):
     if normalize:
         rows_sum = confusion_matrix.sum(axis=1)
-        confusion_matrix = confusion_matrix / rows_sum
+        confusion_matrix = confusion_matrix / rows_sum[:, np.newaxis]
     num_classes = confusion_matrix.shape[0]
     tick_marks = range(0, num_classes)
     classes = [str(i + 1) for i in tick_marks]

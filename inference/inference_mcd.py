@@ -108,25 +108,34 @@ def worker(rank_gpu, args):
     # build data loader
     test_dataloader = build_dataloader(test_dataset, sampler=test_sampler, drop_last=False)
     # build model
-    model = build_model(NUM_CHANNELS, NUM_CLASSES)
-    model.to(device)
+    FE, C1, C2 = build_model(NUM_CHANNELS, NUM_CLASSES)
+    FE.to(device)
+    C1.to(device)
+    C2.to(device)
     # build metric
     metric = Metric(NUM_CLASSES)
 
-    model = amp.initialize(model, opt_level=args.opt_level)
-    model = DistributedDataParallel(model, broadcast_buffers=False)
+    [FE, C1, C2] = amp.initialize([FE, C1, C2], opt_level=args.opt_level)
+    # DDP
+    FE = DistributedDataParallel(FE)
+    C1 = DistributedDataParallel(C1)
+    C2 = DistributedDataParallel(C2)
 
     # load checkpoint
     if not os.path.isfile(args.checkpoint):
         raise RuntimeError('checkpoint {} not found'.format(args.checkpoint))
     checkpoint = torch.load(args.checkpoint)
     # delete module saved in train
-    model.load_state_dict(checkpoint['model']['state_dict'])
+    FE.load_state_dict(checkpoint['FE']['state_dict'])
+    C1.load_state_dict(checkpoint['C1']['state_dict'])
+    C2.load_state_dict(checkpoint['C2']['state_dict'])
     best_PA = checkpoint['metric']['PA']
     logging.info('load checkpoint {} with PA={:.3f}'.format(args.checkpoint, best_PA))
 
     # inference
-    model.eval()  # set model to evaluation mode
+    FE.eval()  # set model to evaluation mode
+    C1.eval()  # set model to evaluation mode
+    C2.eval()  # set model to evaluation mode
     metric.reset()  # reset metric
     test_bar = tqdm(test_dataloader, desc='inferring', ascii=True)
     gts = []
@@ -134,7 +143,9 @@ def worker(rank_gpu, args):
     with torch.no_grad():  # disable gradient back-propagation
         for batch, (x, label) in enumerate(test_bar):
             x, label = x.to(device), label.to(device)
-            _, y = model(x)
+            f = FE(x)
+            p1, p2 = C1(f)[-1], C2(f)[-1]
+            y = (p1 + p2) / 2
 
             pred = y.argmax(axis=1)
 

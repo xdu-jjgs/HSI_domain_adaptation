@@ -326,15 +326,15 @@ def worker(rank_gpu, args):
         val_bar = tqdm(val_dataloader, desc='validating', ascii=True)
         val_loss = 0.
         with torch.no_grad():  # disable gradient back-propagation
-            for x_t, label_s in val_bar:
-                x_t, label_s = x_t.to(device), label_s.to(device)
+            for x_t, label in val_bar:
+                x_t, label = x_t.to(device), label.to(device)
                 _, y_t, _, _ = model(x_t)
 
-                cls_loss = val_criterion(y_s=y_t, label_s=label_s)
+                cls_loss = val_criterion(y_s=y_t, label_s=label)
                 val_loss += cls_loss.item()
 
                 pred = y_t.argmax(axis=1)
-                metric_cls.add(pred.data.cpu().numpy(), label_s.data.cpu().numpy())
+                metric_cls.add(pred.data.cpu().numpy(), label.data.cpu().numpy())
 
                 val_bar.set_postfix({
                     'epoch': epoch,
@@ -345,7 +345,8 @@ def worker(rank_gpu, args):
                 })
         val_loss /= len(val_dataloader) * CFG.DATALOADER.BATCH_SIZE
 
-        PA, mPA, Ps, Rs, F1S, KC = metric_cls.PA(), metric_cls.mPA(), metric_cls.Ps(), metric_cls.Rs(), metric_cls.F1s(), metric_cls.KC()
+        PA, mPA, Ps, Rs, F1S, KC =\
+            metric_cls.PA(), metric_cls.mPA(), metric_cls.Ps(), metric_cls.Rs(), metric_cls.F1s(), metric_cls.KC()
         if dist.get_rank() == 0:
             writer.add_scalar('val/loss-epoch', val_loss, epoch)
             writer.add_scalar('val/PA-epoch', PA, epoch)
