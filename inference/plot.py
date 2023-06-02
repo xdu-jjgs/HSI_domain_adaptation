@@ -1,4 +1,3 @@
-import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -30,9 +29,9 @@ def plot_confusion_matrix(confusion_matrix, path, normalize: bool = True):
 def plot_classification_image(dataset: HSIDataset, pred, path):
     # print(dataset.gt_raw.shape)
     height, weight = dataset.gt_raw.shape
-    image = np.zeros((height, weight, 3))
+    image = np.zeros((height, weight, 3), dtype=np.uint8)
     coordinates = dataset.coordinates
     for ind, ele in zip(coordinates, pred):
         x, y = ind[0], ind[1]
         image[x][y] = dataset.pixels[ele]
-    cv2.imwrite(path, image)
+    plt.imsave(path, image)

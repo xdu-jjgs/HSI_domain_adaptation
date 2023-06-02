@@ -16,11 +16,11 @@ class ImageClassifier(nn.Module):
         )
         # change 64 to 100 if load failed
         self.layer2 = nn.Sequential(
-            nn.Linear(256, 64),
+            nn.Linear(256, 100),
             self.relu
         )
         self.head = nn.Sequential(
-            nn.Linear(64, num_classes)
+            nn.Linear(100, num_classes)
         )
         if dropout:
             self.dropout = nn.Dropout(0.5)
