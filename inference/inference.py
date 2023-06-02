@@ -1,5 +1,6 @@
 import os
 import torch
+import random
 import logging
 import argparse
 import numpy as np
@@ -9,6 +10,7 @@ import torch.multiprocessing as mp
 from apex import amp
 from tqdm import tqdm
 from datetime import datetime
+from sklearn.manifold import TSNE
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data.distributed import DistributedSampler
 
@@ -16,7 +18,7 @@ from configs import CFG
 from metric import Metric
 from models import build_model
 from datas import build_dataset, build_dataloader
-from plot import plot_confusion_matrix, plot_classification_image
+from plot import plot_confusion_matrix, plot_classification_image, plot_features
 
 
 def parse_args():
@@ -58,6 +60,14 @@ def parse_args():
                         type=str,
                         default='8888',
                         help='network port of the master process on the master node / machine')
+    parser.add_argument('--seed',
+                        type=int,
+                        default=30,
+                        help='random seed')
+    parser.add_argument('--sample-number',
+                        type=int,
+                        default=20,
+                        help='random seed')
     parser.add_argument('--opt-level',
                         type=str,
                         default='O0',
@@ -100,13 +110,22 @@ def worker(rank_gpu, args):
     torch.cuda.set_device(rank_gpu)
     device = torch.device('cuda', rank_gpu)
 
+    # set random seed
+    random.seed(args.seed)
+    np.random.seed(args.seed)
+    torch.manual_seed(args.seed)
+    torch.cuda.manual_seed_all(args.seed)
+
     # build dataset
-    test_dataset = build_dataset('test')
-    NUM_CHANNELS = test_dataset.num_channels
-    NUM_CLASSES = test_dataset.num_classes
-    test_sampler = DistributedSampler(test_dataset, shuffle=False)
+    source_dataset = build_dataset('train')
+    target_dataset = build_dataset('test')
+    NUM_CHANNELS = target_dataset.num_channels
+    NUM_CLASSES = target_dataset.num_classes
+    source_sampler = DistributedSampler(source_dataset, shuffle=False)
+    target_sampler = DistributedSampler(target_dataset, shuffle=False)
     # build data loader
-    test_dataloader = build_dataloader(test_dataset, sampler=test_sampler, drop_last=False)
+    source_dataloader = build_dataloader(source_dataset, sampler=source_sampler, drop_last=False)
+    target_dataloader = build_dataloader(target_dataset, sampler=target_sampler, drop_last=False)
     # build model
     model = build_model(NUM_CHANNELS, NUM_CLASSES)
     model.to(device)
@@ -128,32 +147,56 @@ def worker(rank_gpu, args):
     # inference
     model.eval()  # set model to evaluation mode
     metric.reset()  # reset metric
-    test_bar = tqdm(test_dataloader, desc='inferring', ascii=True)
-    gts = []
+    target_bar = tqdm(target_dataloader, desc='inferring-t', ascii=True)
+    source_bar = tqdm(source_dataloader, desc='inferring-s', ascii=True)
+    features_s, features_t = [], []
+    labels_s, labels_t = [], []
     res = []
     with torch.no_grad():  # disable gradient back-propagation
-        for batch, (x, label) in enumerate(test_bar):
+        for batch, (x, label) in enumerate(target_bar):
             x, label = x.to(device), label.to(device)
-            _, y = model(x)
-
+            f, y = model(x)
             pred = y.argmax(axis=1)
-
+            f = torch.squeeze(f)
+            features_t.append(f.data.cpu().numpy())
             res.append(pred.data.cpu().numpy())
-            gts.append(label.data.cpu().numpy())
+            labels_t.append(label.data.cpu().numpy())
             metric.add(pred.data.cpu().numpy(), label.data.cpu().numpy())
+        for batch, (x, label) in enumerate(source_bar):
+            x, label = x.to(device), label.to(device)
+            f, _ = model(x)
+            f = torch.squeeze(f)
+            features_s.append(f.data.cpu().numpy())
+            labels_s.append(label.data.cpu().numpy())
     res = np.concatenate(res)
-    gts = np.concatenate(gts)
+    labels_s, labels_t = np.concatenate(labels_s), np.concatenate(labels_t)
+    features_s, features_t = np.concatenate(features_s), np.concatenate(features_t)
+    print(features_s.shape, features_t.shape)
     PA, mPA, Ps, Rs, F1S = metric.PA(), metric.mPA(), metric.Ps(), metric.Rs(), metric.F1s()
     logging.info('inference | PA={:.3f} mPA={:.3f}'.format(PA, mPA))
     for c in range(NUM_CLASSES):
         logging.info(
-            'inference | class={}-{} P={:.3f} R={:.3f} F1={:.3f}'.format(c, test_dataset.names[c],
+            'inference | class={}-{} P={:.3f} R={:.3f} F1={:.3f}'.format(c, target_dataset.names[c],
                                                                          Ps[c],
                                                                          Rs[c], F1S[c]))
     # logging.info(metric.matrix)
+
     plot_confusion_matrix(metric.matrix, os.path.join(args.path, 'confusion_matrix.png'))
-    plot_classification_image(test_dataset, res, os.path.join(args.path, 'classification_map.png'))
-    plot_classification_image(test_dataset, gts, os.path.join(args.path, 'gt_map.png'))
+    plot_classification_image(target_dataset, res, os.path.join(args.path, 'classification_map.png'))
+    plot_classification_image(target_dataset, labels_t, os.path.join(args.path, 'gt_map.png'))
+    for i in range(NUM_CLASSES):
+        fs = features_s[np.where(labels_s == i)]
+        np.random.shuffle(fs)
+        fs = fs[:args.sample_number]
+        ft = features_t[np.where(labels_t == i)]
+        np.random.shuffle(ft)
+        ft = ft[:args.sample_number]
+        assert len(fs) == len(ft) == args.sample_number
+        f = np.concatenate([fs, ft], axis=0)
+        tsne = TSNE(n_components=2)
+        f = tsne.fit_transform(f)
+        fs, ft = np.split(f, 2)
+        plot_features(fs, ft, os.path.join(args.path, 'feature_map_class{}.png'.format(i)))
 
 
 def main():
