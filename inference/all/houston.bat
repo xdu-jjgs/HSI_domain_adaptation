@@ -13,6 +13,7 @@ python inference/inference.py ^
         --backend gloo ^
         --master-ip localhost ^
         --master-port 8890 ^
+        --sample-number 1000 ^
         --opt-level O2
 
 rem ddc
@@ -26,6 +27,7 @@ python inference/inference.py ^
         --backend gloo ^
         --master-ip localhost ^
         --master-port 8890 ^
+        --sample-number 1000 ^
         --opt-level O2
 
 rem dan
@@ -39,6 +41,7 @@ python inference/inference.py ^
         --backend gloo ^
         --master-ip localhost ^
         --master-port 8890 ^
+        --sample-number 1000 ^
         --opt-level O2
 
 rem jan
@@ -52,6 +55,7 @@ python inference/inference.py ^
         --backend gloo ^
         --master-ip localhost ^
         --master-port 8890 ^
+        --sample-number 1000 ^
         --opt-level O2
 
 rem dsan
@@ -65,6 +69,7 @@ python inference/inference.py ^
         --backend gloo ^
         --master-ip localhost ^
         --master-port 8890 ^
+        --sample-number 1000 ^
         --opt-level O2
 
 rem dann
@@ -78,6 +83,7 @@ python inference/inference_dann.py ^
         --backend gloo ^
         --master-ip localhost ^
         --master-port 8890 ^
+        --sample-number 1000 ^
         --opt-level O2
 
 rem mcd
@@ -91,6 +97,7 @@ python inference/inference_mcd.py ^
         --backend gloo ^
         --master-ip localhost ^
         --master-port 8890 ^
+        --sample-number 1000 ^
         --opt-level O2
 
 rem dst
@@ -104,4 +111,5 @@ python inference/inference_dst.py ^
         --backend gloo ^
         --master-ip localhost ^
         --master-port 8890 ^
+        --sample-number 1000 ^
         --opt-level O2

@@ -147,12 +147,11 @@ def worker(rank_gpu, args):
     # inference
     model.eval()  # set model to evaluation mode
     metric.reset()  # reset metric
-    target_bar = tqdm(target_dataloader, desc='inferring-t', ascii=True)
-    source_bar = tqdm(source_dataloader, desc='inferring-s', ascii=True)
     features_s, features_t = [], []
     labels_s, labels_t = [], []
     res = []
     with torch.no_grad():  # disable gradient back-propagation
+        target_bar = tqdm(target_dataloader, desc='inferring-t', ascii=True)
         for batch, (x, label) in enumerate(target_bar):
             x, label = x.to(device), label.to(device)
             f, y = model(x)
@@ -162,6 +161,7 @@ def worker(rank_gpu, args):
             res.append(pred.data.cpu().numpy())
             labels_t.append(label.data.cpu().numpy())
             metric.add(pred.data.cpu().numpy(), label.data.cpu().numpy())
+        source_bar = tqdm(source_dataloader, desc='inferring-s', ascii=True)
         for batch, (x, label) in enumerate(source_bar):
             x, label = x.to(device), label.to(device)
             f, _ = model(x)
@@ -171,7 +171,6 @@ def worker(rank_gpu, args):
     res = np.concatenate(res)
     labels_s, labels_t = np.concatenate(labels_s), np.concatenate(labels_t)
     features_s, features_t = np.concatenate(features_s), np.concatenate(features_t)
-    print(features_s.shape, features_t.shape)
     PA, mPA, Ps, Rs, F1S = metric.PA(), metric.mPA(), metric.Ps(), metric.Rs(), metric.F1s()
     logging.info('inference | PA={:.3f} mPA={:.3f}'.format(PA, mPA))
     for c in range(NUM_CLASSES):
@@ -179,24 +178,26 @@ def worker(rank_gpu, args):
             'inference | class={}-{} P={:.3f} R={:.3f} F1={:.3f}'.format(c, target_dataset.names[c],
                                                                          Ps[c],
                                                                          Rs[c], F1S[c]))
-    # logging.info(metric.matrix)
 
-    plot_confusion_matrix(metric.matrix, os.path.join(args.path, 'confusion_matrix.png'))
-    plot_classification_image(target_dataset, res, os.path.join(args.path, 'classification_map.png'))
-    plot_classification_image(target_dataset, labels_t, os.path.join(args.path, 'gt_map.png'))
     for i in range(NUM_CLASSES):
         fs = features_s[np.where(labels_s == i)]
-        np.random.shuffle(fs)
-        fs = fs[:args.sample_number]
         ft = features_t[np.where(labels_t == i)]
+        np.random.shuffle(fs)
         np.random.shuffle(ft)
-        ft = ft[:args.sample_number]
-        assert len(fs) == len(ft) == args.sample_number
+        fs, ft = fs[:args.sample_number], ft[:args.sample_number]
+        if len(fs) < args.sample_number:
+            print("Not enough samples for class{} in source domain".format(i))
+        if len(ft) < args.sample_number:
+            print("Not enough samples for class{} in target domain".format(i))
+        num_fs = len(fs)
         f = np.concatenate([fs, ft], axis=0)
         tsne = TSNE(n_components=2)
         f = tsne.fit_transform(f)
-        fs, ft = np.split(f, 2)
+        fs, ft = f[:num_fs], f[num_fs:]
         plot_features(fs, ft, os.path.join(args.path, 'feature_map_class{}.png'.format(i)))
+    plot_confusion_matrix(metric.matrix, os.path.join(args.path, 'confusion_matrix.png'))
+    plot_classification_image(target_dataset, res, os.path.join(args.path, 'classification_map.png'))
+    plot_classification_image(target_dataset, labels_t, os.path.join(args.path, 'gt_map.png'))
 
 
 def main():

@@ -39,6 +39,6 @@ def plot_classification_image(dataset: HSIDataset, pred, path):
 
 def plot_features(fs, ft, path):
     plt.figure()
-    plt.scatter(fs[:, 0], fs[:, 1], c='blue')
-    plt.scatter(ft[:, 0], ft[:, 1], c='orange')
+    plt.scatter(fs[:, 0], fs[:, 1], c='blue', s=3)
+    plt.scatter(ft[:, 0], ft[:, 1], c='orange', s=3)
     plt.savefig(path)
