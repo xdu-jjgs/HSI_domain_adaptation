@@ -164,7 +164,7 @@ def worker(rank_gpu, args):
         source_bar = tqdm(source_dataloader, desc='inferring-s', ascii=True)
         for batch, (x, label) in enumerate(source_bar):
             x, label = x.to(device), label.to(device)
-            f, _, _ = model(x)
+            f, _, _ = model(x, 0)
             f = torch.squeeze(f)
             features_s.append(f.data.cpu().numpy())
             labels_s.append(label.data.cpu().numpy())
