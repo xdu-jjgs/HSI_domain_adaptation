@@ -10,8 +10,6 @@ class HoustonDataset(HSIDataset):
     def __init__(self, root, split: str, window_size: Tuple[int, int], pad_mode: str, sample_num: int = None,
                  sample_order: str = None, transform=None):
         super(HoustonDataset, self).__init__(root, split, window_size, pad_mode, sample_num, sample_order, transform)
-        data_filename = 'DataCube_ShanghaiHangzhou.mat'
-        self.data_path = os.path.join(root, data_filename)
         if split == 'train':
             data_filename = 'Houston13.mat'
             gt_filename = 'Houston13_7gt.mat'
