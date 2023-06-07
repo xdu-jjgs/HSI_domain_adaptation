@@ -113,3 +113,17 @@ python inference/inference_dst.py ^
         --master-port 8890 ^
         --sample-number 1000 ^
         --opt-level O2
+
+rem tstnet
+python inference/inference_tstnet.py ^
+       runs/shanghang/dann-train/config.yaml ^
+       E:/zts/IEEE_TNNLS_TSTnet/results/shanghang.npy ^
+       --path runs/shanghang/tstnet/1 ^
+       --nodes 1 ^
+       --gpus 1 ^
+       --rank-node 0 ^
+       --backend gloo ^
+       --master-ip localhost ^
+       --master-port 8890 ^
+       --sample-number 1000 ^
+       --opt-level O0

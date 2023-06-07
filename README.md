@@ -35,7 +35,7 @@
 | 3     | Non irrigated land       | 614              | 542             |
 | 4     | Fruit trees              | 150              | 79              |
 | 5     | Olive Groves             | 1768             | 1401            |
-| 6     | Coniferous Forest        | 361              | 900             |
+| 6     | Coniferous Forest        | 361              | 500             |
 | 7     | Dense Vegetation         | 5035             | 3793            |
 | 8     | Sparce Vegetation        | 6374             | 2803            |
 | 9     | Sparce Areas             | 1754             | 404             |
