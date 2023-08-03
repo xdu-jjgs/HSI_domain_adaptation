@@ -11,6 +11,7 @@ from apex import amp
 from tqdm import tqdm
 from datetime import datetime
 from sklearn.manifold import TSNE
+# from apex.parallel import DistributedDataParallel
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data.distributed import DistributedSampler
 
