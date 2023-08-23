@@ -54,7 +54,6 @@ class ToTensor(nn.Module):
         return data, label
 
 
-
 class Normalize(nn.Module):
     # 整体/元素
     def __init__(self, mean, std):
@@ -92,3 +91,53 @@ class ZScoreNormalize(nn.Module):
         data = (data - mean) / std
         data = data.reshape(h, w, c).astype(data_type)
         return data, label
+
+
+class FFTCut(nn.Module):
+    def __init__(self, mode: str, low_percent: float = 0., high_percent: float = 0.):
+        super().__init__()
+        self.mode = mode
+        self.low_percent = low_percent
+        self.high_percent = high_percent
+        assert self.mode in ['', 'l', 'h', 'b']  # l for low-cut, h for high-cut, b for both
+        assert 0. <= self.low_percent <= self.high_percent <= 1.
+
+    def forward(self, data, labels):
+        if self.mode == '':
+            return data, labels
+        img_size = data.size(-1)
+        img_f = torch.fft.fft2(data)
+        if self.mode in ['h', 'b']:
+            highest_band_width = int(img_size * (1. - self.high_percent))
+            highest_band_w = highest_band_width // 2
+
+            img_low = torch.empty(data.size(), dtype=img_f.dtype, device=img_f.device)
+            # 高频在中心，被去除
+            img_low[:, :, :highest_band_w, :highest_band_w] = img_f[:, :, :highest_band_w,
+                                                              :highest_band_w]  # upper left
+            img_low[:, :, -highest_band_w:, :highest_band_w] = img_f[:, :, -highest_band_w:,
+                                                               :highest_band_w]  # lower left
+            img_low[:, :, :highest_band_w, -highest_band_w:] = img_f[:, :, :highest_band_w,
+                                                               -highest_band_w:]  # upper right
+            img_low[:, :, -highest_band_w:, -highest_band_w:] = \
+                img_f[:, :, -highest_band_w:, -highest_band_w:]  # lower right
+            img_res = torch.fft.ifft2(img_low)
+            img_res = torch.real(img_res)
+            print("Processing high cut")
+        if self.mode in ['l', 'b']:
+            lowest_band_width = int(img_size * self.low_percent)
+            lowest_band_w = lowest_band_width // 2
+            if self.mode == 'l':
+                img_high = img_f.clone()
+            else:
+                img_high = img_low.clone()
+            # print(lowest_band_w)
+            # 只保留中心的高频
+            img_high[:, :, :lowest_band_w, :lowest_band_w] = 0
+            img_high[:, :, -lowest_band_w:, :lowest_band_w] = 0
+            img_high[:, :, :lowest_band_w, -lowest_band_w:] = 0
+            img_high[:, :, -lowest_band_w:, -lowest_band_w:] = 0
+            img_res = torch.fft.ifft2(img_high)
+            img_res = torch.real(img_res)
+            print("Processing low cut")
+        return img_res, labels
