@@ -258,8 +258,8 @@ def worker(rank_gpu, args):
             p1_t, p2_t = C1(f_t)[-1], C2(f_t)[-1]
             cls_loss = cls_criterion(p1_s, label) + cls_criterion(p2_s, label)
             dis_loss = -1 * dis_criterion(p1_t, p2_t)
-            step2_loss_epoch += dis_loss.item()
             step2_loss = cls_loss + dis_loss
+            step2_loss_epoch += step2_loss.item()
 
             optimizer_fe.zero_grad()
             optimizer_c1.zero_grad()
@@ -311,6 +311,8 @@ def worker(rank_gpu, args):
         logging.info(
             'rank{} train epoch={} | loss_step1={:.3f} loss_step2={:.3f} loss_step3={:.3f}'.format(
                 dist.get_rank() + 1, epoch, step1_loss_epoch, step2_loss_epoch, step3_loss_epoch))
+        logging.info(
+            'rank{} train epoch={} | PA={:.3f} mPA={:.3f} KC={:.3f}'.format(dist.get_rank() + 1, epoch, PA, mPA, KC))
         for c in range(NUM_CLASSES):
             logging.info(
                 'rank{} train epoch={} | class={} P={:.3f} R={:.3f} F1={:.3f}'.format(dist.get_rank() + 1, epoch, c,
@@ -329,6 +331,7 @@ def worker(rank_gpu, args):
         with torch.no_grad():  # disable gradient back-propagation
             for x_t, label in val_bar:
                 x_t, label = x_t.to(device), label.to(device)
+
                 f_t = FE(x_t)
                 p1_t, p2_t = C1(f_t)[-1], C2(f_t)[-1]
                 y_t = (p1_t + p2_t) / 2
@@ -346,7 +349,7 @@ def worker(rank_gpu, args):
                     'PA': f'{metric.PA():.3f}',
                     'KC': f'{metric.KC():.3f}'
                 })
-        val_loss /= len(val_dataloader)
+        val_loss /= len(val_dataloader) * CFG.DATALOADER.BATCH_SIZE
 
         PA, mPA, Ps, Rs, F1S, KC = metric.PA(), metric.mPA(), metric.Ps(), metric.Rs(), metric.F1s(), metric.KC()
         if dist.get_rank() == 0:

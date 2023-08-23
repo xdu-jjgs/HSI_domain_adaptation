@@ -14,12 +14,13 @@ class ImageClassifier(nn.Module):
             nn.Linear(in_nodes, 256),
             self.relu,
         )
+        # change 64 to 100 if load failed
         self.layer2 = nn.Sequential(
-            nn.Linear(256, 64),
+            nn.Linear(256, 100),
             self.relu
         )
         self.head = nn.Sequential(
-            nn.Linear(64, num_classes)
+            nn.Linear(100, num_classes)
         )
         if dropout:
             self.dropout = nn.Dropout(0.5)
@@ -31,8 +32,8 @@ class ImageClassifier(nn.Module):
         initialize_weights(self.head)
 
     def forward(self, x):
-        while len(x.size()) > 2:
-            x = torch.squeeze(x, 2)
+        if len(x.size()) > 2:
+            x = torch.squeeze(x)
         x = self.layer1(x)
         x = self.layer2(x)
         out = self.head(x)
@@ -65,7 +66,7 @@ class MultiHeadClassifier(nn.Module):
 
     def forward(self, x):
         while len(x.size()) > 2:
-            x = torch.squeeze(x, 2)
+            x = torch.squeeze(x)
         x = self.layer1(x)
         x = self.layer2(x)
         outs = []

@@ -23,14 +23,17 @@ for dataset in datasets:
                 with open(log_path) as fo:
                     text = fo.read()
                     pair = re.findall(pattern, text)
-                    if seed is not None:
-                        pair = [pair[0]]
-                    pas = list(map(lambda x: float(x[1]), pair))
-                    for pa in pas:
-                        if res.get(model_name):
-                            res[model_name].append(pa)
-                        else:
-                            res[model_name] = [pa]
+                    try:
+                        if seed is not None:
+                            pair = [pair[0]]
+                        pas = list(map(lambda x: float(x[1]), pair))
+                        for pa in pas:
+                            if res.get(model_name):
+                                res[model_name].append(pa)
+                            else:
+                                res[model_name] = [pa]
+                    except IndexError:
+                        print("No result in {}".format(log_path))
 
     for name, v in res.items():
         v.sort()

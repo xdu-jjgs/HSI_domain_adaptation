@@ -7,7 +7,8 @@ from .ce import CELoss, SoftmaxCELoss, Entropy
 from .bce import BCELoss, SigmoidBCELoss
 from .dice import DiceLoss, SigmoidDiceLoss
 from .mmd import MMDLoss, LocalMMDLoss, JointMMDLoss
-from .dis import L1Distance, L2Distance, SoftmaxL1Distance
+from .dis import L1Distance, L2Distance, SoftmaxL1Distance, VarLoss
+
 from tllib.self_training.dst import WorstCaseEstimationLoss
 from tllib.self_training.pseudo_label import ConfidenceBasedSelfTrainingLoss
 
@@ -49,6 +50,8 @@ def build_criterion(name):
         criterion = ConfidenceBasedSelfTrainingLoss(threshold=CFG.CRITERION.THRESHOLD)
     elif name == 'wcec':
         return WorstCaseEstimationLoss(CFG.HYPERPARAMS[0])
+    elif name == 'var':
+        return VarLoss()
     else:
         raise NotImplementedError('invalid criterion: {}'.format(name))
     return criterion

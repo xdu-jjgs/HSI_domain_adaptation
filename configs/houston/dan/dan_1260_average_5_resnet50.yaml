@@ -1,39 +1,39 @@
 DATASET:
-    NAME: 'Houston'
-    ROOT: 'E:/zzy/GAN/data/Houston'
-    PATCH:
-        HEIGHT: 5
-        WIDTH: 5
-        PAD_MODE: 'symmetric'
-    SAMPLE_NUM: 1260
-    SAMPLE_ORDER: 'average'
+  NAME: 'Houston'
+  ROOT: 'E:/zzy/GAN/data/Houston'
+  PATCH:
+    HEIGHT: 5
+    WIDTH: 5
+    PAD_MODE: 'symmetric'
+  SAMPLE_NUM: 1260
+  SAMPLE_ORDER: 'average'
 
 DATALOADER:
-    BATCH_SIZE: 64
-    NUM_WORKERS: 0
-    ITERATION: 40
+  BATCH_SIZE: 64
+  NUM_WORKERS: 0
+  ITERATION: 40
 
 MODEL:
-    NAME: 'ddc'
-    BACKBONE: 'resnet50'
+  NAME: 'ddc'
+  BACKBONE: 'resnet50'
 
 CRITERION:
-    ITEMS:
-      - 'softmax+ce'
-      - 'mmd'
-    WEIGHTS:
-      - 1.0
-      - 1.0
-    KERNEL_NUM: 5
+  ITEMS:
+    - 'softmax+ce'
+    - 'mmd'
+  WEIGHTS:
+    - 1.0
+    - 1.0
+  KERNEL_NUM: 5
 
 OPTIMIZER:
-    NAME: 'adam'
-    LR: 0.001
+  NAME: 'adam'
+  LR: 0.001
 
 SCHEDULER:
-    NAME: 'plateau'
-    MODE: 'min'
-    FACTOR: 0.1
-    PATIENCE: 2
+  NAME: 'plateau'
+  MODE: 'min'
+  FACTOR: 0.1
+  PATIENCE: 2
 
 EPOCHS: 30

@@ -1,14 +1,14 @@
-from .gate import Gate
 from .resnet import ResNet
 from .extractor import FeatureExtractor
 from .classifier import ImageClassifier, MultiHeadClassifier
+from .extractor_attention import AttentionFeatureExtractor
 
 __all__ = [
-    Gate,
     ResNet,
     FeatureExtractor,
     ImageClassifier,
-    MultiHeadClassifier
+    MultiHeadClassifier,
+    AttentionFeatureExtractor
 ]
 
 
@@ -23,4 +23,8 @@ def build_backbone(num_channels, model_name):
         return ResNet(num_channels, depth=101)
     elif model_name == 'fe':
         return FeatureExtractor(num_channels)
+    elif model_name == 'fe_pos':
+        return AttentionFeatureExtractor(num_channels, attention='pos')
+    elif model_name == 'fe_can':
+        return AttentionFeatureExtractor(num_channels, attention='can')
     raise NotImplementedError('invalid model: {}'.format(model_name))

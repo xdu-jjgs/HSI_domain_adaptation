@@ -1,44 +1,44 @@
 DATASET:
-    NAME: 'Houston'
-    ROOT: 'E:/zzy/GAN/data/Houston'
-    PATCH:
-        HEIGHT: 27
-        WIDTH: 27
-        PAD_MODE: 'symmetric'
-    SAMPLE_NUM: 1260
-    SAMPLE_ORDER: 'average'
+  NAME: 'Houston'
+  ROOT: 'E:/zzy/GAN/data/Houston'
+  PATCH:
+    HEIGHT: 27
+    WIDTH: 27
+    PAD_MODE: 'symmetric'
+  SAMPLE_NUM: 1260
+  SAMPLE_ORDER: 'average'
 
 DATALOADER:
-    BATCH_SIZE: 64
-    NUM_WORKERS: 0
-    ITERATION: 40
+  BATCH_SIZE: 64
+  NUM_WORKERS: 0
+  ITERATION: 40
 
 MODEL:
-    NAME: 'dst'
-    BACKBONE: 'fe'
+  NAME: 'dst'
+  BACKBONE: 'fe'
 
 CRITERION:
-    ITEMS:
-      - 'softmax+ce'
-      - 'wcec'
-      - 'cbst'
-    WEIGHTS:
-      - 1.0
-      - 1.0
-      - 1.0
-    THRESHOLD: 0.7
+  ITEMS:
+    - 'softmax+ce'
+    - 'wcec'
+    - 'cbst'
+  WEIGHTS:
+    - 1.0
+    - 1.0
+    - 1.0
+  THRESHOLD: 0.7
 
 OPTIMIZER:
-    NAME: 'adam'
-    LR: 0.0001
+  NAME: 'adam'
+  LR: 0.0001
 
 SCHEDULER:
-    NAME: 'plateau'
-    MODE: 'min'
-    FACTOR: 0.1
-    PATIENCE: 2
+  NAME: 'plateau'
+  MODE: 'min'
+  FACTOR: 0.1
+  PATIENCE: 2
 
 EPOCHS: 30
 
 HYPERPARAMS:
-    - 2.0
+  - 2.0

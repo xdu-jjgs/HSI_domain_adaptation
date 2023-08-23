@@ -21,6 +21,7 @@ class HSIDataset(Dataset):
         self.sample_order = sample_order
         self.data = None
         self.gt = None
+        self.gt_raw = None
         self.selector = None
         self.coordinates = None
         self.transform = transform
@@ -106,6 +107,10 @@ class HSIDataset(Dataset):
     def names(self):
         # e.g. ['background', 'road', 'building']
         raise NotImplementedError('names() not implemented')
+
+    @property
+    def pixels(self):
+        raise NotImplementedError('pixels() not implemented')
 
 
 class DynamicDataset(Dataset):
