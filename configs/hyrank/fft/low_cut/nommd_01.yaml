@@ -1,6 +1,6 @@
 DATASET:
-  NAME: 'Houston'
-  ROOT: 'E:/zzy/GAN/data/Houston'
+  NAME: 'HyRANK'
+  ROOT: 'E:/zzy/GAN/data/HyRANK'
   PATCH:
     HEIGHT: 27
     WIDTH: 27
@@ -10,9 +10,9 @@ DATASET:
 
 
 DATALOADER:
-  BATCH_SIZE: 64
+  BATCH_SIZE: 128
   NUM_WORKERS: 0
-  ITERATION: 40
+  ITERATION: 156
 
 MODEL:
   NAME: 'ddc'
@@ -34,4 +34,4 @@ SCHEDULER:
   FACTOR: 0.1
   PATIENCE: 2
 
-EPOCHS: 30
+EPOCHS: 20

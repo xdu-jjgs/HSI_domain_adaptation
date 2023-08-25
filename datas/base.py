@@ -22,7 +22,7 @@ class HSIDataset(Dataset):
         self.data = None
         self.gt = None
         self.gt_raw = None
-        self.selector = None
+        # self.selector = None
         self.coordinates = None
         self.transform = transform
 
@@ -34,7 +34,7 @@ class HSIDataset(Dataset):
         gts = []
         for i in range(h):
             for j in range(w):
-                if self.selector is None or self.selector(self.data[i, j], self.gt[i, j]):
+                if self.selector(self.data[i, j], self.gt[i, j]):
                     coordinates.append([i, j])
                     gts.append(self.gt[i, j])
         coordinates = np.array(coordinates)
@@ -83,6 +83,9 @@ class HSIDataset(Dataset):
         data = self.data[..., x1:x1 + self.window_size[0], y1:y1 + self.window_size[1]]
         gt = self.gt[item]
         return data, gt
+
+    def selector(self, x, y):
+        return True
 
     def name2label(self, name):
         return self.names.index(name)
