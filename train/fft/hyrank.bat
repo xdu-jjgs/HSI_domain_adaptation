@@ -4,7 +4,7 @@ set PYTHONPATH=%cd%
 
 rem nommd-low_cut
 python train/nommd/train.py configs/hyrank/fft/low_cut/nommd_01.yaml ^
-        --path ./runs/hyrank/fft/low_cut/nommd-train ^
+        --path ./runs/hyrank/fft/low_cut_nommd ^
         --nodes 1 ^
         --gpus 1 ^
         --rank-node 0 ^
@@ -16,7 +16,7 @@ python train/nommd/train.py configs/hyrank/fft/low_cut/nommd_01.yaml ^
 
 rem nommd-high_cut
 python train/nommd/train.py configs/hyrank/fft/high_cut/nommd_01.yaml ^
-        --path ./runs/hyrank/fft/high_cut/nommd-train ^
+        --path ./runs/hyrank/fft/high_cut_nommd ^
         --nodes 1 ^
         --gpus 1 ^
         --rank-node 0 ^
@@ -28,7 +28,7 @@ python train/nommd/train.py configs/hyrank/fft/high_cut/nommd_01.yaml ^
 
 rem nommd-both_cut
 python train/nommd/train.py configs/hyrank/fft/both_cut/nommd_01.yaml ^
-        --path ./runs/hyrank/fft/both_cut/nommd-train ^
+        --path ./runs/hyrank/fft/both_cut_nommd ^
         --nodes 1 ^
         --gpus 1 ^
         --rank-node 0 ^
