@@ -127,7 +127,7 @@ class FFTCut(nn.Module):
             img_low[:, -highest_band_h:, -highest_band_w:] = img_f[:, -highest_band_h:, -highest_band_w:]  # lower right
             img_res = torch.fft.ifft2(img_low)
             img_res = torch.real(img_res)
-            print("Processing high cut")
+            # print("Processing high cut")
         if self.mode in ['l', 'b']:
             lowest_band_height = int(h * self.low_percent)
             lowest_band_width = int(w * self.low_percent)
@@ -140,12 +140,11 @@ class FFTCut(nn.Module):
                 img_high = img_low.clone()
             # print(lowest_band_w)
             # 只保留中心的高频
-            print(img_high.size())
             img_high[:, :lowest_band_h, :lowest_band_w] = 0
             img_high[:, -lowest_band_h:, :lowest_band_w] = 0
             img_high[:, :lowest_band_h, -lowest_band_w:] = 0
             img_high[:, -lowest_band_h:, -lowest_band_w:] = 0
             img_res = torch.fft.ifft2(img_high)
             img_res = torch.real(img_res)
-            print("Processing low cut")
+            # print("Processing low cut")
         return img_res, labels

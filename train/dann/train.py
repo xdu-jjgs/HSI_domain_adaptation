@@ -74,6 +74,7 @@ def parse_args():
                         default='O0',
                         help='optimization level for nvidia/apex')
     args = parser.parse_args()
+    args.path = os.path.join(args.path, str(args.seed))
     # number of GPUs totally, which equals to the number of processes
     args.world_size = args.nodes * args.gpus
     return args
