@@ -37,3 +37,111 @@ python train/nommd/train.py configs/hyrank/fft/both_cut/nommd_01.yaml ^
         --master-port 8890 ^
         --seed %~1% ^
         --opt-level O2
+
+rem dan-low_cut
+python train/ddc/train.py configs/hyrank/fft/low_cut/dan_01.yaml ^
+        --path ./runs/hyrank/fft/low_cut_dan ^
+        --nodes 1 ^
+        --gpus 1 ^
+        --rank-node 0 ^
+        --backend gloo ^
+        --master-ip localhost ^
+        --master-port 8890 ^
+        --seed %~1% ^
+        --opt-level O2
+
+rem dan-high_cut
+python train/ddc/train.py configs/hyrank/fft/high_cut/dan_01.yaml ^
+        --path ./runs/hyrank/fft/high_cut_dan ^
+        --nodes 1 ^
+        --gpus 1 ^
+        --rank-node 0 ^
+        --backend gloo ^
+        --master-ip localhost ^
+        --master-port 8890 ^
+        --seed %~1% ^
+        --opt-level O2
+
+rem dan-both_cut
+python train/ddc/train.py configs/hyrank/fft/both_cut/dan_01.yaml ^
+        --path ./runs/hyrank/fft/both_cut_dan ^
+        --nodes 1 ^
+        --gpus 1 ^
+        --rank-node 0 ^
+        --backend gloo ^
+        --master-ip localhost ^
+        --master-port 8890 ^
+        --seed %~1% ^
+        --opt-level O2
+
+rem dann-low_cut
+python train/dann/train.py configs/hyrank/fft/low_cut/dann_01.yaml ^
+        --path ./runs/hyrank/fft/low_cut_dann ^
+        --nodes 1 ^
+        --gpus 1 ^
+        --rank-node 0 ^
+        --backend gloo ^
+        --master-ip localhost ^
+        --master-port 8890 ^
+        --seed %~1% ^
+        --opt-level O2
+
+rem dann-high_cut
+python train/dann/train.py configs/hyrank/fft/high_cut/dann_01.yaml ^
+        --path ./runs/hyrank/fft/high_cut_dann ^
+        --nodes 1 ^
+        --gpus 1 ^
+        --rank-node 0 ^
+        --backend gloo ^
+        --master-ip localhost ^
+        --master-port 8890 ^
+        --seed %~1% ^
+        --opt-level O2
+
+rem dann-both_cut
+python train/dann/train.py configs/hyrank/fft/both_cut/dann_01.yaml ^
+        --path ./runs/hyrank/fft/both_cut_dann ^
+        --nodes 1 ^
+        --gpus 1 ^
+        --rank-node 0 ^
+        --backend gloo ^
+        --master-ip localhost ^
+        --master-port 8890 ^
+        --seed %~1% ^
+        --opt-level O2
+
+rem mcd-low_cut
+python train/mcd/train.py configs/hyrank/fft/low_cut/mcd_01.yaml ^
+        --path ./runs/hyrank/fft/low_cut_mcd ^
+        --nodes 1 ^
+        --gpus 1 ^
+        --rank-node 0 ^
+        --backend gloo ^
+        --master-ip localhost ^
+        --master-port 8890 ^
+        --seed %~1% ^
+        --opt-level O2
+
+rem mcd-high_cut
+python train/mcd/train.py configs/hyrank/fft/high_cut/mcd_01.yaml ^
+        --path ./runs/hyrank/fft/high_cut_mcd ^
+        --nodes 1 ^
+        --gpus 1 ^
+        --rank-node 0 ^
+        --backend gloo ^
+        --master-ip localhost ^
+        --master-port 8890 ^
+        --seed %~1% ^
+        --opt-level O2
+
+rem mcd-both_cut
+python train/mcd/train.py configs/hyrank/fft/both_cut/mcd_01.yaml ^
+        --path ./runs/hyrank/fft/both_cut_mcd ^
+        --nodes 1 ^
+        --gpus 1 ^
+        --rank-node 0 ^
+        --backend gloo ^
+        --master-ip localhost ^
+        --master-port 8890 ^
+        --seed %~1% ^
+        --opt-level O2
