@@ -15,6 +15,7 @@ def build_transform():
             transforms.LabelRenumber(),
             transforms.ZScoreNormalize(),
             transforms.ToTensor(),
+            transforms.FFTCut(CFG.DATASET.FFT_MODE, CFG.DATASET.LOW_PERCENT, CFG.DATASET.HIGH_PERCENT),
         ])
     else:
         raise NotImplementedError('invalid dataset: {} for transform'.format(CFG.DATASET.NAME))

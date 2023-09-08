@@ -24,7 +24,6 @@ class HoustonDataset(HSIDataset):
         self.gt = sio.loadmat(self.gt_path)['map'].astype('int')
         self.gt_raw = self.gt.copy()
 
-        self.selector = lambda x, y: y != 0
         self.coordinates, self.gt = self.cube_data()
 
         if self.transform is not None:
@@ -32,6 +31,9 @@ class HoustonDataset(HSIDataset):
 
         if self.sample_order:
             self.coordinates, self.gt = self.sample_data()
+
+    def selector(self, x, y):
+        return y != 0
 
     @property
     def num_channels(self):
@@ -79,7 +81,6 @@ class HyRankDataset(HSIDataset):
         self.gt = sio.loadmat(self.gt_path)['map'].astype('int')
         self.gt_raw = self.gt.copy()
 
-        self.selector = lambda x, y: y not in [0, 6, 8]
         self.coordinates, self.gt = self.cube_data()
 
         if self.transform is not None:
@@ -87,6 +88,9 @@ class HyRankDataset(HSIDataset):
 
         if self.sample_order:
             self.coordinates, self.gt = self.sample_data()
+
+    def selector(self, x, y):
+        return y not in [0, 6, 8]
 
     @property
     def num_channels(self):
