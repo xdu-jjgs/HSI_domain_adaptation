@@ -6,6 +6,7 @@ from .dstda import DSTDA, DSTDAMapping
 from .task_mmoe import TaskMMOEDDC, TaskMMOEDANN
 from .fe_param import FEPARAMDDC, FEPARAMDANN, FEPARAMMCD
 from .fe_mmoe import FEMMOEDDC, FEMMOEDANN, FEMMOEMCD, FEMMOESol1
+from .dd_fe_mmoe import DDFEMMOEDANN
 
 from configs import CFG
 from models.backbone import build_backbone, ImageClassifier
@@ -60,6 +61,8 @@ def build_model(num_channels, num_classes):
         C1 = ImageClassifier(backbone_[0].out_channels, num_classes)
         C2 = ImageClassifier(backbone_[0].out_channels, num_classes)
         return FE, C1, C2
+    elif CFG.MODEL.NAME == 'dd_fe_mmoe':
+        return DDFEMMOEDANN(num_classes, backbone_)
     # elif CFG.MODEL.NAME == 'dqn':
     #     return DQN(backbone_.out_channels, num_classes)
     raise NotImplementedError('invalid model: {}'.format(CFG.MODEL.NAME))
