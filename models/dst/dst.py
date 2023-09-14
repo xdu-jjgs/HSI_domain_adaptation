@@ -12,7 +12,7 @@ class DST(nn.Module):
         self.classifier = ImageClassifier(backbone.out_channels, num_classes)
         self.classifier_adv = ImageClassifier(backbone.out_channels, num_classes)
         self.classifier_pse = ImageClassifier(backbone.out_channels, num_classes)
-        self.grl_layer = WarmStartGradientReverseLayer(alpha=1.0, lo=0.0, hi=1.0, max_iters=1000, auto_step=True)
+        self.grl_layer = WarmStartGradientReverseLayer(alpha=1.0, lo=0.0, hi=1.0, max_iters=200, auto_step=True)
 
     def forward(self, x):
         features = self.backbone(x)
