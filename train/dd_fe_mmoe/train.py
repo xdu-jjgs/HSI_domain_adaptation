@@ -235,16 +235,16 @@ def worker(rank_gpu, args):
             cls_loss = cls_criterion(y_s=y_s, label_s=label_s) * loss_weights[0]
             # step2: train 2
             y_s, _, y_s_adv_k, y_s_adv_d, task_weight = model(x_s, 2)
-            y_t, y_pse, y_t_adv_k, y_t_adv_d = model(x_t, 2)
+            y_t, y_pse, y_t_adv_k, y_t_adv_d, task_weight = model(x_t, 2)
+            cbst_loss, mask, pseudo_labels = cbst_criterion(y_pse, y_t)
+            cbst_loss *= loss_weights[3]
             domain_label_s = torch.zeros(len(label_s))
             domain_label_t = torch.ones(len(label_s))  # len of label_s equal to label_t
             domain_label_s, domain_label_t = domain_label_s.to(device), domain_label_t.to(device)
             worst_loss = wcec_criterion(y_s, y_s_adv_k, y_t, y_t_adv_k) * loss_weights[1]
             domain_s_loss = domain_criterion(y_s=y_s_adv_d, label_s=domain_label_s) * loss_weights[2]
             domain_t_loss = domain_criterion(y_s=y_t_adv_d, label_s=domain_label_t) * loss_weights[2]
-            cbst_loss, mask, pseudo_labels = cbst_criterion(y_pse, y_t)
-            cbst_loss *= loss_weights[3]
-            total_loss = cls_loss + worst_loss + domain_s_loss + domain_t_loss + cbst_loss
+            total_loss = cls_loss + cbst_loss + worst_loss + domain_s_loss + domain_t_loss
 
             cls_loss_epoch += cls_loss.item()
             worst_loss_epoch += worst_loss.item()
