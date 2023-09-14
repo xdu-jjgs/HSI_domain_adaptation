@@ -12,17 +12,4 @@ python train/dst/train.py configs/hyrank/dst/dst_1_1_1_07_2.yaml ^
         --master-ip localhost ^
         --master-port 8890 ^
         --seed %~1% ^
-        --opt-level O2
-
-
-remdst
-python train/dst/train.py configs/hyrank/dst/dst_1_1_1_07_2_1800_average.yaml ^
-        --path ./runs/hyrank_sample/dst_1_1_1_07_2-train ^
-        --nodes 1 ^
-        --gpus 1 ^
-        --rank-node 0 ^
-        --backend gloo ^
-        --master-ip localhost ^
-        --master-port 8886 ^
-        --seed %~1% ^
-        --opt-level O2
+        --opt-level O1
