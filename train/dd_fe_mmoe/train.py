@@ -231,11 +231,11 @@ def worker(rank_gpu, args):
             x_t = x_t.to(device)
 
             # step1: train 1
-            y_s, task_weight = model(x_s, 1)
+            y_s, task_weight = model(x_s, '000')
             cls_loss = cls_criterion(y_s=y_s, label_s=label_s) * loss_weights[0]
             # step2: train 2
-            y_s, _, y_s_adv_k, y_s_adv_d, task_weight = model(x_s, 2)
-            y_t, y_pse, y_t_adv_k, y_t_adv_d, task_weight = model(x_t, 2)
+            y_s, _, y_s_adv_k, y_s_adv_d, task_weight = model(x_s, '010')
+            y_t, y_pse, y_t_adv_k, y_t_adv_d, task_weight = model(x_t, '011')
             cbst_loss, mask, pseudo_labels = cbst_criterion(y_pse, y_t)
             cbst_loss *= loss_weights[3]
             domain_label_s = torch.zeros(len(label_s))
@@ -259,7 +259,7 @@ def worker(rank_gpu, args):
 
             # # step3: train 3
             # model.freeze_domain_invariant()
-            # y_pse, task_weight = model(x_t, 3)
+            # y_pse, task_weight = model(x_t, )
             # cbst_loss, mask, pseudo_labels = cbst_criterion(y_pse, y_t)
             # optimizer2.zero_grad()
             # with amp.scale_loss(cbst_loss, optimizer2) as scaled_loss:
@@ -347,7 +347,7 @@ def worker(rank_gpu, args):
         with torch.no_grad():  # disable gradient back-propagation
             for x_t, label_s in val_bar:
                 x_t, label_s = x_t.to(device), label_s.to(device)
-                y_t, _, _, _, task_weight = model(x_t, 2)
+                y_t, _, _, _, task_weight = model(x_t, '000')
 
                 cls_loss = val_criterion(y_s=y_t, label_s=label_s)
                 val_loss += cls_loss.item()
