@@ -16,6 +16,9 @@ class DSTDA(nn.Module):
         self.classifier_pse = ImageClassifier(backbone.out_channels, num_classes)
         self.grl_layer = WarmStartGradientReverseLayer(alpha=1.0, lo=0.0, hi=0.1, max_iters=1000, auto_step=False)
 
+
+
+
     def forward(self, x):
         features = self.backbone(x)
         _, out = self.classifier(features)
