@@ -12,4 +12,16 @@ python train/vdd/train_os.py configs/shanghang/vdd/vdd_os.yaml ^
         --master-ip localhost ^
         --master-port 8890 ^
         --seed %~1% ^
-        --opt-level O2
+        --opt-level O1
+
+rem vdd
+python train/vdd/train_os.py configs/shanghang/vdd/vdd_ts.yaml ^
+        --path ./runs/shanghang/vdd_ts-train ^
+        --nodes 1 ^
+        --gpus 1 ^
+        --rank-node 0 ^
+        --backend gloo ^
+        --master-ip localhost ^
+        --master-port 8890 ^
+        --seed %~1% ^
+        --opt-level O1
