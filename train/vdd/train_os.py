@@ -264,19 +264,26 @@ def worker(rank_gpu, args):
         cls_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
         domain_s_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
         domain_t_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
+        decomposed_s_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
+        decomposed_t_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
         PA, mPA, Ps, Rs, F1S, KC = metric.PA(), metric.mPA(), metric.Ps(), metric.Rs(), metric.F1s(), metric.KC()
         if dist.get_rank() == 0:
             writer.add_scalar('train/loss_total-epoch', total_loss_epoch, epoch)
             writer.add_scalar('train/loss_cls-epoch', cls_loss_epoch, epoch)
             writer.add_scalar('train/loss_domain_s-epoch', domain_s_loss_epoch, epoch)
             writer.add_scalar('train/loss_domain_t-epoch', domain_t_loss_epoch, epoch)
+            writer.add_scalar('train/loss_decomposed_s-epoch', decomposed_s_loss_epoch, epoch)
+            writer.add_scalar('train/loss_decomposed_t-epoch', decomposed_t_loss_epoch, epoch)
 
             writer.add_scalar('train/PA-epoch', PA, epoch)
             writer.add_scalar('train/mPA-epoch', mPA, epoch)
             writer.add_scalar('train/KC-epoch', KC, epoch)
         logging.info(
-            'rank{} train epoch={} | loss_total={:.3f} loss_cls={:.3f} loss_domain_s={:.3f} loss_domain_t={:.3f}'.format(
-                dist.get_rank() + 1, epoch, total_loss_epoch, cls_loss_epoch, domain_s_loss_epoch, domain_t_loss_epoch))
+            'rank{} train epoch={} | loss_total={:.3f} loss_cls={:.3f} loss_domain_s={:.3f} loss_domain_t={:.3f} '
+            'loss_decomposed_s={:.3f} loss_decomposed_t={:.3f}'.format(
+                dist.get_rank() + 1, epoch, total_loss_epoch, cls_loss_epoch, domain_s_loss_epoch, domain_t_loss_epoch,
+                decomposed_s_loss_epoch, decomposed_t_loss_epoch
+            ))
         logging.info(
             'rank{} train epoch={} | PA={:.3f} mPA={:.3f} KC={:.3f}'.format(dist.get_rank() + 1, epoch, PA, mPA, KC))
         for c in range(NUM_CLASSES):

@@ -9,7 +9,9 @@ class OrthogonalDecomposed(nn.Module):
     def forward(self, a, b, **kwargs):
         a = a.squeeze()
         b = b.squeeze()
-        M = (torch.norm(a, p=2, dim=1, keepdim=True) * torch.norm(b, p=2, dim=1, keepdim=True))
-        loss = torch.abs(torch.sum(M))
+        a_norm = a / torch.norm(a, p=2, dim=1, keepdim=True)
+        b_norm = b / torch.norm(b, p=2, dim=1, keepdim=True)
+        M = a_norm * b_norm
+        loss = torch.mean(torch.abs(torch.sum(M, dim=1)))
         return loss
 
