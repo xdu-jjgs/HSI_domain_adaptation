@@ -34,3 +34,9 @@ class VDD(nn.Module):
         reverse_features = self.grl(ds_features)
         domain_output = self.domain_discriminator(reverse_features)[-1]
         return di_features, ds_features, class_output, domain_output
+
+    def freeze_backbone(self):
+        self.backbone.eval()
+
+    def activate_backbone(self):
+        self.backbone.train()
