@@ -7,7 +7,7 @@ from .bce import BCELoss, SigmoidBCELoss
 from .dice import DiceLoss, SigmoidDiceLoss
 from .ce import CELoss, SoftmaxCELoss, Entropy
 from .mmd import MMDLoss, LocalMMDLoss, JointMMDLoss
-from .vector_decomposed import OrthogonalDecomposed
+from .decomposed import OrthogonalDecomposed
 from .dis import L1Distance, L2Distance, SoftmaxL1Distance, VarLoss
 
 from tllib.self_training.dst import WorstCaseEstimationLoss

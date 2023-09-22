@@ -12,7 +12,7 @@ python train/dstda/train.py configs/shanghang/dstda/dstda_1_1_1_1_07_2.yaml ^
         --master-ip localhost ^
         --master-port 8890 ^
         --seed %~1% ^
-        --opt-level O2
+        --opt-level O1
 
 rem dstda_mapping
 python train/dstda/train.py configs/shanghang/dstda/dstda_mapping_1_1_1_1_07_2.yaml ^
@@ -24,4 +24,4 @@ python train/dstda/train.py configs/shanghang/dstda/dstda_mapping_1_1_1_1_07_2.y
         --master-ip localhost ^
         --master-port 8890 ^
         --seed %~1% ^
-        --opt-level O0
+        --opt-level O1

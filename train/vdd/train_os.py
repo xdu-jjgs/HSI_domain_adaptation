@@ -234,7 +234,7 @@ def worker(rank_gpu, args):
             domain_t_loss = domain_criterion(y_s=domain_out_t, label_s=domain_label_t) * loss_weights[1]
             decomposed_s_loss = decomposed_criterion(di_s, ds_s) * loss_weights[2]
             decomposed_t_loss = decomposed_criterion(di_t, ds_t) * loss_weights[2]
-            total_loss = cls_loss + domain_s_loss + domain_t_loss + decomposed_s_loss, decomposed_t_loss
+            total_loss = cls_loss + domain_s_loss + domain_t_loss + decomposed_s_loss + decomposed_t_loss
 
             cls_loss_epoch += cls_loss.item()
             domain_s_loss_epoch += domain_s_loss.item()
@@ -294,7 +294,7 @@ def worker(rank_gpu, args):
         with torch.no_grad():  # disable gradient back-propagation
             for x_t, label in val_bar:
                 x_t, label = x_t.to(device), label.to(device)
-                _, y_t, _ = model(x_t, alpha=0)  # val阶段网络不需要反传，所以alpha=0
+                _, _, y_t, _ = model(x_t)
 
                 cls_loss = val_criterion(y_s=y_t, label_s=label)
                 val_loss += cls_loss.item()

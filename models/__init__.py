@@ -65,7 +65,7 @@ def build_model(num_channels, num_classes):
     elif CFG.MODEL.NAME == 'dd_fe_mmoe':
         return DDFEMMOEDANN(num_classes, backbone_)
     elif CFG.MODEL.NAME == 'vdd':
-        return VDD(num_channels, backbone_)
+        return VDD(num_classes, backbone_)
     # elif CFG.MODEL.NAME == 'dqn':
     #     return DQN(backbone_.out_channels, num_classes)
     raise NotImplementedError('invalid model: {}'.format(CFG.MODEL.NAME))

@@ -9,6 +9,7 @@ class VDD(nn.Module):
     def __init__(self, num_classes: int, backbone: nn.Module):
         super(VDD, self).__init__()
         self.backbone = backbone
+        self.relu = nn.ReLU()
         self.out_channels = backbone.out_channels
         self.di_extractor = nn.Sequential(
             nn.Conv2d(self.out_channels, self.out_channels, kernel_size=3, stride=2, padding=1),
@@ -26,10 +27,10 @@ class VDD(nn.Module):
 
     def forward(self, x):
         features = self.backbone(x)
-        di_features = self.di_extractor(features)[-1]
+        di_features = self.di_extractor(features)
         class_output = self.classifier(features)[-1]
 
-        ds_features = features[-1] - di_features
+        ds_features = features - di_features
         reverse_features = self.grl(ds_features)
         domain_output = self.domain_discriminator(reverse_features)[-1]
         return di_features, ds_features, class_output, domain_output
