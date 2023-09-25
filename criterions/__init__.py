@@ -3,10 +3,11 @@ import torch.nn as nn
 from configs import CFG
 from .focal import FocalLoss
 from .coral import CoralLoss
-from .ce import CELoss, SoftmaxCELoss, Entropy
 from .bce import BCELoss, SigmoidBCELoss
 from .dice import DiceLoss, SigmoidDiceLoss
+from .ce import CELoss, SoftmaxCELoss, Entropy
 from .mmd import MMDLoss, LocalMMDLoss, JointMMDLoss
+from .decomposed import OrthogonalDecomposed
 from .dis import L1Distance, L2Distance, SoftmaxL1Distance, VarLoss
 
 from tllib.self_training.dst import WorstCaseEstimationLoss
@@ -52,6 +53,8 @@ def build_criterion(name):
         return WorstCaseEstimationLoss(CFG.HYPERPARAMS[0])
     elif name == 'var':
         return VarLoss()
+    elif name == 'orthogonal':
+        return OrthogonalDecomposed()
     else:
         raise NotImplementedError('invalid criterion: {}'.format(name))
     return criterion

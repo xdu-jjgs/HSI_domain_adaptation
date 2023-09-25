@@ -14,15 +14,15 @@ python train/dstda/train.py configs/houston/dstda/dstda_1_1_1_1_07_2.yaml ^
         --seed %~1% ^
         --opt-level O2
 
-rem dstda
-python train/dstda/train.py configs/houston/dstda/dstda_1_1_1_1_07_2_1260_average.yaml ^
-        --path ./runs/houston_sample/dstda_1_1_1_1_07_2-train ^
+rem dstda_mapping
+python train/dstda/train.py configs/houston/dstda/dstda_mapping_1_1_1_1_07_2.yaml ^
+        --path ./runs/houston/dstda_mapping_1_1_1_1_07_2-train ^
         --nodes 1 ^
         --gpus 1 ^
         --rank-node 0 ^
         --backend gloo ^
         --master-ip localhost ^
-        --master-port 8886 ^
+        --master-port 8890 ^
         --seed %~1% ^
-        --opt-level O2
+        --opt-level O0
 

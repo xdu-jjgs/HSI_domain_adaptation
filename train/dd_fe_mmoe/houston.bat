@@ -2,9 +2,9 @@ call "E:\zts\software\Anaconda\Scripts\activate.bat" zts
 cd E:\zts\HSI_domain_adaptation
 set PYTHONPATH=%cd%
 
-rem dst
-python train/dst/train.py configs/houston/dst/dst_1_1_1_07_2.yaml ^
-        --path ./runs/houston/dst_1_1_1_07_2-train ^
+rem dd_fe_mmoe
+python train/dd_fe_mmoe/train.py configs/houston/dd_fe_mmoe/dd_fe_mmoe.yaml ^
+        --path ./runs/houston/dd_fe_mmoe-train ^
         --nodes 1 ^
         --gpus 1 ^
         --rank-node 0 ^
@@ -13,4 +13,3 @@ python train/dst/train.py configs/houston/dst/dst_1_1_1_07_2.yaml ^
         --master-port 8886 ^
         --seed %~1% ^
         --opt-level O1
-
