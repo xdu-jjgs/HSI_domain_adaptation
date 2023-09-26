@@ -1,5 +1,6 @@
-from .vdd import VDD
+from .vdd import VDD, VDDFixed
 
 __all__ = [
-    VDD
+    VDD,
+    VDDFixed
 ]
