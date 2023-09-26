@@ -2,8 +2,8 @@ DATASET:
   NAME: 'ShangHang'
   ROOT: 'E:/zzy/GAN/data/ShanghaiHangzhou'
   PATCH:
-    HEIGHT: 27
-    WIDTH: 27
+    HEIGHT: 23
+    WIDTH: 23
     PAD_MODE: 'symmetric'
   FFT_MODE: 'B'
   LOW_PERCENT: 0.1
