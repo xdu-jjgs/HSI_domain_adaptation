@@ -225,8 +225,8 @@ def worker(rank_gpu, args):
             x_s, label = x_s.to(device), label.to(device)
             x_t = x_t.to(device)
 
-            shared_f_s, private_f_s, y_s, domain_out_s, decoder_out_s = model(x_s)
-            shared_f_t, private_f_t, y_t, domain_out_t, decoder_out_t = model(x_t)
+            shared_f_s, private_f_s, y_s, domain_out_s, decoder_out_s = model(x_s, 1)
+            shared_f_t, private_f_t, y_t, domain_out_t, decoder_out_t = model(x_t, 2)
 
             domain_label_s = torch.zeros(len(label))
             domain_label_t = torch.ones(len(label))
@@ -311,7 +311,7 @@ def worker(rank_gpu, args):
         with torch.no_grad():  # disable gradient back-propagation
             for x_t, label in val_bar:
                 x_t, label = x_t.to(device), label.to(device)
-                _, _, y_t, _, _ = model(x_t)
+                _, _, y_t, _, _ = model(x_t, 2)
 
                 cls_loss = val_criterion(y_s=y_t, label_s=label)
                 val_loss += cls_loss.item()
