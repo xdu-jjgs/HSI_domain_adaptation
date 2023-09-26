@@ -1,8 +1,9 @@
 from .ddc import DDC
 from .dqn import DQN
 from .dst import DST
-from .dann import DANN
 from .vdd import VDD
+from .dsn import DSN
+from .dann import DANN
 from .dstda import DSTDA, DSTDAMapping
 from .task_mmoe import TaskMMOEDDC, TaskMMOEDANN
 from .fe_param import FEPARAMDDC, FEPARAMDANN, FEPARAMMCD
@@ -66,6 +67,8 @@ def build_model(num_channels, num_classes):
         return DDFEMMOEDANN(num_classes, backbone_)
     elif CFG.MODEL.NAME == 'vdd':
         return VDD(num_classes, backbone_)
+    elif CFG.MODEL.NAME == 'dsn':
+        return DSN(num_classes, backbone_)
     # elif CFG.MODEL.NAME == 'dqn':
     #     return DQN(backbone_.out_channels, num_classes)
     raise NotImplementedError('invalid model: {}'.format(CFG.MODEL.NAME))
