@@ -9,7 +9,7 @@ class VDD(nn.Module):
     def __init__(self, num_classes: int, backbone: nn.Module):
         super(VDD, self).__init__()
         self.backbone = backbone
-        self.relu = nn.ReLU()
+        self.relu = nn.LeakyReLU()
         self.out_channels = backbone.out_channels
         self.di_extractor = nn.Sequential(
             nn.Conv2d(self.out_channels, self.out_channels, kernel_size=3, stride=2, padding=1),

@@ -7,8 +7,7 @@ class FeatureExtractor(nn.Module):
         super(FeatureExtractor, self).__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
-
-        self.relu = nn.ReLU()
+        self.relu = nn.LeakyReLU()
         self.model = nn.Sequential(
             nn.Conv2d(self.in_channels, 64, 3, 2, 1),  # 27*27==>14*14/23*23==>12*12
             nn.BatchNorm2d(64),

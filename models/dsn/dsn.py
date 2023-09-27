@@ -11,7 +11,7 @@ class DSN(nn.Module):
     def __init__(self, num_classes: int, experts: List[nn.Module]):
         super(DSN, self).__init__()
         # backbone输入通道数
-        self.relu = nn.ReLU()
+        self.relu = nn.LeakyReLU()
         self.num_classes = num_classes
         self.num_channels = experts[0].in_channels
         self.out_channels = experts[0].out_channels
