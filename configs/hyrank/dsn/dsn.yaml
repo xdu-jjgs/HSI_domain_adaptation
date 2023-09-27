@@ -24,7 +24,7 @@ CRITERION:
     - 'softmax+ce'
     - 'softmax+ce'
     - 'orthogonal'
-    - 'mse'
+    - 'l2dis'
   WEIGHTS:
     - 1.0
     - 1.0
