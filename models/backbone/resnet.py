@@ -30,7 +30,8 @@ class ResNet(nn.Module):
             model.conv1,
             model.bn1,
             model.relu,
-            model.maxpool)
+            model.maxpool
+        )
         self.layer1 = model.layer1
         self.layer2 = model.layer2
         self.layer3 = model.layer3

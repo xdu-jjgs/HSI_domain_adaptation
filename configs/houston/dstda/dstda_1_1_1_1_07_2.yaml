@@ -2,8 +2,8 @@ DATASET:
   NAME: 'Houston'
   ROOT: 'E:/zzy/GAN/data/Houston'
   PATCH:
-    HEIGHT: 23
-    WIDTH: 23
+    HEIGHT: 11
+    WIDTH: 11
     PAD_MODE: 'symmetric'
 
 
@@ -14,7 +14,7 @@ DATALOADER:
 
 MODEL:
   NAME: 'dstda'
-  BACKBONE: 'fe'
+  BACKBONE: 'resnet18'
 
 CRITERION:
   ITEMS:

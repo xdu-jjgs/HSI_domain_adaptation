@@ -2,8 +2,8 @@ DATASET:
   NAME: 'HyRANK'
   ROOT: 'E:/zzy/GAN/data/HyRANK'
   PATCH:
-    HEIGHT: 23
-    WIDTH: 23
+    HEIGHT: 11
+    WIDTH: 11
     PAD_MODE: 'symmetric'
   SAMPLE_NUM: 1800
   SAMPLE_ORDER: 'average'
@@ -16,7 +16,7 @@ DATALOADER:
 
 MODEL:
   NAME: 'dst'
-  BACKBONE: 'fe'
+  BACKBONE: 'resnet18'
 
 CRITERION:
   ITEMS:
