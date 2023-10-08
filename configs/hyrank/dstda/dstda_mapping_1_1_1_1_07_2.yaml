@@ -2,8 +2,8 @@ DATASET:
   NAME: 'HyRANK'
   ROOT: 'E:/zzy/GAN/data/HyRANK'
   PATCH:
-    HEIGHT: 11
-    WIDTH: 11
+    HEIGHT: 27
+    WIDTH: 27
     PAD_MODE: 'symmetric'
 
 
@@ -14,7 +14,7 @@ DATALOADER:
 
 MODEL:
   NAME: 'dstda_mapping'
-  BACKBONE: 'resnet18'
+  BACKBONE: 'fe'
 
 CRITERION:
   ITEMS:
