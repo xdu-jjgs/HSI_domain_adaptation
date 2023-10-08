@@ -63,6 +63,20 @@ class ExpMSE(nn.Module):
         loss = torch.exp(mse)
         return loss
 
+
+class SIMSE(nn.Module):
+
+    def __init__(self):
+        super(SIMSE, self).__init__()
+
+    def forward(self, pred, real):
+        diffs = torch.add(real, - pred)
+        n = torch.numel(diffs.data)
+        simse = torch.sum(diffs).pow(2) / (n ** 2)
+
+        return simse
+
+
 class VarLoss(nn.Module):
     def forward(self, y, **kwargs):
         loss = torch.var(y)

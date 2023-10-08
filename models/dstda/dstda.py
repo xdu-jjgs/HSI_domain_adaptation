@@ -16,9 +16,6 @@ class DSTDA(nn.Module):
         self.classifier_pse = ImageClassifier(backbone.out_channels, num_classes)
         self.grl_layer = WarmStartGradientReverseLayer(alpha=1.0, lo=0.0, hi=1.0, max_iters=200, auto_step=True)
 
-
-
-
     def forward(self, x):
         features = self.backbone(x)
         _, out = self.classifier(features)
@@ -41,13 +38,12 @@ class DSTDAMapping(nn.Module):
 
     def forward(self, x):
         features = self.backbone(x)
-        while len(features.size()) > 2:
-            features = torch.squeeze(features, -1)
         _, out = self.classifier(features)
         _, out_pse = self.classifier_pse(features)
         features_ = self.grl_layer(features)
         out_ = out.detach()
         # TODO: fix bug about O2 Half and Float
+        features_ = torch.squeeze(features_)
         features_mapping = self.mapping(features_, out_)
         _, outs_adv = self.classifier_adv(features_mapping)
         out_adv_k, out_adv_d = outs_adv

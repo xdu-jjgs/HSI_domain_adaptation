@@ -8,7 +8,7 @@ from .dice import DiceLoss, SigmoidDiceLoss
 from .ce import CELoss, SoftmaxCELoss, Entropy
 from .mmd import MMDLoss, LocalMMDLoss, JointMMDLoss
 from .decomposed import OrthogonalDecomposed
-from .dis import L1Distance, L2Distance, SoftmaxL1Distance, VarLoss
+from .dis import L1Distance, L2Distance, SoftmaxL1Distance, VarLoss, SIMSE
 
 from tllib.self_training.dst import WorstCaseEstimationLoss
 from tllib.self_training.pseudo_label import ConfidenceBasedSelfTrainingLoss
@@ -55,6 +55,8 @@ def build_criterion(name):
         return VarLoss()
     elif name == 'orthogonal':
         return OrthogonalDecomposed()
+    elif name == 'simse':
+        return SIMSE()
     else:
         raise NotImplementedError('invalid criterion: {}'.format(name))
     return criterion

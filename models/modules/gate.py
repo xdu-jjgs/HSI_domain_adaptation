@@ -7,7 +7,7 @@ from models.utils.init import initialize_weights
 class Gate(nn.Module):
     def __init__(self, in_nodes: int, num_classes: int, dropout: bool = False):
         super(Gate, self).__init__()
-        self.relu = nn.ReLU()
+        self.relu = nn.LeakyReLU()
         self.layer1 = nn.Sequential(
             nn.Linear(in_nodes, 64),
             self.relu,

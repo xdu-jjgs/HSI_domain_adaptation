@@ -9,7 +9,7 @@ from models.utils.init import initialize_weights
 class ImageClassifier(nn.Module):
     def __init__(self, in_nodes: int, num_classes: int, dropout: bool = False):
         super(ImageClassifier, self).__init__()
-        self.relu = nn.ReLU()
+        self.relu = nn.LeakyReLU()
         self.layer1 = nn.Sequential(
             nn.Linear(in_nodes, 256),
             self.relu,
@@ -43,7 +43,7 @@ class ImageClassifier(nn.Module):
 class MultiHeadClassifier(nn.Module):
     def __init__(self, in_nodes: int, heads: List[int], dropout: bool = False):
         super(MultiHeadClassifier, self).__init__()
-        self.relu = nn.ReLU()
+        self.relu = nn.LeakyReLU()
         self.layer1 = nn.Sequential(
             nn.Linear(in_nodes, 256),
             self.relu,
