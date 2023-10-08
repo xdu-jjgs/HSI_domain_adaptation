@@ -157,9 +157,9 @@ def worker(rank_gpu, args):
     loss_weights = CFG.CRITERION.WEIGHTS
     assert len(loss_names) == len(loss_weights)
     cls_criterion = build_criterion(loss_names[0])
-    wcec_criterion = build_criterion(loss_names[1])
-    domain_criterion = build_criterion(loss_names[2])
-    cbst_criterion = build_criterion(loss_names[3])
+    cbst_criterion = build_criterion(loss_names[1])
+    wcec_criterion = build_criterion(loss_names[2])
+    domain_criterion = build_criterion(loss_names[3])
     cls_criterion.to(device)
     wcec_criterion.to(device)
     domain_criterion.to(device)
@@ -229,21 +229,18 @@ def worker(rank_gpu, args):
             x_t, label_t = next(target_iterator)
             x_s, label_s = x_s.to(device), label_s.to(device)
             x_t = x_t.to(device)
-
-            # step1: train 1
-            y_s, task_weight = model(x_s, '000')
-            cls_loss = cls_criterion(y_s=y_s, label_s=label_s) * loss_weights[0]
-            # step2: train 2
-            y_s, _, y_s_adv_k, y_s_adv_d, task_weight = model(x_s, '010')
-            y_t, y_pse, y_t_adv_k, y_t_adv_d, task_weight = model(x_t, '011')
-            cbst_loss, mask, pseudo_labels = cbst_criterion(y_pse, y_t)
-            cbst_loss *= loss_weights[3]
             domain_label_s = torch.zeros(len(label_s))
             domain_label_t = torch.ones(len(label_s))  # len of label_s equal to label_t
             domain_label_s, domain_label_t = domain_label_s.to(device), domain_label_t.to(device)
-            worst_loss = wcec_criterion(y_s, y_s_adv_k, y_t, y_t_adv_k) * loss_weights[1]
-            domain_s_loss = domain_criterion(y_s=y_s_adv_d, label_s=domain_label_s) * loss_weights[2]
-            domain_t_loss = domain_criterion(y_s=y_t_adv_d, label_s=domain_label_t) * loss_weights[2]
+
+            y_s, _, y_s_adv_k, y_s_adv_d, task_weight = model(x_s, 1)
+            cls_loss = cls_criterion(y_s=y_s, label_s=label_s) * loss_weights[0]
+            y_t, y_pse, y_t_adv_k, y_t_adv_d, task_weight = model(x_t, 2)
+            cbst_loss, mask, pseudo_labels = cbst_criterion(y_pse, y_t)
+            cbst_loss *= loss_weights[1]
+            worst_loss = wcec_criterion(y_s, y_s_adv_k, y_t, y_t_adv_k) * loss_weights[2]
+            domain_s_loss = domain_criterion(y_s=y_s_adv_d, label_s=domain_label_s) * loss_weights[3]
+            domain_t_loss = domain_criterion(y_s=y_t_adv_d, label_s=domain_label_t) * loss_weights[3]
             total_loss = cls_loss + cbst_loss + worst_loss + domain_s_loss + domain_t_loss
 
             cls_loss_epoch += cls_loss.item()
@@ -256,16 +253,6 @@ def worker(rank_gpu, args):
             with amp.scale_loss(total_loss, optimizer) as scaled_loss:
                 scaled_loss.backward()
             optimizer.step()
-
-            # # step3: train 3
-            # model.freeze_domain_invariant()
-            # y_pse, task_weight = model(x_t, )
-            # cbst_loss, mask, pseudo_labels = cbst_criterion(y_pse, y_t)
-            # optimizer2.zero_grad()
-            # with amp.scale_loss(cbst_loss, optimizer2) as scaled_loss:
-            #     scaled_loss.backward()
-            # optimizer2.step()
-            # model.train_domain_invariant()
 
             # update metric for cls, cls_adv and cls_pse
             pred_cls = y_s.argmax(axis=1)
@@ -292,12 +279,10 @@ def worker(rank_gpu, args):
 
         PA_cls, mPA_cls, Ps_cls, Rs_cls, F1S_cls, KC_cls = \
             metric_cls.PA(), metric_cls.mPA(), metric_cls.Ps(), metric_cls.Rs(), metric_cls.F1s(), metric_cls.KC()
-        PA_adv_s, mPA_adv_s, Ps_adv_s, Rs_adv_s, F1S_adv_s, KC_adv_s = \
-            metric_adv_s.PA(), metric_adv_s.mPA(), metric_adv_s.Ps(), \
-                metric_adv_s.Rs(), metric_adv_s.F1s(), metric_adv_s.KC()
-        PA_adv_t, mPA_adv_t, Ps_adv_t, Rs_adv_t, F1S_adv_t, KC_adv_t = \
-            metric_adv_t.PA(), metric_adv_t.mPA(), metric_adv_t.Ps(), \
-                metric_adv_t.Rs(), metric_adv_t.F1s(), metric_adv_t.KC()
+        PA_adv_s, mPA_adv_s, Ps_adv_s, Rs_adv_s, F1S_adv_s, KC_adv_s = metric_adv_s.PA(), metric_adv_s.mPA(), \
+            metric_adv_s.Ps(), metric_adv_s.Rs(), metric_adv_s.F1s(), metric_adv_s.KC()
+        PA_adv_t, mPA_adv_t, Ps_adv_t, Rs_adv_t, F1S_adv_t, KC_adv_t = metric_adv_t.PA(), metric_adv_t.mPA(), \
+            metric_adv_t.Ps(), metric_adv_t.Rs(), metric_adv_t.F1s(), metric_adv_t.KC()
         PA_pse, mPA_pse, Ps_pse, Rs_pse, F1S_pse, KC_pse = \
             metric_pse.PA(), metric_pse.mPA(), metric_pse.Ps(), metric_pse.Rs(), metric_pse.F1s(), metric_pse.KC()
 
@@ -345,15 +330,15 @@ def worker(rank_gpu, args):
         val_bar = tqdm(val_dataloader, desc='validating', ascii=True)
         val_loss = 0.
         with torch.no_grad():  # disable gradient back-propagation
-            for x_t, label_s in val_bar:
-                x_t, label_s = x_t.to(device), label_s.to(device)
-                y_t, _, _, _, task_weight = model(x_t, '000')
+            for x_t, label_t in val_bar:
+                x_t, label_t = x_t.to(device), label_t.to(device)
+                y_t, _, _, _, task_weight = model(x_t, 2)
 
-                cls_loss = val_criterion(y_s=y_t, label_s=label_s)
+                cls_loss = val_criterion(y_s=y_t, label_s=label_t)
                 val_loss += cls_loss.item()
 
                 pred = y_t.argmax(axis=1)
-                metric_cls.add(pred.data.cpu().numpy(), label_s.data.cpu().numpy())
+                metric_cls.add(pred.data.cpu().numpy(), label_t.data.cpu().numpy())
 
                 val_bar.set_postfix({
                     'epoch': epoch,
