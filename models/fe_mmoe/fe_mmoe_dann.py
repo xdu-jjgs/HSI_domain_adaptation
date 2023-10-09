@@ -36,9 +36,9 @@ class FEMMOEDANN(nn.Module):
             task_weight = self.gates[1](x_gap)[-1].softmax(dim=1).unsqueeze(1)
         features = torch.matmul(task_weight, experts_features)
         features = features.squeeze(1)
+        class_output = self.classifier(features)
         # reverse_features = self.grl_layer(features)
         reverse_features = features.reshape([-1, self.experts[0].out_channels])
         reverse_features = ReverseLayerF.apply(reverse_features, alpha)
-        class_output = self.classifier(features)
         domain_output = self.domain_discriminator(reverse_features)
         return class_output, domain_output, task_weight
