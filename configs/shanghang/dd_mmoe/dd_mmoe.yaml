@@ -15,9 +15,9 @@ DATALOADER:
 MODEL:
   NAME: 'dd_fe_mmoe'
   EXPERTS:
-    - 'fe'
-    - 'fe'
-    - 'fe'
+    - 'resnet18'
+    - 'resnet18'
+    - 'resnet18'
 
 CRITERION:
   ITEMS:

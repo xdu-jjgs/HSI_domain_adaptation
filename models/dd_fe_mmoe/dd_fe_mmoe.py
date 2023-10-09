@@ -37,7 +37,7 @@ class DDFEMMOE(nn.Module):
             domain_specific_features = self.source_specific_expert(x)
             task_weight = self.gates[0](x_gap)[-1].softmax(dim=1).unsqueeze(1)
         else:
-            domain_specific_features = self.target_specific_features(x)
+            domain_specific_features = self.target_specific_expert(x)
             task_weight = self.gates[1](x_gap)[-1].softmax(dim=1).unsqueeze(1)
         experts_features.append(domain_specific_features)
 
