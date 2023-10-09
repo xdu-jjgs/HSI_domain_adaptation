@@ -22,7 +22,7 @@ class DDFEMMOE(nn.Module):
         self.gates = nn.ModuleList([Gate(self.num_channels, 2) for _ in range(self.num_task)])
         # self.gates_2 = Gate(self.num_channels, 2)
         self.gap = nn.AdaptiveAvgPool2d((1, 1))
-        self.grl = WarmStartGradientReverseLayer(alpha=1.0, lo=0.0, hi=1, max_iters=200, auto_step=True)
+        self.grl = WarmStartGradientReverseLayer(alpha=1.0, lo=0.0, hi=1.0, max_iters=200, auto_step=True)
         self.classifier = ImageClassifier(experts[0].out_channels, num_classes)
         self.classifier_adv = MultiHeadClassifier(experts[0].out_channels, [num_classes, 2])
         self.classifier_pse = ImageClassifier(experts[0].out_channels, num_classes)

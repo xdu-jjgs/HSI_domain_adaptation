@@ -224,6 +224,8 @@ def worker(rank_gpu, args):
         metric_pse.reset()
         train_bar = tqdm(range(1, CFG.DATALOADER.ITERATION + 1), desc='training', ascii=True)
         total_loss_epoch, cls_loss_epoch, worst_loss_epoch, domain_loss_epoch, cbst_loss_epoch = 0., 0., 0., 0., 0.
+        source_weights_epoch = np.zeros(model.module.num_task)
+        target_weights_epoch = np.zeros(model.module.num_task)
         for iteration in train_bar:
             x_s, label_s = next(source_iterator)
             x_t, label_t = next(target_iterator)
@@ -233,15 +235,17 @@ def worker(rank_gpu, args):
             domain_label_t = torch.ones(len(label_s))  # len of label_s equal to label_t
             domain_label_s, domain_label_t = domain_label_s.to(device), domain_label_t.to(device)
 
-            y_s, _, y_s_adv_k, y_s_adv_d, task_weight = model(x_s, 1)
+            y_s, _, y_s_adv_k, y_s_adv_d, source_weights = model(x_s, 1)
             cls_loss = cls_criterion(y_s=y_s, label_s=label_s) * loss_weights[0]
-            y_t, y_pse, y_t_adv_k, y_t_adv_d, task_weight = model(x_t, 2)
+            y_t, y_pse, y_t_adv_k, y_t_adv_d, target_weights = model(x_t, 2)
             cbst_loss, mask, pseudo_labels = cbst_criterion(y_pse, y_t)
             cbst_loss *= loss_weights[1]
             worst_loss = wcec_criterion(y_s, y_s_adv_k, y_t, y_t_adv_k) * loss_weights[2]
             domain_s_loss = domain_criterion(y_s=y_s_adv_d, label_s=domain_label_s) * loss_weights[3]
             domain_t_loss = domain_criterion(y_s=y_t_adv_d, label_s=domain_label_t) * loss_weights[3]
             total_loss = cls_loss + cbst_loss + worst_loss + domain_s_loss + domain_t_loss
+            source_weights_epoch += source_weights.sum(dim=0).squeeze(0).detach().cpu().numpy()
+            target_weights_epoch += target_weights.sum(dim=0).squeeze(0).detach().cpu().numpy()
 
             cls_loss_epoch += cls_loss.item()
             worst_loss_epoch += worst_loss.item()
@@ -276,7 +280,9 @@ def worker(rank_gpu, args):
         cls_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
         worst_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
         cbst_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
-
+        domain_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
+        source_weights_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
+        target_weights_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
         PA_cls, mPA_cls, Ps_cls, Rs_cls, F1S_cls, KC_cls = \
             metric_cls.PA(), metric_cls.mPA(), metric_cls.Ps(), metric_cls.Rs(), metric_cls.F1s(), metric_cls.KC()
         PA_adv_s, mPA_adv_s, Ps_adv_s, Rs_adv_s, F1S_adv_s, KC_adv_s = metric_adv_s.PA(), metric_adv_s.mPA(), \
@@ -290,6 +296,7 @@ def worker(rank_gpu, args):
             writer.add_scalar('train/loss_total-epoch', total_loss_epoch, epoch)
             writer.add_scalar('train/loss_cls-epoch', cls_loss_epoch, epoch)
             writer.add_scalar('train/loss_wos-epoch', worst_loss_epoch, epoch)
+            writer.add_scalar('train/loss_domain-epoch', domain_loss_epoch, epoch)
 
             writer.add_scalar('train/PA_cls-epoch', PA_cls, epoch)
             writer.add_scalar('train/mPA_cls-epoch', mPA_cls, epoch)
@@ -306,9 +313,16 @@ def worker(rank_gpu, args):
             writer.add_scalar('train/PA_pse-epoch', PA_pse, epoch)
             writer.add_scalar('train/mPA_pse-epoch', mPA_pse, epoch)
             writer.add_scalar('train/KC_pse-epoch', KC_pse, epoch)
+        for ind in range(model.module.num_task):
+            writer.add_scalar('train/source_weight_expert_{}'.format(ind + 1), source_weights_epoch[ind], epoch)
+            writer.add_scalar('train/target_weight_expert_{}'.format(ind + 1), target_weights_epoch[ind], epoch)
+            writer.add_scalar('train/diff_weight_expert_{}'.format(ind + 1),
+                              source_weights_epoch[ind] - target_weights_epoch[ind], epoch)
+
         logging.info(
-            'rank{} train epoch={} | loss_total={:.3f} loss_cls={:.3f} loss_wos={:.3f} loss_cbst={:.3f}'
-            .format(dist.get_rank() + 1, epoch, total_loss_epoch, cls_loss_epoch, worst_loss_epoch, cbst_loss_epoch))
+            'rank{} train epoch={} | loss_total={:.3f} loss_cls={:.3f} loss_wos={:.3f} '
+            'loss_cbst={:.3f} loss_domain={:.3f}'.format(dist.get_rank() + 1, epoch, total_loss_epoch, cls_loss_epoch,
+                                                         worst_loss_epoch, cbst_loss_epoch, domain_loss_epoch))
         logging.info(
             'rank{} train epoch={} | cls PA={:.3f} mPA={:.3f} KC={:.3f} | adv-s PA={:.3f} mPA={:.3f} KC={:.3f} |'
             ' adv_t PA={:.3f} mPA={:.3f} KC={:.3f}| pse PA={:.3f} mPA={:.3f} KC={:.3f} NUM={}/{}'
@@ -329,13 +343,15 @@ def worker(rank_gpu, args):
         metric_cls.reset()  # reset metric
         val_bar = tqdm(val_dataloader, desc='validating', ascii=True)
         val_loss = 0.
+        target_weights_epoch = np.zeros(model.module.num_task)
         with torch.no_grad():  # disable gradient back-propagation
             for x_t, label_t in val_bar:
                 x_t, label_t = x_t.to(device), label_t.to(device)
-                y_t, _, _, _, task_weight = model(x_t, 2)
+                y_t, _, _, _, target_weights = model(x_t, 2)
 
                 cls_loss = val_criterion(y_s=y_t, label_s=label_t)
                 val_loss += cls_loss.item()
+                target_weights_epoch += target_weights.sum(dim=0).squeeze(0).detach().cpu().numpy()
 
                 pred = y_t.argmax(axis=1)
                 metric_cls.add(pred.data.cpu().numpy(), label_t.data.cpu().numpy())
@@ -348,13 +364,15 @@ def worker(rank_gpu, args):
                     'KC': f'{metric_cls.KC():.3f}'
                 })
         val_loss /= len(val_dataloader) * CFG.DATALOADER.BATCH_SIZE
-
+        target_weights_epoch /= len(val_dataloader) * CFG.DATALOADER.BATCH_SIZE
         PA, mPA, Ps, Rs, F1S, KC = metric_cls.PA(), metric_cls.mPA(), metric_cls.Ps(), metric_cls.Rs(), metric_cls.F1s(), metric_cls.KC()
         if dist.get_rank() == 0:
             writer.add_scalar('val/loss-epoch', val_loss, epoch)
             writer.add_scalar('val/PA-epoch', PA, epoch)
             writer.add_scalar('val/mPA-epoch', mPA, epoch)
             writer.add_scalar('val/KC-epoch', KC, epoch)
+            for ind in range(model.module.num_task):
+                writer.add_scalar('val/target_weight_expert_{}'.format(ind + 1), target_weights_epoch[ind], epoch)
         if PA > best_PA:
             best_epoch = epoch
 
