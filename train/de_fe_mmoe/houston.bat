@@ -3,8 +3,8 @@ cd E:\zts\HSI_domain_adaptation
 set PYTHONPATH=%cd%
 
 rem de_fe_mmoe
-python train/de_fe_mmoe/de_fe_mmoe_dann_var2.py configs/houston/de_fe_mmoe/de_resnet_mmoe_dann_var.yaml ^
-        --path ./runs/houston/de_fe_mmoe_dann_var2-train ^
+python train/de_fe_mmoe/de_fe_mmoe_dann_var.py configs/houston/de_fe_mmoe/de_fe_resnet_mmoe_dann_var.yaml ^
+        --path ./runs/houston/de_fe_mmoe_dann_var-train ^
         --nodes 1 ^
         --gpus 1 ^
         --rank-node 0 ^

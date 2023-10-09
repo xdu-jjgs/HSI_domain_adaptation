@@ -230,8 +230,8 @@ def worker(rank_gpu, args):
             domain_label_t = torch.ones(len(label))
             domain_label_s, domain_label_t = domain_label_s.to(device), domain_label_t.to(device)
 
-            y_s, y_s_adv_d, source_weights = mmoe(x_s, 1)
-            y_t, y_t_adv_d, target_weights = mmoe(x_t, 2)
+            amp_f_s, y_s, y_s_adv_d, source_weights = mmoe(x_s, 1)
+            amp_f_t, y_t, y_t_adv_d, target_weights = mmoe(x_t, 2)
             source_weights_epoch += source_weights.sum(dim=0).squeeze(0).detach().cpu().numpy()
             target_weights_epoch += target_weights.sum(dim=0).squeeze(0).detach().cpu().numpy()
 
@@ -311,8 +311,7 @@ def worker(rank_gpu, args):
             for x_t, label in val_bar:
                 x_t, label = x_t.to(device), label.to(device)
 
-                out_t, _, target_weights = mmoe(x_t, 2)
-                _, y_t = out_t
+                amp_f_t, y_t, _, target_weights = mmoe(x_t, 2)
                 target_weights_epoch += target_weights.sum(dim=0).squeeze(0).detach().cpu().numpy()
 
                 cls_loss = val_criterion(y_s=y_t, label_s=label)
