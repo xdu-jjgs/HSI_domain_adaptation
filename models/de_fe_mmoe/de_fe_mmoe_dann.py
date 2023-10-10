@@ -10,7 +10,12 @@ from models.backbone import ImageClassifier, MultiHeadClassifier
 
 
 class DEFEMMOEDANN(nn.Module):
-    # TODO: 1.update backbone 2.add mapping 3.try orthogonal loss 4.try two steps 5.update extractor of MMOE
+    # TODO: 1.update backbone
+    #  2.add mapping
+    #  3.try orthogonal loss
+    #  4.try two steps
+    #  5.update extractor of MMOE
+    #  6.try different experts
     def __init__(self, num_classes: int, experts: List[nn.Module]):
         super(DEFEMMOEDANN, self).__init__()
         # backbone
