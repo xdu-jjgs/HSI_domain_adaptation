@@ -16,6 +16,7 @@ class DEFEMMOEDADST(nn.Module):
     #  4.try two steps
     #  5.update extractor of MMOE
     #  6.try different experts
+    #  7.try orthogonal loss to domain invar and spec of the same expert
     def __init__(self, num_classes: int, experts: List[nn.Module]):
         super(DEFEMMOEDADST, self).__init__()
         # backbone
@@ -29,10 +30,11 @@ class DEFEMMOEDADST(nn.Module):
         ])
         self.gates = nn.ModuleList([Gate(self.num_channels, len(experts)) for _ in range(self.num_task)])
         self.gap = nn.AdaptiveAvgPool2d((1, 1))
-        # self.grl_layer = WarmStartGradientReverseLayer(alpha=1.0, lo=0.0, hi=1.0, max_iters=200, auto_step=True)
-        self.grl_layer = GradientReverseLayer()
+        self.grl_layer = WarmStartGradientReverseLayer(alpha=1.0, lo=0.0, hi=1.0, max_iters=200, auto_step=True)
+        # self.grl_layer = GradientReverseLayer()
         self.classifier = ImageClassifier(experts[0].out_channels, num_classes)
-        self.domain_discriminator = ImageClassifier(experts[0].out_channels, 2)
+        self.classifier_adv = MultiHeadClassifier(experts[0].out_channels, [num_classes, 2])
+        self.classifier_pse = ImageClassifier(experts[0].out_channels, num_classes)
         # self.mapping = RandomizedMultiLinearMap(experts[0].out_channels, num_classes, experts[0].out_channels)
 
     def forward(self, x, task_ind):
@@ -60,7 +62,9 @@ class DEFEMMOEDADST(nn.Module):
             task_weight = self.gates[1](x_gap)[-1].softmax(dim=1).unsqueeze(1)
         features = torch.matmul(task_weight, experts_features)
         features = features.squeeze(1)
-        _, class_output = self.classifier(features)
+        _, out = self.classifier(features)
+        _, out_pse = self.classifier_pse(features)
         reverse_features = self.grl_layer(features)
-        _, domain_output = self.domain_discriminator(reverse_features)
-        return amplitude_features, class_output, domain_output, task_weight
+        _, outs_adv = self.classifier_adv(reverse_features)
+        out_adv_k, out_adv_d = outs_adv
+        return amplitude_features, out, out_pse, out_adv_k, out_adv_d, task_weight

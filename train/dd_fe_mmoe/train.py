@@ -245,8 +245,8 @@ def worker(rank_gpu, args):
             worst_loss = wcec_criterion(y_s, y_s_adv_k, y_t, y_t_adv_k) * loss_weights[2]
             domain_s_loss = domain_criterion(y_s=y_s_adv_d, label_s=domain_label_s) * loss_weights[3]
             domain_t_loss = domain_criterion(y_s=y_t_adv_d, label_s=domain_label_t) * loss_weights[3]
-            var_s_loss = var_criterion(y=source_weights) * loss_weights[2]
-            var_t_loss = var_criterion(y=target_weights) * loss_weights[2]
+            var_s_loss = var_criterion(y=source_weights) * loss_weights[4]
+            var_t_loss = var_criterion(y=target_weights) * loss_weights[4]
             total_loss = cls_loss + cbst_loss + worst_loss + domain_s_loss + domain_t_loss + var_s_loss + var_t_loss
             source_weights_epoch += source_weights.sum(dim=0).squeeze(0).detach().cpu().numpy()
             target_weights_epoch += target_weights.sum(dim=0).squeeze(0).detach().cpu().numpy()

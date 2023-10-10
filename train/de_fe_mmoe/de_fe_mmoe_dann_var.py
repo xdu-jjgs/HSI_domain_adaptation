@@ -147,7 +147,7 @@ def worker(rank_gpu, args):
     # build data iteration
     source_iterator = build_iterator(source_dataloader)
     target_iterator = build_iterator(target_dataloader)
-    # build task_mmoe
+    # build model
     mmoe = build_model(NUM_CHANNELS, NUM_CLASSES)
     mmoe.to(device)
     # print(task_mmoe)
