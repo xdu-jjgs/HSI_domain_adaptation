@@ -15,7 +15,7 @@ python train/vdd/train_os.py configs/houston/vdd/vdd_os.yaml ^
         --opt-level O1
 
 rem vdd_ts
-python train/vdd/train_os.py configs/houston/vdd/vdd_ts.yaml ^
+python train/vdd/train_ts.py configs/houston/vdd/vdd_ts.yaml ^
         --path ./runs/houston/vdd_ts-train ^
         --nodes 1 ^
         --gpus 1 ^
@@ -39,7 +39,7 @@ python train/vdd/train_os.py configs/houston/vdd/vdd_fixed_os.yaml ^
         --opt-level O1
 
 rem vdd_fixed_ts
-python train/vdd/train_os.py configs/houston/vdd/vdd_fixed_ts.yaml ^
+python train/vdd/train_ts.py configs/houston/vdd/vdd_fixed_ts.yaml ^
         --path ./runs/houston/vdd_fixed_ts-train ^
         --nodes 1 ^
         --gpus 1 ^
