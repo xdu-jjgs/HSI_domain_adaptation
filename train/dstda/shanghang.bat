@@ -2,9 +2,9 @@ call "E:\zts\software\Anaconda\Scripts\activate.bat" zts
 cd E:\zts\HSI_domain_adaptation
 set PYTHONPATH=%cd%
 
-rem dstda
-python train/dstda/train.py configs/shanghang/dstda/dstda_1_1_1_1_07_2.yaml ^
-        --path ./runs/shanghang/dstda_1_1_1_1_07_2-train ^
+rem dadst
+python train/dadst/train.py configs/shanghang/dadst/dadst_1_1_1_1_07_2.yaml ^
+        --path ./runs/shanghang/dadst_1_1_1_1_07_2-train ^
         --nodes 1 ^
         --gpus 1 ^
         --rank-node 0 ^
@@ -14,9 +14,9 @@ python train/dstda/train.py configs/shanghang/dstda/dstda_1_1_1_1_07_2.yaml ^
         --seed %~1% ^
         --opt-level O1
 
-rem dstda_mapping
-python train/dstda/train.py configs/shanghang/dstda/dstda_mapping_1_1_1_1_07_2.yaml ^
-        --path ./runs/shanghang/dstda_mapping_1_1_1_1_07_2-train ^
+rem dadst_mapping
+python train/dadst/train.py configs/shanghang/dadst/dadst_mapping_1_1_1_1_07_2.yaml ^
+        --path ./runs/shanghang/dadst_mapping_1_1_1_1_07_2-train ^
         --nodes 1 ^
         --gpus 1 ^
         --rank-node 0 ^
