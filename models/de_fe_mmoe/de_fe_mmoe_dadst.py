@@ -28,7 +28,10 @@ class DEFEMMOEDADST(nn.Module):
             nn.Conv2d(self.num_channels, self.num_channels, 1, 1, 0, bias=False)
             for _ in range(len(self.experts))
         ])
-        self.gates = nn.ModuleList([Gate(self.num_channels, len(experts)) for _ in range(self.num_task)])
+        self.gates = nn.ModuleList([
+            Gate(self.num_channels, len(experts))
+            for _ in range(self.num_task)
+        ])
         self.gap = nn.AdaptiveAvgPool2d((1, 1))
         self.grl_layer = WarmStartGradientReverseLayer(alpha=1.0, lo=0.0, hi=1.0, max_iters=200, auto_step=True)
         # self.grl_layer = GradientReverseLayer()
@@ -48,12 +51,10 @@ class DEFEMMOEDADST(nn.Module):
             amplitude_extract = fft_conv(amplitude)
             amplitude_features.append(amplitude_extract)
             complex_tensor = amplitude_extract * (torch.cos(phase) + 1j * torch.sin(phase))
-            recon = torch.fft.ifft2(complex_tensor)
-            recon = recon.real
+            recon = torch.fft.ifft2(complex_tensor).real
             experts_features.append(expert(recon))
         experts_features = torch.stack(experts_features, 1)
-        while len(experts_features.size()) > 3:
-            experts_features = torch.squeeze(experts_features, 3)
+        experts_features = torch.squeeze(experts_features)
 
         x_gap = self.gap(x)
         if task_ind == 1:
