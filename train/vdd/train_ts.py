@@ -247,7 +247,7 @@ def worker(rank_gpu, args):
             optimizer.step()
 
             # step2: The step of feature orthogonalization
-            model.freeze_backbone()
+            model.module.freeze_backbone()
             di_s, ds_s, y_s, domain_out_s = model(x_s)
             di_t, ds_t, y_t, domain_out_t = model(x_t)
 
@@ -269,7 +269,7 @@ def worker(rank_gpu, args):
             with amp.scale_loss(step2_loss, optimizer) as scaled_loss:
                 scaled_loss.backward()
             optimizer.step()
-            model.activate_backbone()
+            model.module.activate_backbone()
 
             pred = y_s.argmax(axis=1)
             metric.add(pred.data.cpu().numpy(), label.data.cpu().numpy())
