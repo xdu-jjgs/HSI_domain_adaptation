@@ -287,10 +287,12 @@ def worker(rank_gpu, args):
 
         total_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
         cls_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
+        cbst_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
+        worst_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
         domain_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
+        var_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
         source_weights_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
         target_weights_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
-        var_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
         PA_cls, mPA_cls, Ps_cls, Rs_cls, F1S_cls, KC_cls = \
             metric_cls.PA(), metric_cls.mPA(), metric_cls.Ps(), metric_cls.Rs(), metric_cls.F1s(), metric_cls.KC()
         PA_adv_s, mPA_adv_s, Ps_adv_s, Rs_adv_s, F1S_adv_s, KC_adv_s = metric_adv_s.PA(), metric_adv_s.mPA(), \
@@ -302,6 +304,7 @@ def worker(rank_gpu, args):
         if dist.get_rank() == 0:
             writer.add_scalar('train/loss_total-epoch', total_loss_epoch, epoch)
             writer.add_scalar('train/loss_cls-epoch', cls_loss_epoch, epoch)
+            writer.add_scalar('train/loss_cbst-epoch', cbst_loss_epoch, epoch)
             writer.add_scalar('train/loss_wos-epoch', worst_loss_epoch, epoch)
             writer.add_scalar('train/loss_domain-epoch', domain_loss_epoch, epoch)
             writer.add_scalar('train/loss_var-epoch', var_loss_epoch, epoch)

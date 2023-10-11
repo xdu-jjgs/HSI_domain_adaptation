@@ -48,8 +48,10 @@ def build_criterion(name):
     elif name == 'kldiv':
         criterion = nn.KLDivLoss()
     elif name == 'cbst':
+        assert CFG.CRITERION.THRESHOLD > 0.5
         criterion = ConfidenceBasedSelfTrainingLoss(threshold=CFG.CRITERION.THRESHOLD)
     elif name == 'wcec':
+        assert CFG.HYPERPARAMS[0] > 0.
         return WorstCaseEstimationLoss(CFG.HYPERPARAMS[0])
     elif name == 'var':
         return VarLoss()
