@@ -4,7 +4,7 @@ set PYTHONPATH=%cd%
 
 rem de_fe_mmoe_dann
 python train/de_fe_mmoe/de_fe_mmoe_dann_var.py configs/houston/de_fe_mmoe/de_fe_resnet_mmoe_dann_var.yaml ^
-        --path ./runs/houston/de_fe_mmoe_dann_var-train ^
+        --path ./runs/houston/de_fe_resnet_mmoe_dadst_var-train ^
         --nodes 1 ^
         --gpus 1 ^
         --rank-node 0 ^

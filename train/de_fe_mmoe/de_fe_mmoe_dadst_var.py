@@ -366,7 +366,6 @@ def worker(rank_gpu, args):
 
                 cls_loss = val_criterion(y_s=y_t, label_s=label_t)
                 val_loss += cls_loss.item()
-                target_weights_epoch += target_weights.sum(dim=0).squeeze(0).detach().cpu().numpy()
 
                 pred = y_t.argmax(axis=1)
                 metric_cls.add(pred.data.cpu().numpy(), label_t.data.cpu().numpy())
