@@ -26,8 +26,7 @@ class Gate(nn.Module):
 
     def forward(self, x):
         x = self.gap(x)
-        while len(x.size()) > 2:
-            x = torch.squeeze(x, 2)
+        x = torch.squeeze(x)
         x = self.layer1(x)
         out = self.head(x)
         return x, out
@@ -36,10 +35,11 @@ class Gate(nn.Module):
 class GateConv(nn.Module):
     def __init__(self, in_channels: int, num_classes: int, dropout: bool = False):
         super(GateConv, self).__init__()
-        self.extractor = FeatureExtractor(in_channels)
+        mid_channels = 256
+        self.extractor = FeatureExtractor(in_channels, mid_channels)
         self.relu = nn.LeakyReLU()
         self.layer1 = nn.Sequential(
-            nn.Linear(in_channels, 128),
+            nn.Linear(mid_channels, 128),
             self.relu,
         )
         self.head = nn.Sequential(

@@ -26,8 +26,7 @@ class TaskMMOEDANN(nn.Module):
     def forward(self, x):
         experts_features = [i(x) for i in self.experts]
         experts_features = torch.stack(experts_features, 1)
-        while len(experts_features.size()) > 3:
-            experts_features = torch.squeeze(experts_features, 3)
+        experts_features = torch.squeeze(experts_features)
 
         task_weights = [i(x)[-1].softmax(dim=1).unsqueeze(1) for i in self.gates]
         outs = []

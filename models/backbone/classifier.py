@@ -32,8 +32,7 @@ class ImageClassifier(nn.Module):
         initialize_weights(self.head)
 
     def forward(self, x):
-        if len(x.size()) > 2:
-            x = torch.squeeze(x)
+        x = torch.squeeze(x)
         x = self.layer1(x)
         x = self.layer2(x)
         out = self.head(x)
@@ -65,8 +64,7 @@ class MultiHeadClassifier(nn.Module):
         initialize_weights(self.heads)
 
     def forward(self, x):
-        while len(x.size()) > 2:
-            x = torch.squeeze(x)
+        x = torch.squeeze(x)
         x = self.layer1(x)
         x = self.layer2(x)
         outs = []

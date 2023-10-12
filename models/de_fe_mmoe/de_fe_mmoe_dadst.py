@@ -71,7 +71,7 @@ class DEFEMMOEDADST(nn.Module):
 
 class DEFEMMOEDADST_GateConv(DEFEMMOEDADST):
     def __init__(self, num_classes: int, experts: List[nn.Module]):
-        super(DEFEMMOEDADST, self).__init__(num_classes, experts)
+        super(DEFEMMOEDADST_GateConv, self).__init__(num_classes, experts)
         self.gates = nn.ModuleList([
             GateConv(self.num_channels, len(experts))
             for _ in range(self.num_task)

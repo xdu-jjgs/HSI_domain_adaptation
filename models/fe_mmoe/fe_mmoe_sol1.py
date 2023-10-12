@@ -20,8 +20,7 @@ class FEMMOESol1(nn.Module):
         assert task_ind in [1, 2]  # 1 for source domain and 2 for target domain
         experts_features = [i(x) for i in self.experts]
         experts_features = torch.stack(experts_features, 1)
-        while len(experts_features.size()) > 3:
-            experts_features = torch.squeeze(experts_features, 3)
+        experts_features = torch.squeeze(experts_features)
 
         if task_ind == 1:
             task_weight = self.gates[0](x)[-1].softmax(dim=1).unsqueeze(1)

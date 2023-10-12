@@ -50,8 +50,7 @@ class DEFEMMOEDANN(nn.Module):
             recon = recon.real
             experts_features.append(expert(recon))
         experts_features = torch.stack(experts_features, 1)
-        while len(experts_features.size()) > 3:
-            experts_features = torch.squeeze(experts_features, 3)
+        experts_features = torch.squeeze(experts_features)
 
         x_gap = self.gap(x)
         if task_ind == 1:

@@ -40,8 +40,7 @@ class DDFEMMOE(nn.Module):
         experts_features.append(domain_specific_features)
 
         experts_features = torch.stack(experts_features, 1)
-        while len(experts_features.size()) > 3:
-            experts_features = torch.squeeze(experts_features, 3)
+        experts_features = torch.squeeze(experts_features)
         features = torch.matmul(task_weight, experts_features)
         features = features.squeeze(1)
 
