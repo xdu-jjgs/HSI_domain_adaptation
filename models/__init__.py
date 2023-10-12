@@ -9,7 +9,7 @@ from .task_mmoe import TaskMMOEDDC, TaskMMOEDANN
 from .fe_param import FEPARAMDDC, FEPARAMDANN, FEPARAMMCD
 from .fe_mmoe import FEMMOEDDC, FEMMOEDANN, FEMMOEMCD, FEMMOESol1
 from .dd_fe_mmoe import DDFEMMOE
-from .de_fe_mmoe import DEFEMMOEDANN, DEFEMMOEDADST
+from .de_fe_mmoe import DEFEMMOEDANN, DEFEMMOEDADST, DEFEMMOEDADST_GateConv
 
 from configs import CFG
 from models.backbone import build_backbone, ImageClassifier
@@ -70,6 +70,8 @@ def build_model(num_channels, num_classes):
         return DEFEMMOEDANN(num_classes, backbone_)
     elif CFG.MODEL.NAME == 'de_fe_mmoe_dadst':
         return DEFEMMOEDADST(num_classes, backbone_)
+    elif CFG.MODEL.NAME == 'de_fe_mmoe_dadst_gate_conv':
+        return DEFEMMOEDADST_GateConv(num_classes, backbone_)
     elif CFG.MODEL.NAME == 'vdd':
         return VDD(num_classes, backbone_)
     elif CFG.MODEL.NAME == 'vdd_fixed':

@@ -21,7 +21,6 @@ class DDFEMMOE(nn.Module):
         # self.domain_invariant_expert, self.source_specific_expert, _ = experts
         self.gates = nn.ModuleList([Gate(self.num_channels, 2) for _ in range(self.num_task)])
         # self.gates_2 = Gate(self.num_channels, 2)
-        self.gap = nn.AdaptiveAvgPool2d((1, 1))
         self.grl_layer = WarmStartGradientReverseLayer(alpha=1.0, lo=0.0, hi=1.0, max_iters=200, auto_step=True)
         self.classifier = ImageClassifier(experts[0].out_channels, num_classes)
         self.classifier_adv = MultiHeadClassifier(experts[0].out_channels, [num_classes, 2])
@@ -30,15 +29,14 @@ class DDFEMMOE(nn.Module):
 
     def forward(self, x, task_ind):
         assert task_ind in [1, 2]  # 1 for source domain, 2 for target domain
-        x_gap = self.gap(x)
         domain_invariant_features = self.domain_invariant_expert(x)
         experts_features = [domain_invariant_features]
         if task_ind == 1:
             domain_specific_features = self.source_specific_expert(x)
-            task_weight = self.gates[0](x_gap)[-1].softmax(dim=1).unsqueeze(1)
+            task_weight = self.gates[0](x)[-1].softmax(dim=1).unsqueeze(1)
         else:
             domain_specific_features = self.target_specific_expert(x)
-            task_weight = self.gates[1](x_gap)[-1].softmax(dim=1).unsqueeze(1)
+            task_weight = self.gates[1](x)[-1].softmax(dim=1).unsqueeze(1)
         experts_features.append(domain_specific_features)
 
         experts_features = torch.stack(experts_features, 1)

@@ -21,7 +21,6 @@ class TaskMMOEDANN(nn.Module):
         self.towers = nn.ModuleList([ImageClassifier(experts[0].out_channels,
                                                      num_classes if num_classes > 0 else -num_classes)
                                      for num_classes in num_task_classes])
-        self.gap = nn.AdaptiveAvgPool2d((1, 1))
         self.grl_layer = WarmStartGradientReverseLayer(alpha=1.0, lo=0.0, hi=0.1, max_iters=1000, auto_step=False)
 
     def forward(self, x):
@@ -29,9 +28,8 @@ class TaskMMOEDANN(nn.Module):
         experts_features = torch.stack(experts_features, 1)
         while len(experts_features.size()) > 3:
             experts_features = torch.squeeze(experts_features, 3)
-        x_gap = self.gap(x)
 
-        task_weights = [i(x_gap)[-1].softmax(dim=1).unsqueeze(1) for i in self.gates]
+        task_weights = [i(x)[-1].softmax(dim=1).unsqueeze(1) for i in self.gates]
         outs = []
         for i in range(self.num_task):
             # print(task_weights[i].size(), experts_features.size())

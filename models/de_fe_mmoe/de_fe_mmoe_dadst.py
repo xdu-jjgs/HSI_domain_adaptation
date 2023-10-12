@@ -5,7 +5,7 @@ from typing import List
 from tllib.alignment.cdan import RandomizedMultiLinearMap
 from tllib.modules.grl import WarmStartGradientReverseLayer, GradientReverseLayer
 
-from models.modules import Gate
+from models.modules import Gate, GateConv
 from models.backbone import ImageClassifier, MultiHeadClassifier
 
 
@@ -32,7 +32,6 @@ class DEFEMMOEDADST(nn.Module):
             Gate(self.num_channels, len(experts))
             for _ in range(self.num_task)
         ])
-        self.gap = nn.AdaptiveAvgPool2d((1, 1))
         self.grl_layer = WarmStartGradientReverseLayer(alpha=1.0, lo=0.0, hi=1.0, max_iters=200, auto_step=True)
         # self.grl_layer = GradientReverseLayer()
         self.classifier = ImageClassifier(experts[0].out_channels, num_classes)
@@ -56,11 +55,10 @@ class DEFEMMOEDADST(nn.Module):
         experts_features = torch.stack(experts_features, 1)
         experts_features = torch.squeeze(experts_features)
 
-        x_gap = self.gap(x)
         if task_ind == 1:
-            task_weight = self.gates[0](x_gap)[-1].softmax(dim=1).unsqueeze(1)
+            task_weight = self.gates[0](x)[-1].softmax(dim=1).unsqueeze(1)
         else:
-            task_weight = self.gates[1](x_gap)[-1].softmax(dim=1).unsqueeze(1)
+            task_weight = self.gates[1](x)[-1].softmax(dim=1).unsqueeze(1)
         features = torch.matmul(task_weight, experts_features)
         features = features.squeeze(1)
         _, out = self.classifier(features)
@@ -69,3 +67,12 @@ class DEFEMMOEDADST(nn.Module):
         _, outs_adv = self.classifier_adv(reverse_features)
         out_adv_k, out_adv_d = outs_adv
         return amplitude_features, out, out_pse, out_adv_k, out_adv_d, task_weight
+
+
+class DEFEMMOEDADST_GateConv(DEFEMMOEDADST):
+    def __init__(self, num_classes: int, experts: List[nn.Module]):
+        super(DEFEMMOEDADST, self).__init__(num_classes, experts)
+        self.gates = nn.ModuleList([
+            GateConv(self.num_channels, len(experts))
+            for _ in range(self.num_task)
+        ])
