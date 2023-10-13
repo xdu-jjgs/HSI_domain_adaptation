@@ -1,0 +1,49 @@
+DATASET:
+  NAME: 'Houston'
+  ROOT: 'E:/zzy/GAN/data/Houston'
+  PATCH:
+    HEIGHT: 11
+    WIDTH: 11
+    PAD_MODE: 'symmetric'
+
+
+DATALOADER:
+  BATCH_SIZE: 64
+  NUM_WORKERS: 0
+  ITERATION: 40
+
+MODEL:
+  NAME: 'de_fe_mmoe_dadst_gate_conv'
+  EXPERTS:
+    - 'fe'
+    - 'resnet18'
+
+CRITERION:
+  ITEMS:
+    - 'softmax+ce'
+    - 'cbst'
+    - 'wcec'
+    - 'softmax+ce'
+    - 'var'
+  WEIGHTS:
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 0.3
+  THRESHOLD: 0.9
+
+OPTIMIZER:
+  NAME: 'adam'
+  LR: 0.001
+
+SCHEDULER:
+  NAME: 'plateau'
+  MODE: 'min'
+  FACTOR: 0.1
+  PATIENCE: 2
+
+EPOCHS: 30
+
+HYPERPARAMS:
+  - 2.0

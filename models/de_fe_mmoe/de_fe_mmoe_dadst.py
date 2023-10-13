@@ -14,7 +14,7 @@ class DEFEMMOEDADST(nn.Module):
     #  2.add mapping
     #  3.try orthogonal loss
     #  4.try two steps
-    #  5.update extractor of MMOE
+    #  5.update extractor of MMOE --overfit, try dropout instead
     #  6.try different experts
     #  7.try orthogonal loss to domain invar and spec of the same expert
     def __init__(self, num_classes: int, experts: List[nn.Module]):

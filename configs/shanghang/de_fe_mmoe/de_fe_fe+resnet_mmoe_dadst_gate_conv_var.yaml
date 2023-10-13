@@ -1,16 +1,15 @@
 DATASET:
-  NAME: 'HyRANK'
-  ROOT: 'E:/zzy/GAN/data/HyRANK'
+  NAME: 'ShangHang'
+  ROOT: 'E:/zzy/GAN/data/ShanghaiHangzhou'
   PATCH:
     HEIGHT: 11
     WIDTH: 11
     PAD_MODE: 'symmetric'
 
-
 DATALOADER:
-  BATCH_SIZE: 32
+  BATCH_SIZE: 128
   NUM_WORKERS: 0
-  ITERATION: 626
+  ITERATION: 1060
 
 MODEL:
   NAME: 'de_fe_mmoe_dadst_gate_conv'
@@ -25,14 +24,12 @@ CRITERION:
     - 'wcec'
     - 'softmax+ce'
     - 'var'
-    - 'orthogonal'
   WEIGHTS:
     - 1.0
     - 1.0
-    - 0.6
+    - 1.0
     - 1.0
     - 0.3
-    - 0.5
   THRESHOLD: 0.7
 
 OPTIMIZER:
@@ -45,6 +42,6 @@ SCHEDULER:
   FACTOR: 0.1
   PATIENCE: 2
 
-EPOCHS: 20
+EPOCHS: 5
 HYPERPARAMS:
   - 2.0

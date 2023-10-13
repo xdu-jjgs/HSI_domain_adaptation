@@ -1,19 +1,18 @@
 DATASET:
-  NAME: 'Houston'
-  ROOT: 'E:/zzy/GAN/data/Houston'
+  NAME: 'ShangHang'
+  ROOT: 'E:/zzy/GAN/data/ShanghaiHangzhou'
   PATCH:
     HEIGHT: 11
     WIDTH: 11
     PAD_MODE: 'symmetric'
 
-
 DATALOADER:
-  BATCH_SIZE: 64
+  BATCH_SIZE: 128
   NUM_WORKERS: 0
-  ITERATION: 40
+  ITERATION: 1060
 
 MODEL:
-  NAME: 'de_fe_mmoe_dadst_gate_conv'
+  NAME: 'de_fe_mmoe_dadst'
   EXPERTS:
     - 'fe'
     - 'resnet18'
@@ -29,11 +28,11 @@ CRITERION:
   WEIGHTS:
     - 1.0
     - 1.0
-    - 0.6
+    - 1.0
     - 1.0
     - 0.3
     - 0.5
-  THRESHOLD: 0.9
+  THRESHOLD: 0.7
 
 OPTIMIZER:
   NAME: 'adam'
@@ -45,7 +44,6 @@ SCHEDULER:
   FACTOR: 0.1
   PATIENCE: 2
 
-EPOCHS: 30
-
+EPOCHS: 5
 HYPERPARAMS:
   - 2.0
