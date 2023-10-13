@@ -161,11 +161,13 @@ def worker(rank_gpu, args):
     wcec_criterion = build_criterion(loss_names[2])
     domain_criterion = build_criterion(loss_names[3])
     var_criterion = build_criterion(loss_names[4])
+    orthogonal_criterion = build_criterion(loss_names[5])
     cls_criterion.to(device)
     wcec_criterion.to(device)
     domain_criterion.to(device)
     cbst_criterion.to(device)
     var_criterion.to(device)
+    orthogonal_criterion.to(device)
     val_criterion = build_criterion('softmax+ce')
     val_criterion.to(device)
     # build metric
@@ -227,8 +229,8 @@ def worker(rank_gpu, args):
         metric_adv_t.reset()
         metric_pse.reset()
         train_bar = tqdm(range(1, CFG.DATALOADER.ITERATION + 1), desc='training', ascii=True)
-        total_loss_epoch, cls_loss_epoch, cbst_loss_epoch, worst_loss_epoch, domain_loss_epoch, var_loss_epoch = \
-            0., 0., 0., 0., 0., 0.
+        (total_loss_epoch, cls_loss_epoch, cbst_loss_epoch, worst_loss_epoch, domain_loss_epoch, var_loss_epoch,
+         orthogonal_loss_epoch) = 0., 0., 0., 0., 0., 0., 0.
         source_weights_epoch = np.zeros((len(model.module.experts)))
         target_weights_epoch = np.zeros((len(model.module.experts)))
         for iteration in train_bar:
@@ -253,13 +255,16 @@ def worker(rank_gpu, args):
             domain_t_loss = domain_criterion(y_s=y_t_adv_d, label_s=domain_label_t) * loss_weights[3]
             var_s_loss = var_criterion(y=source_weights) * loss_weights[4]
             var_t_loss = var_criterion(y=target_weights) * loss_weights[4]
-            total_loss = cls_loss + cbst_loss + worst_loss + domain_s_loss + domain_t_loss + var_s_loss + var_t_loss
+            orthogonal_loss = orthogonal_criterion(amp_f_s, amp_f_t) * loss_weights[5]
+            total_loss = (cls_loss + cbst_loss + worst_loss + domain_s_loss + domain_t_loss + var_s_loss + var_t_loss +
+                          orthogonal_loss)
 
             cls_loss_epoch += cls_loss.item()
             cbst_loss_epoch += cbst_loss.item()
             worst_loss_epoch += worst_loss.item()
             domain_loss_epoch += domain_s_loss.item() + domain_t_loss.item()
             var_loss_epoch += var_s_loss.item() + var_t_loss.item()
+            orthogonal_loss_epoch += orthogonal_loss.item()
             total_loss_epoch += total_loss.item()
 
             optimizer.zero_grad()
@@ -293,6 +298,7 @@ def worker(rank_gpu, args):
         var_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
         source_weights_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
         target_weights_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
+        orthogonal_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
         PA_cls, mPA_cls, Ps_cls, Rs_cls, F1S_cls, KC_cls = \
             metric_cls.PA(), metric_cls.mPA(), metric_cls.Ps(), metric_cls.Rs(), metric_cls.F1s(), metric_cls.KC()
         PA_adv_s, mPA_adv_s, Ps_adv_s, Rs_adv_s, F1S_adv_s, KC_adv_s = metric_adv_s.PA(), metric_adv_s.mPA(), \
@@ -308,6 +314,7 @@ def worker(rank_gpu, args):
             writer.add_scalar('train/loss_wos-epoch', worst_loss_epoch, epoch)
             writer.add_scalar('train/loss_domain-epoch', domain_loss_epoch, epoch)
             writer.add_scalar('train/loss_var-epoch', var_loss_epoch, epoch)
+            writer.add_scalar('train/loss_orthogonal-epoch', orthogonal_loss_epoch, epoch)
 
             writer.add_scalar('train/PA_cls-epoch', PA_cls, epoch)
             writer.add_scalar('train/mPA_cls-epoch', mPA_cls, epoch)
@@ -333,9 +340,9 @@ def worker(rank_gpu, args):
 
         logging.info(
             'rank{} train epoch={} | loss_total={:.3f} loss_cls={:.3f} loss_wos={:.3f} loss_cbst={:.3f} '
-            'loss_domain={:.3f} loss_var={:.3f}'.format(dist.get_rank() + 1, epoch, total_loss_epoch, cls_loss_epoch,
-                                                        worst_loss_epoch, cbst_loss_epoch, domain_loss_epoch,
-                                                        var_loss_epoch))
+            'loss_domain={:.3f} loss_var={:.3f} loss_orthogonal={:.3f}'.format(
+                dist.get_rank() + 1, epoch, total_loss_epoch, cls_loss_epoch, worst_loss_epoch, cbst_loss_epoch,
+                domain_loss_epoch, var_loss_epoch, orthogonal_loss_epoch))
         logging.info(
             'rank{} train epoch={} | cls PA={:.3f} mPA={:.3f} KC={:.3f} | adv-s PA={:.3f} mPA={:.3f} KC={:.3f} |'
             ' adv_t PA={:.3f} mPA={:.3f} KC={:.3f}| pse PA={:.3f} mPA={:.3f} KC={:.3f} NUM={}/{}'
