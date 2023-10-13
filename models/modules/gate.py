@@ -35,11 +35,10 @@ class Gate(nn.Module):
 class GateConv(nn.Module):
     def __init__(self, in_channels: int, num_classes: int, dropout: bool = False):
         super(GateConv, self).__init__()
-        mid_channels = 256
-        self.extractor = FeatureExtractor(in_channels, mid_channels)
+        self.extractor = FeatureExtractor(in_channels, 11)
         self.relu = nn.LeakyReLU()
         self.layer1 = nn.Sequential(
-            nn.Linear(mid_channels, 128),
+            nn.Linear(self.extractor.out_channels, 128),
             self.relu,
         )
         self.head = nn.Sequential(

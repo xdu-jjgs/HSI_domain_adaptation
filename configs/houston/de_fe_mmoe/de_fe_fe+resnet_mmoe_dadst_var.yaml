@@ -1,6 +1,6 @@
 DATASET:
-  NAME: 'HyRANK'
-  ROOT: 'E:/zzy/GAN/data/HyRANK'
+  NAME: 'Houston'
+  ROOT: 'E:/zzy/GAN/data/Houston'
   PATCH:
     HEIGHT: 11
     WIDTH: 11
@@ -8,12 +8,12 @@ DATASET:
 
 
 DATALOADER:
-  BATCH_SIZE: 32
+  BATCH_SIZE: 64
   NUM_WORKERS: 0
-  ITERATION: 626
+  ITERATION: 40
 
 MODEL:
-  NAME: 'de_fe_mmoe_dadst_gate_conv'
+  NAME: 'de_fe_mmoe_dadst'
   EXPERTS:
     - 'fe'
     - 'resnet18'
@@ -31,7 +31,7 @@ CRITERION:
     - 1.0
     - 1.0
     - 0.3
-  THRESHOLD: 0.7
+  THRESHOLD: 0.9
 
 OPTIMIZER:
   NAME: 'adam'
@@ -43,6 +43,7 @@ SCHEDULER:
   FACTOR: 0.1
   PATIENCE: 2
 
-EPOCHS: 20
+EPOCHS: 30
+
 HYPERPARAMS:
   - 2.0

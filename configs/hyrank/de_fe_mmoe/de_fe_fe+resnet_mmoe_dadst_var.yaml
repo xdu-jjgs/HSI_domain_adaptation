@@ -1,18 +1,19 @@
 DATASET:
-  NAME: 'ShangHang'
-  ROOT: 'E:/zzy/GAN/data/ShanghaiHangzhou'
+  NAME: 'HyRANK'
+  ROOT: 'E:/zzy/GAN/data/HyRANK'
   PATCH:
     HEIGHT: 11
     WIDTH: 11
     PAD_MODE: 'symmetric'
 
+
 DATALOADER:
-  BATCH_SIZE: 128
+  BATCH_SIZE: 32
   NUM_WORKERS: 0
-  ITERATION: 1060
+  ITERATION: 626
 
 MODEL:
-  NAME: 'de_fe_mmoe_dadst_gate_conv'
+  NAME: 'de_fe_mmoe_dadstv'
   EXPERTS:
     - 'fe'
     - 'resnet18'
@@ -42,6 +43,6 @@ SCHEDULER:
   FACTOR: 0.1
   PATIENCE: 2
 
-EPOCHS: 5
+EPOCHS: 20
 HYPERPARAMS:
   - 2.0
