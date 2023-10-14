@@ -13,7 +13,7 @@ DATALOADER:
   ITERATION: 626
 
 MODEL:
-  NAME: 'de_fe_mmoe_dadstv'
+  NAME: 'de_fe_mmoe_dadst'
   EXPERTS:
     - 'fe'
     - 'resnet18'

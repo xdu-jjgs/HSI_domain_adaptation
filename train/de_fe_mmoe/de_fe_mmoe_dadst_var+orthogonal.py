@@ -255,7 +255,7 @@ def worker(rank_gpu, args):
             domain_t_loss = domain_criterion(y_s=y_t_adv_d, label_s=domain_label_t) * loss_weights[3]
             var_s_loss = var_criterion(y=source_weights) * loss_weights[4]
             var_t_loss = var_criterion(y=target_weights) * loss_weights[4]
-            orthogonal_loss = orthogonal_criterion(amp_f_s, amp_f_t) * loss_weights[5]
+            orthogonal_loss = (orthogonal_criterion(*amp_f_s) + orthogonal_criterion(*amp_f_t)) * loss_weights[5]
             total_loss = (cls_loss + cbst_loss + worst_loss + domain_s_loss + domain_t_loss + var_s_loss + var_t_loss +
                           orthogonal_loss)
 
