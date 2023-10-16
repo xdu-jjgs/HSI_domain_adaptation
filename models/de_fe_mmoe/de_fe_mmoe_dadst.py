@@ -12,11 +12,11 @@ from models.backbone import ImageClassifier, MultiHeadClassifier
 class DEFEMMOEDADST(nn.Module):
     # TODO: 1.update backbone
     #  2.add mapping
-    #  3.try orthogonal loss
-    #  4.try two steps
-    #  5.update extractor of MMOE --overfit, try dropout instead
-    #  6.try different experts
-    #  7.try orthogonal loss to domain invar and spec of the same expert
+    #  3.try orthogonal loss --useful
+    #  4.update extractor of MMOE --overfit, try dropout instead
+    #  5.try different experts --useful
+    #  6.try orthogonal loss to domain invar and spec of the same expert
+    #  7.try two steps
     def __init__(self, num_classes: int, experts: List[nn.Module]):
         super(DEFEMMOEDADST, self).__init__()
         # backbone
@@ -76,3 +76,47 @@ class DEFEMMOEDADST_GateConv(DEFEMMOEDADST):
             GateConv(self.num_channels, len(experts))
             for _ in range(self.num_task)
         ])
+
+
+class DEFEMMOEDADST_Mapping(DEFEMMOEDADST):
+    # TODO: 1.update backbone
+    #  2.add mapping
+    #  3.try orthogonal loss --useful
+    #  4.update extractor of MMOE --overfit, try dropout instead
+    #  5.try different experts --useful
+    #  6.try orthogonal loss to domain invar and spec of the same expert
+    #  7.try two steps
+    def __init__(self, num_classes: int, experts: List[nn.Module]):
+        super(DEFEMMOEDADST_Mapping, self).__init__(num_classes, experts)
+        self.mapping = RandomizedMultiLinearMap(experts[0].out_channels, num_classes, experts[0].out_channels)
+
+    def forward(self, x, task_ind):
+        assert task_ind in [1, 2]  # 1 for source domain and 2 for target domain
+        experts_features = []
+        amplitude_features = []
+        for fft_conv, expert in zip(self.fft_modules, self.experts):
+            freq_tensor = torch.fft.fft2(x)
+            amplitude = torch.abs(freq_tensor)
+            phase = torch.angle(freq_tensor)
+            amplitude_extract = fft_conv(amplitude)
+            amplitude_features.append(amplitude_extract)
+            complex_tensor = amplitude_extract * (torch.cos(phase) + 1j * torch.sin(phase))
+            recon = torch.fft.ifft2(complex_tensor).real
+            experts_features.append(expert(recon))
+        experts_features = torch.stack(experts_features, 1)
+        experts_features = torch.squeeze(experts_features)
+
+        if task_ind == 1:
+            task_weight = self.gates[0](x)[-1].softmax(dim=1).unsqueeze(1)
+        else:
+            task_weight = self.gates[1](x)[-1].softmax(dim=1).unsqueeze(1)
+        features = torch.matmul(task_weight, experts_features)
+        features = features.squeeze(1)
+        _, out = self.classifier(features)
+        _, out_pse = self.classifier_pse(features)
+        reverse_features = self.grl_layer(features)
+        out_ = out.detach()
+        features_mapping = self.mapping(reverse_features, out_)
+        _, outs_adv = self.classifier_adv(features_mapping)
+        out_adv_k, out_adv_d = outs_adv
+        return amplitude_features, out, out_pse, out_adv_k, out_adv_d, task_weight
