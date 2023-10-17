@@ -9,19 +9,21 @@ from .task_mmoe import TaskMMOEDDC, TaskMMOEDANN
 from .fe_param import FEPARAMDDC, FEPARAMDANN, FEPARAMMCD
 from .fe_mmoe import FEMMOEDDC, FEMMOEDANN, FEMMOEMCD, FEMMOESol1
 from .dd_fe_mmoe import DDFEMMOE
-from .de_fe_mmoe import DEFEMMOEDANN, DEFEMMOEDADST, DEFEMMOEDADST_GateConv, DEFEMMOEDADST_Mapping
+from .de_fe_mmoe import DEFEMMOEDANN, DEFEMMOEDADST, DEFEMMOEDADST_GateConv, DEFEMMOEDADST_Mapping, DEFEMMOEDADST_Shared
 
 from configs import CFG
 from models.backbone import build_backbone, ImageClassifier
 
 
 def build_model(num_channels, num_classes):
+    # build backbone/experts
     if CFG.MODEL.BACKBONE:
         backbone_ = build_backbone(num_channels, CFG.MODEL.BACKBONE)
     elif CFG.MODEL.EXPERTS[0]:
         backbone_ = [build_backbone(num_channels, i) for i in CFG.MODEL.EXPERTS]
     else:
         raise NotImplementedError('invalid backbone: {} or experts: {}'.format(CFG.MODEL.BACKBONE, CFG.MODEL.EXPERTS))
+    # build model
     if CFG.MODEL.NAME == 'ddc':
         return DDC(num_classes, backbone_)
     elif CFG.MODEL.NAME == 'mcd':
@@ -74,6 +76,8 @@ def build_model(num_channels, num_classes):
         return DEFEMMOEDADST_GateConv(num_classes, backbone_)
     elif CFG.MODEL.NAME == 'de_fe_mmoe_dadst_mapping':
         return DEFEMMOEDADST_Mapping(num_classes, backbone_)
+    elif CFG.MODEL.NAME == 'de_fe_mmoe_dadst_shared':
+        return DEFEMMOEDADST_Shared(num_classes, backbone_)
     elif CFG.MODEL.NAME == 'vdd':
         return VDD(num_classes, backbone_)
     elif CFG.MODEL.NAME == 'vdd_fixed':

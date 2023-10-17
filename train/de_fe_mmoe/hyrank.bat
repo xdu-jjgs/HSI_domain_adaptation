@@ -37,3 +37,15 @@ python train/de_fe_mmoe/de_fe_mmoe_dadst_var.py configs/hyrank/de_fe_mmoe/de_fe_
         --master-port 8886 ^
         --seed %~1% ^
         --opt-level O1
+
+rem de_fe_mmoe_dadst_shared
+python train/de_fe_mmoe/de_fe_mmoe_dadst_var.py configs/hyrank/de_fe_mmoe/de_fe_resnet_mmoe_dadst_shared_var.yaml ^
+        --path ./runs/hyrank/de_fe_resnet_mmoe_dadst_shared_var-train ^
+        --nodes 1 ^
+        --gpus 1 ^
+        --rank-node 0 ^
+        --backend gloo ^
+        --master-ip localhost ^
+        --master-port 8886 ^
+        --seed %~1% ^
+        --opt-level O1
