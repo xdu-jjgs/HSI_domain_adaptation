@@ -13,9 +13,7 @@ DATALOADER:
 
 MODEL:
   NAME: 'de_fe_mmoe_dadst_shared'
-  EXPERTS:
-    - 'resnet18'
-    - 'resnet18'
+  BACKBONE: 'resnet18'
 
 CRITERION:
   ITEMS:
