@@ -1,6 +1,7 @@
-from .dadst import DADST, DADASTMapping
+from .dadst import DADST, DADASTMapping, DADSTFFT
 
 __all__ = [
     DADST,
-    DADASTMapping
+    DADASTMapping,
+    DADSTFFT
 ]

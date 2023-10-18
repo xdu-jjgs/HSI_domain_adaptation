@@ -48,3 +48,18 @@ class DADASTMapping(nn.Module):
         _, outs_adv = self.classifier_adv(features_mapping)
         out_adv_k, out_adv_d = outs_adv
         return features, out, out_pse, out_adv_k, out_adv_d
+
+
+class DADSTFFT(DADST):
+    def __init__(self, num_classes: int, backbone: nn.Module):
+        super(DADST, self).__init__(num_classes, backbone)
+        self.fft_conv = nn.Conv2d(self.num_channels, self.num_channels, 1, 1, 0, bias=False)
+
+    def forward(self, x):
+        freq_tensor = torch.fft.fft2(x)
+        amplitude = torch.abs(freq_tensor)
+        phase = torch.angle(freq_tensor)
+        amplitude_extract = self.fft_conv(amplitude)
+        complex_tensor = amplitude_extract * (torch.cos(phase) + 1j * torch.sin(phase))
+        recon = torch.fft.ifft2(complex_tensor).real
+        return super().forward(recon)

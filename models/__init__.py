@@ -4,7 +4,7 @@ from .dst import DST
 from .dsn import DSN
 from .dann import DANN
 from .vdd import VDD, VDDFixed
-from .dadst import DADST, DADASTMapping
+from .dadst import DADST, DADASTMapping, DADSTFFT
 from .task_mmoe import TaskMMOEDDC, TaskMMOEDANN
 from .fe_param import FEPARAMDDC, FEPARAMDANN, FEPARAMMCD
 from .fe_mmoe import FEMMOEDDC, FEMMOEDANN, FEMMOEMCD, FEMMOESol1
@@ -39,6 +39,8 @@ def build_model(num_channels, num_classes):
         return DADST(num_classes, backbone_)
     elif CFG.MODEL.NAME == 'dadst_mapping':
         return DADASTMapping(num_classes, backbone_)
+    elif CFG.MODEL.NAME == 'dadst_fft':
+        return DADSTFFT(num_classes, backbone_)
     elif CFG.MODEL.NAME == 'task_mmoe_ddc':
         return TaskMMOEDDC(num_classes, backbone_)
     elif CFG.MODEL.NAME == 'task_mmoe_dann':
