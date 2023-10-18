@@ -187,7 +187,7 @@ def worker(rank_gpu, args):
     iteration = 0
     best_epoch = 0
     best_PA = 0.
-    experts = CFG.MODEL.EXPERTS
+    experts = model.module.experts
     # experts_order = None
 
     # load checkpoint if specified
@@ -229,8 +229,8 @@ def worker(rank_gpu, args):
         train_bar = tqdm(range(1, CFG.DATALOADER.ITERATION + 1), desc='training', ascii=True)
         total_loss_epoch, cls_loss_epoch, cbst_loss_epoch, worst_loss_epoch, domain_loss_epoch, var_loss_epoch = \
             0., 0., 0., 0., 0., 0.
-        source_weights_epoch = np.zeros((len(model.module.experts)))
-        target_weights_epoch = np.zeros((len(model.module.experts)))
+        source_weights_epoch = np.zeros((len(experts)))
+        target_weights_epoch = np.zeros((len(experts)))
         for iteration in train_bar:
             x_s, label_s = next(source_iterator)
             x_t, label_t = next(target_iterator)
@@ -356,7 +356,7 @@ def worker(rank_gpu, args):
         metric_cls.reset()  # reset metric
         val_bar = tqdm(val_dataloader, desc='validating', ascii=True)
         val_loss = 0.
-        target_weights_epoch = np.zeros((len(model.module.experts)))
+        target_weights_epoch = np.zeros((len(experts)))
         with torch.no_grad():  # disable gradient back-propagation
             for x_t, label_t in val_bar:
                 x_t, label_t = x_t.to(device), label_t.to(device)

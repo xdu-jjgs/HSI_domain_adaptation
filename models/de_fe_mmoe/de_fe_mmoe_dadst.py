@@ -11,7 +11,7 @@ from models.backbone import ImageClassifier, MultiHeadClassifier
 
 class DEFEMMOEDADST(nn.Module):
     # TODO: 1.update backbone
-    #  2.add mapping
+    #  2.add mapping --useless for patch11
     #  3.try orthogonal loss --useful
     #  4.update extractor of MMOE --overfit, try dropout instead
     #  5.try different experts --useful
@@ -79,13 +79,6 @@ class DEFEMMOEDADST_GateConv(DEFEMMOEDADST):
 
 
 class DEFEMMOEDADST_Mapping(DEFEMMOEDADST):
-    # TODO: 1.update backbone
-    #  2.add mapping
-    #  3.try orthogonal loss --useful
-    #  4.update extractor of MMOE --overfit, try dropout instead
-    #  5.try different experts --useful
-    #  6.try orthogonal loss to domain invar and spec of the same expert
-    #  7.try two steps
     def __init__(self, num_classes: int, experts: List[nn.Module]):
         super(DEFEMMOEDADST_Mapping, self).__init__(num_classes, experts)
         self.mapping = RandomizedMultiLinearMap(experts[0].out_channels, num_classes, experts[0].out_channels)
@@ -129,13 +122,14 @@ class DEFEMMOEDADST_Shared(nn.Module):
         self.backbone = backbone
         self.num_channels = backbone.in_channels
         self.num_task = 2
+        self.num_experts = 2
         self.num_classes = num_classes
         self.experts = nn.ModuleList([
             nn.Conv2d(self.num_channels, self.num_channels, 1, 1, 0, bias=False)
-            for _ in range(len(self.experts))
+            for _ in range(self.num_experts)
         ])
         self.gates = nn.ModuleList([
-            Gate(self.num_channels, len(self.experts))
+            Gate(self.num_channels, self.num_experts)
             for _ in range(self.num_task)
         ])
         self.grl_layer = WarmStartGradientReverseLayer(alpha=1.0, lo=0.0, hi=1.0, max_iters=200, auto_step=True)
