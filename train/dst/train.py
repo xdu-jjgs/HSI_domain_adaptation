@@ -20,6 +20,7 @@ from models import build_model
 from criterions import build_criterion
 from optimizers import build_optimizer
 from schedulers import build_scheduler
+from models.backbone.domain_bn import switch_domain
 from datas import build_dataset, build_dataloader, build_iterator
 
 
@@ -229,7 +230,9 @@ def worker(rank_gpu, args):
             x_t = x_t.to(device)
 
             # step1: train classifier with S data
+            switch_domain(model, 0)
             f_s, y_s, _, y_s_adv = model(x_s)
+            switch_domain(model, 1)
             f_t, y_t, y_pse, y_t_adv = model(x_t)
 
             cls_loss = cls_criterion(y_s=y_s, label_s=label_s,) * loss_weights[0]
@@ -329,6 +332,7 @@ def worker(rank_gpu, args):
         with torch.no_grad():  # disable gradient back-propagation
             for x_t, label in val_bar:
                 x_t, label = x_t.to(device), label.to(device)
+                switch_domain(model, 1)
                 _, y_t, _, _ = model(x_t)
 
                 cls_loss = val_criterion(y_s=y_t, label_s=label)
