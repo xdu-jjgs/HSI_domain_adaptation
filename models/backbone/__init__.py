@@ -1,7 +1,7 @@
 from .resnet import ResNet
 from .extractor import FeatureExtractor
-from .classifier import ImageClassifier, MultiHeadClassifier
 from .extractor_attention import AttentionFeatureExtractor
+from .classifier import ImageClassifier, MultiHeadClassifier
 
 __all__ = [
     ResNet,

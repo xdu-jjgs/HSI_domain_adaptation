@@ -186,7 +186,7 @@ def worker(rank_gpu, args):
     logging.info('inference | PA={:.3f} mPA={:.3f}'.format(PA, mPA))
     for c in range(NUM_CLASSES):
         logging.info(
-            'inference | class={}-{} P={:.3f} R={:.3f} F1={:.3f}'.format(c, target_dataset.names[c],
+            'inference | class={}{} P={:.3f} R={:.3f} F1={:.3f}'.format(c, target_dataset.names[c],
                                                                          Ps[c],
                                                                          Rs[c], F1S[c]))
 

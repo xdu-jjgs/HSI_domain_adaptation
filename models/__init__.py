@@ -4,23 +4,26 @@ from .dst import DST
 from .dsn import DSN
 from .dann import DANN
 from .vdd import VDD, VDDFixed
-from .dstda import DSTDA, DSTDAMapping
+from .dadst import DADST, DADASTMapping, DADSTFFT
 from .task_mmoe import TaskMMOEDDC, TaskMMOEDANN
 from .fe_param import FEPARAMDDC, FEPARAMDANN, FEPARAMMCD
 from .fe_mmoe import FEMMOEDDC, FEMMOEDANN, FEMMOEMCD, FEMMOESol1
-from .dd_fe_mmoe import DDFEMMOEDANN
+from .dd_fe_mmoe import DDFEMMOE
+from .de_fe_mmoe import DEFEMMOEDANN, DEFEMMOEDADST, DEFEMMOEDADST_GateConv, DEFEMMOEDADST_Mapping, DEFEMMOEDADST_Shared
 
 from configs import CFG
 from models.backbone import build_backbone, ImageClassifier
 
 
 def build_model(num_channels, num_classes):
+    # build backbone/experts
     if CFG.MODEL.BACKBONE:
         backbone_ = build_backbone(num_channels, CFG.MODEL.BACKBONE)
     elif CFG.MODEL.EXPERTS[0]:
         backbone_ = [build_backbone(num_channels, i) for i in CFG.MODEL.EXPERTS]
     else:
         raise NotImplementedError('invalid backbone: {} or experts: {}'.format(CFG.MODEL.BACKBONE, CFG.MODEL.EXPERTS))
+    # build model
     if CFG.MODEL.NAME == 'ddc':
         return DDC(num_classes, backbone_)
     elif CFG.MODEL.NAME == 'mcd':
@@ -32,10 +35,12 @@ def build_model(num_channels, num_classes):
         return DANN(num_classes, backbone_)
     elif CFG.MODEL.NAME == 'dst':
         return DST(num_classes, backbone_)
-    elif CFG.MODEL.NAME == 'dstda':
-        return DSTDA(num_classes, backbone_)
-    elif CFG.MODEL.NAME == 'dstda_mapping':
-        return DSTDAMapping(num_classes, backbone_)
+    elif CFG.MODEL.NAME == 'dadst':
+        return DADST(num_classes, backbone_)
+    elif CFG.MODEL.NAME == 'dadst_mapping':
+        return DADASTMapping(num_classes, backbone_)
+    elif CFG.MODEL.NAME == 'dadst_fft':
+        return DADSTFFT(num_classes, backbone_)
     elif CFG.MODEL.NAME == 'task_mmoe_ddc':
         return TaskMMOEDDC(num_classes, backbone_)
     elif CFG.MODEL.NAME == 'task_mmoe_dann':
@@ -64,7 +69,17 @@ def build_model(num_channels, num_classes):
         C2 = ImageClassifier(backbone_[0].out_channels, num_classes)
         return FE, C1, C2
     elif CFG.MODEL.NAME == 'dd_fe_mmoe':
-        return DDFEMMOEDANN(num_classes, backbone_)
+        return DDFEMMOE(num_classes, backbone_)
+    elif CFG.MODEL.NAME == 'de_fe_mmoe_dann':
+        return DEFEMMOEDANN(num_classes, backbone_)
+    elif CFG.MODEL.NAME == 'de_fe_mmoe_dadst':
+        return DEFEMMOEDADST(num_classes, backbone_)
+    elif CFG.MODEL.NAME == 'de_fe_mmoe_dadst_gate_conv':
+        return DEFEMMOEDADST_GateConv(num_classes, backbone_)
+    elif CFG.MODEL.NAME == 'de_fe_mmoe_dadst_mapping':
+        return DEFEMMOEDADST_Mapping(num_classes, backbone_)
+    elif CFG.MODEL.NAME == 'de_fe_mmoe_dadst_shared':
+        return DEFEMMOEDADST_Shared(num_classes, backbone_)
     elif CFG.MODEL.NAME == 'vdd':
         return VDD(num_classes, backbone_)
     elif CFG.MODEL.NAME == 'vdd_fixed':

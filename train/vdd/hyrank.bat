@@ -15,7 +15,7 @@ python train/vdd/train_os.py configs/hyrank/vdd/vdd_os.yaml ^
         --opt-level O1
 
 rem vdd
-python train/vdd/train_os.py configs/hyrank/vdd/vdd_ts.yaml ^
+python train/vdd/train_ts.py configs/hyrank/vdd/vdd_ts.yaml ^
         --path ./runs/hyrank/vdd_ts-train ^
         --nodes 1 ^
         --gpus 1 ^

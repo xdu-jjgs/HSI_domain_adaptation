@@ -18,16 +18,14 @@ class TaskMMOEDDC(nn.Module):
         self.gates = nn.ModuleList([Gate(self.num_channels, len(experts)) for _ in range(self.num_task)])
         self.towers = nn.ModuleList([ImageClassifier(experts[0].out_channels, num_classes)
                                      for num_classes in num_task_classes])
-        self.gap = nn.AdaptiveAvgPool2d((1, 1))
 
     def forward(self, x):
         experts_features = [i(x) for i in self.experts]
         experts_features = torch.stack(experts_features, 1)
-        while len(experts_features.size()) > 3:
-            experts_features = torch.squeeze(experts_features, 3)
+        experts_features = torch.squeeze(experts_features)
         x_gap = self.gap(x)
 
-        task_weights = [i(x_gap)[-1].softmax(dim=1).unsqueeze(1) for i in self.gates]
+        task_weights = [i(x)[-1].softmax(dim=1).unsqueeze(1) for i in self.gates]
         outs = []
         for i in range(self.num_task):
             # print(task_weights[i].size(), experts_features.size())

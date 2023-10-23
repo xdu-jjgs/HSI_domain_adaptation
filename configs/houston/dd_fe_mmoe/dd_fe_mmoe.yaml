@@ -15,21 +15,23 @@ DATALOADER:
 MODEL:
   NAME: 'dd_fe_mmoe'
   EXPERTS:
-    - 'fe'
-    - 'fe'
-    - 'fe'
+    - 'resnet18'
+    - 'resnet18'
+    - 'resnet18'
 
 CRITERION:
   ITEMS:
     - 'softmax+ce'
+    - 'cbst'
     - 'wcec'
     - 'softmax+ce'
-    - 'cbst'
+    - 'var'
   WEIGHTS:
     - 1.0
     - 1.0
     - 1.0
     - 1.0
+    - 0.5
   THRESHOLD: 0.7
 
 OPTIMIZER:

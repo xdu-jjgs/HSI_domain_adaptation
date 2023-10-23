@@ -1,7 +1,7 @@
 import os
 import re
 
-root = r'E:/zts/HSI_domain_adaptation/runs/'
+root = r'E:/zts/HSI_domain_adaptation/runs'
 datasets = ['houston', 'houston_sample', 'hyrank', 'hyrank_sample', 'shanghang', 'shanghang_sample']
 pattern = re.compile(r'Best([\s\w]*)\sepoch:\d+, PA:(0.\d+)')
 

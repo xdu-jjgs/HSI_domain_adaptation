@@ -19,26 +19,23 @@ class FEMMOEDANN(nn.Module):
         self.gates = nn.ModuleList([Gate(self.num_channels, len(experts)) for _ in range(self.num_task)])
         self.classifier = ImageClassifier(experts[0].out_channels, num_classes)
         self.domain_discriminator = ImageClassifier(experts[0].out_channels, 2)
-        self.gap = nn.AdaptiveAvgPool2d((1, 1))
         # self.grl_layer = WarmStartGradientReverseLayer(alpha=1.0, lo=0.0, hi=0.1, max_iters=1000, auto_step=False)
 
     def forward(self, x, alpha, task_ind):
         assert task_ind in [1, 2]  # 1 for source domain and 2 for target domain
         experts_features = [i(x) for i in self.experts]
         experts_features = torch.stack(experts_features, 1)
-        while len(experts_features.size()) > 3:
-            experts_features = torch.squeeze(experts_features, 3)
-        x_gap = self.gap(x)
+        experts_features = torch.squeeze(experts_features)
 
         if task_ind == 1:
-            task_weight = self.gates[0](x_gap)[-1].softmax(dim=1).unsqueeze(1)
+            task_weight = self.gates[0](x)[-1].softmax(dim=1).unsqueeze(1)
         else:
-            task_weight = self.gates[1](x_gap)[-1].softmax(dim=1).unsqueeze(1)
+            task_weight = self.gates[1](x)[-1].softmax(dim=1).unsqueeze(1)
         features = torch.matmul(task_weight, experts_features)
         features = features.squeeze(1)
+        class_output = self.classifier(features)
         # reverse_features = self.grl_layer(features)
         reverse_features = features.reshape([-1, self.experts[0].out_channels])
         reverse_features = ReverseLayerF.apply(reverse_features, alpha)
-        class_output = self.classifier(features)
         domain_output = self.domain_discriminator(reverse_features)
         return class_output, domain_output, task_weight
