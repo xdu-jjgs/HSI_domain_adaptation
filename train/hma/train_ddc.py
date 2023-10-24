@@ -211,6 +211,7 @@ def worker(rank_gpu, args):
         logging.info('load checkpoint {} with PA={:.4f}, epoch={}'.format(args.checkpoint, best_PA, epoch))
 
     # train - validation loop
+    torch.autograd.set_detect_anomaly(True)
 
     while True:
         epoch += 1
@@ -228,48 +229,62 @@ def worker(rank_gpu, args):
             writer.add_scalar('lr-epoch', lr, epoch)
 
         # train
-        FE.train()  # set model to training mode
-        inn.train()
-        C.train()
         metric.reset()  # reset metric
         train_bar = tqdm(range(1, CFG.DATALOADER.ITERATION + 1), desc='training', ascii=True)
-        source_loss_epoch, target_loss_epoch, total_loss_epoch, inn_loss_epoch = 0., 0., 0., 0.
+        source_loss_epoch, target_loss_epoch, inn_loss_epoch = 0., 0., 0.
         for iteration in train_bar:
             x_s, label_s = next(source_iterator)
             x_t, _ = next(target_iterator)
             x_s, label_s = x_s.to(device), label_s.to(device)
             x_t = x_t.to(device)
 
-            # loss_s
+            FE.train()  # set model to training mode
+            inn.eval()
+            C.train()
             f_s = FE(x_s)
             y_s = C(f_s)[-1]
-            f_s2t = inn(f_s.detach(), reverse=True)
-            y_s2t = C(f_s2t.detach())[-1]
+            with torch.no_grad():
+                f_s2t = inn(f_s, reverse=True)
+            y_s2t = C(f_s2t)[-1]
+
             source_loss = (cls_criterion(y_s, label_s) + cls_criterion(y_s2t, label_s)) * loss_weights[0]
             source_loss_epoch += source_loss.item()
-
-            # loss_t
-            f_t = FE(x_t)
-            y_t = C(f_t)[-1]
-            f_t2s = inn(f_t.detach())
-            y_t2s = C(f_t2s.detach())[-1]
-            target_loss = con_criterion(y_t, y_t2s) * loss_weights[1]
-            target_loss_epoch += target_loss.item()
-            total_loss = source_loss + target_loss
-            total_loss_epoch += total_loss.item()
-
-            # loss_inn
-            inn_loss = (trans_criterion(f_s=f_s.detach(), f_t=f_t2s, label_s=label_s, y_s=y_s, y_t=y_t) +
-                        trans_criterion(f_s=f_t.detach(), f_t=f_s2t, label_s=label_s, y_s=y_s, y_t=y_t)
-                        ) * loss_weights[2]
-            inn_loss_epoch += inn_loss.item()
-
             optimizer_fe.zero_grad()
             optimizer_c.zero_grad()
-            with amp.scale_loss(total_loss, [optimizer_fe, optimizer_c]) as scaled_loss:
+            with amp.scale_loss(source_loss, [optimizer_fe, optimizer_c]) as scaled_loss:
                 scaled_loss.backward()
             optimizer_fe.step()
             optimizer_c.step()
+
+            f_t = FE(x_t)
+            y_t = C(f_t)[-1]
+            with torch.no_grad():
+                f_t2s = inn(f_t)
+            y_t2s = C(f_t2s)[-1]
+            target_loss = con_criterion(y_t, y_t2s) * loss_weights[1]
+            target_loss_epoch += target_loss.item()
+
+            optimizer_fe.zero_grad()
+            optimizer_c.zero_grad()
+            with amp.scale_loss(target_loss, [optimizer_fe, optimizer_c]) as scaled_loss:
+                scaled_loss.backward()
+            optimizer_fe.step()
+            optimizer_c.step()
+
+            FE.eval()  # set model to training mode
+            inn.train()
+            C.eval()
+            with torch.no_grad():
+                f_s = FE(x_s)
+                f_t = FE(x_t)
+                y_s = C(f_s)[-1]
+                y_t = C(f_t)[-1]
+            f_s2t = inn(f_s, reverse=True)
+            f_t2s = inn(f_t)
+            # loss_inn
+            inn_loss = (trans_criterion(f_s=f_s, f_t=f_t2s, label_s=label_s, y_s=y_s, y_t=y_t) +
+                        trans_criterion(f_s=f_t, f_t=f_s2t, label_s=label_s, y_s=y_s, y_t=y_t)) * loss_weights[2]
+            inn_loss_epoch += inn_loss.item()
 
             optimizer_inn.zero_grad()
             with amp.scale_loss(inn_loss, optimizer_inn) as scaled_loss:
@@ -291,21 +306,19 @@ def worker(rank_gpu, args):
 
         source_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
         target_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
-        total_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
         inn_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
         PA, mPA, Ps, Rs, F1S, KC = metric.PA(), metric.mPA(), metric.Ps(), metric.Rs(), metric.F1s(), metric.KC()
         if dist.get_rank() == 0:
             writer.add_scalar('train/loss_s-epoch', source_loss_epoch, epoch)
             writer.add_scalar('train/loss_t-epoch', target_loss_epoch, epoch)
-            writer.add_scalar('train/loss_total-epoch', total_loss_epoch, epoch)
             writer.add_scalar('train/loss_inn-epoch', inn_loss_epoch, epoch)
 
             writer.add_scalar('train/PA-epoch', PA, epoch)
             writer.add_scalar('train/mPA-epoch', mPA, epoch)
             writer.add_scalar('train/KC-epoch', KC, epoch)
         logging.info(
-            'rank{} train epoch={} | loss_s={:.3f} loss_t={:.3f} loss_total={:.3f} loss_inn={:.3f}'.format(
-                dist.get_rank() + 1, epoch, source_loss_epoch, target_loss_epoch, total_loss_epoch, inn_loss_epoch))
+            'rank{} train epoch={} | loss_s={:.3f} loss_t={:.3f} loss_inn={:.3f}'.format(
+                dist.get_rank() + 1, epoch, source_loss_epoch, target_loss_epoch, inn_loss_epoch))
         logging.info(
             'rank{} train epoch={} | PA={:.3f} mPA={:.3f} KC={:.3f}'.format(dist.get_rank() + 1, epoch, PA, mPA, KC))
         for c in range(NUM_CLASSES):
@@ -319,7 +332,6 @@ def worker(rank_gpu, args):
         FE.eval()  # set model to evaluation mode
         inn.eval()  # set model to evaluation mode
         C.eval()  # set model to evaluation mode
-        # 由于 retain graph = true 此处不能用eval() 否则计算图会被free掉 导致模型失效
         metric.reset()  # reset metric
         val_bar = tqdm(val_dataloader, desc='validating', ascii=True)
         val_loss = 0.
@@ -328,7 +340,7 @@ def worker(rank_gpu, args):
                 x_t, label_t = x_t.to(device), label_t.to(device)
 
                 f_t = FE(x_t)
-                y_t = C(f_t)
+                y_t = C(f_t)[-1]
 
                 cls_loss = val_criterion(y_t, label_t)
                 val_loss += cls_loss.item()

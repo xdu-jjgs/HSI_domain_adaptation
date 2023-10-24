@@ -7,6 +7,8 @@ from tllib.alignment.jan import JointMultipleKernelMaximumMeanDiscrepancy
 
 
 def guassian_kernel(source, target, kernel_mul, kernel_num, fix_sigma):
+    source = torch.squeeze(source)
+    target = torch.squeeze(target)
     n_samples = int(source.size()[0]) + int(target.size()[0])
     total = torch.cat([source, target], dim=0)
     total0 = total.unsqueeze(0).expand(

@@ -18,7 +18,7 @@ MODEL:
 CRITERION:
   ITEMS:
     - 'softmax+ce'
-    - 'mse'
+    - 'l2dis'
     - 'mmd'
   WEIGHTS:
     - 1.0

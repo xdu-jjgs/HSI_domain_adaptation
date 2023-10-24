@@ -41,10 +41,12 @@ class INN(nn.Module):
         self.blocks = nn.ModuleList([Block(in_nodes) for _ in range(num_block)])
 
     def forward(self, x, reverse: bool = False):
+        x = torch.squeeze(x)
         if reverse:
             for b in reversed(self.blocks):
                 x = b(x, reverse=reverse)
         else:
             for b in self.blocks:
                 x = b(x, reverse=reverse)
+
         return x
