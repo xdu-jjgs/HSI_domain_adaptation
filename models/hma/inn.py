@@ -1,6 +1,9 @@
 import torch
 import torch.nn as nn
 
+from tllib.modules.grl import GradientReverseLayer
+
+from models import ImageClassifier
 from models.utils.init import initialize_weights
 
 
@@ -52,3 +55,24 @@ class INN(nn.Module):
             for b in self.blocks:
                 x = b(x, reverse=reverse)
         return x
+
+
+class INNDANN(INN):
+    def __init__(self, in_nodes: int, num_block: int):
+        super(INNDANN).__init__(in_nodes, num_block)
+        self.grl = GradientReverseLayer()
+        self.domain_discriminator = ImageClassifier(in_nodes, 2)
+
+    def forward(self, x, reverse: bool = False):
+        x = torch.squeeze(x)
+        x_ = self.grl(x)
+        out_domain1 = self.domain_discriminator(x_)
+        if reverse:
+            for b in reversed(self.blocks):
+                x = b(x, reverse=reverse)
+        else:
+            for b in self.blocks:
+                x = b(x, reverse=reverse)
+        x_ = self.grl(x)
+        out_domain2 = self.domain_discriminator(x_)
+        return x, out_domain1, out_domain2

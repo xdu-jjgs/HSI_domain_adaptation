@@ -1,5 +1,6 @@
-from .inn import INN
+from .inn import INN, INNDANN
 
 __all__ = [
-    INN
+    INN,
+    INNDANN
 ]
