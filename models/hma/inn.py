@@ -1,13 +1,15 @@
 import torch
 import torch.nn as nn
 
+from models.utils.init import initialize_weights
+
 
 class Block(nn.Module):
     def __init__(self, in_nodes: int):
         super(Block, self).__init__()
         assert in_nodes % 2 == 0
         mid_nodes = int(in_nodes / 2)
-        self.relu = nn.ReLU()
+        self.relu = nn.LeakyReLU()
 
         self.F = nn.Sequential(
             nn.Linear(mid_nodes, mid_nodes),
@@ -39,6 +41,7 @@ class INN(nn.Module):
         super(INN, self).__init__()
         assert num_block > 0
         self.blocks = nn.ModuleList([Block(in_nodes) for _ in range(num_block)])
+        initialize_weights(self.blocks)
 
     def forward(self, x, reverse: bool = False):
         x = torch.squeeze(x)
@@ -48,5 +51,4 @@ class INN(nn.Module):
         else:
             for b in self.blocks:
                 x = b(x, reverse=reverse)
-
         return x

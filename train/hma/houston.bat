@@ -3,7 +3,7 @@ cd E:\zts\HSI_domain_adaptation
 set PYTHONPATH=%cd%
 
 rem hma
-python train/hma/train_ddc.py configs/houston/hma/hma_5.yaml ^
+python train/hma/train_ddc.py configs/houston/hma/hma_3.yaml ^
         --path ./runs/houston/hma-train ^
         --nodes 1 ^
         --gpus 1 ^

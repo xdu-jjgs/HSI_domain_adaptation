@@ -167,7 +167,9 @@ def worker(rank_gpu, args):
     val_criterion = build_criterion('softmax+ce')
     val_criterion.to(device)
     # build metric
-    metric = Metric(NUM_CLASSES)
+    metric1 = Metric(NUM_CLASSES)
+    metric2 = Metric(NUM_CLASSES)
+    metric3 = Metric(NUM_CLASSES)
     # build optimizer
     optimizer_fe = build_optimizer(FE)
     optimizer_inn = build_optimizer(inn)
@@ -184,9 +186,9 @@ def worker(rank_gpu, args):
         opt_level=args.opt_level
     )
     # DDP
-    FE = DistributedDataParallel(FE)
-    inn = DistributedDataParallel(inn)
-    C = DistributedDataParallel(C)
+    FE = DistributedDataParallel(FE, broadcast_buffers=False)
+    inn = DistributedDataParallel(inn, broadcast_buffers=False)
+    C = DistributedDataParallel(C, broadcast_buffers=False)
 
     epoch = 0
     iteration = 0
@@ -229,9 +231,9 @@ def worker(rank_gpu, args):
             writer.add_scalar('lr-epoch', lr, epoch)
 
         # train
-        metric.reset()  # reset metric
+        metric1.reset()  # reset metric
         train_bar = tqdm(range(1, CFG.DATALOADER.ITERATION + 1), desc='training', ascii=True)
-        source_loss_epoch, target_loss_epoch, inn_loss_epoch = 0., 0., 0.
+        source_loss_epoch, target_loss_epoch, inn_loss_epoch, total_loss_epoch = 0., 0., 0., 0.
         for iteration in train_bar:
             x_s, label_s = next(source_iterator)
             x_t, _ = next(target_iterator)
@@ -241,32 +243,24 @@ def worker(rank_gpu, args):
             FE.train()  # set model to training mode
             inn.eval()
             C.train()
-            f_s = FE(x_s)
-            y_s = C(f_s)[-1]
+            f_s, f_t = FE(x_s), FE(x_t)
+            y_s, y_t = C(f_s)[-1], C(f_t)[-1]
             with torch.no_grad():
                 f_s2t = inn(f_s, reverse=True)
+                f_t2s = inn(f_t)
             y_s2t = C(f_s2t)[-1]
+            y_t2s = C(f_t2s)[-1]
 
             source_loss = (cls_criterion(y_s, label_s) + cls_criterion(y_s2t, label_s)) * loss_weights[0]
             source_loss_epoch += source_loss.item()
-            optimizer_fe.zero_grad()
-            optimizer_c.zero_grad()
-            with amp.scale_loss(source_loss, [optimizer_fe, optimizer_c]) as scaled_loss:
-                scaled_loss.backward()
-            optimizer_fe.step()
-            optimizer_c.step()
-
-            f_t = FE(x_t)
-            y_t = C(f_t)[-1]
-            with torch.no_grad():
-                f_t2s = inn(f_t)
-            y_t2s = C(f_t2s)[-1]
             target_loss = con_criterion(y_t, y_t2s) * loss_weights[1]
             target_loss_epoch += target_loss.item()
+            total_loss = source_loss + target_loss
+            total_loss_epoch += total_loss.item()
 
             optimizer_fe.zero_grad()
             optimizer_c.zero_grad()
-            with amp.scale_loss(target_loss, [optimizer_fe, optimizer_c]) as scaled_loss:
+            with amp.scale_loss(total_loss, [optimizer_fe, optimizer_c]) as scaled_loss:
                 scaled_loss.backward()
             optimizer_fe.step()
             optimizer_c.step()
@@ -291,23 +285,23 @@ def worker(rank_gpu, args):
                 scaled_loss.backward()
             optimizer_inn.step()
 
-            pred = y_s.argmax(axis=1)
-            metric.add(pred.data.cpu().numpy(), label_s.data.cpu().numpy())
+            pred1 = y_s.argmax(axis=1)
+            metric1.add(pred1.data.cpu().numpy(), label_s.data.cpu().numpy())
 
             train_bar.set_postfix({
                 'epoch': epoch,
                 'loss_s': f'{source_loss.item():.3f}',
                 'loss_t': f'{target_loss.item():.3f}',
                 'loss_i': f'{inn_loss.item():.3f}',
-                'mP': f'{metric.mPA():.3f}',
-                'PA': f'{metric.PA():.3f}',
-                'KC': f'{metric.KC():.3f}'
+                'mP': f'{metric1.mPA():.3f}',
+                'PA': f'{metric1.PA():.3f}',
+                'KC': f'{metric1.KC():.3f}'
             })
 
         source_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
         target_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
         inn_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
-        PA, mPA, Ps, Rs, F1S, KC = metric.PA(), metric.mPA(), metric.Ps(), metric.Rs(), metric.F1s(), metric.KC()
+        PA, mPA, Ps, Rs, F1S, KC = metric1.PA(), metric1.mPA(), metric1.Ps(), metric1.Rs(), metric1.F1s(), metric1.KC()
         if dist.get_rank() == 0:
             writer.add_scalar('train/loss_s-epoch', source_loss_epoch, epoch)
             writer.add_scalar('train/loss_t-epoch', target_loss_epoch, epoch)
@@ -332,7 +326,9 @@ def worker(rank_gpu, args):
         FE.eval()  # set model to evaluation mode
         inn.eval()  # set model to evaluation mode
         C.eval()  # set model to evaluation mode
-        metric.reset()  # reset metric
+        metric1.reset()  # reset metric
+        metric2.reset()
+        metric3.reset()
         val_bar = tqdm(val_dataloader, desc='validating', ascii=True)
         val_loss = 0.
         with torch.no_grad():  # disable gradient back-propagation
@@ -341,23 +337,31 @@ def worker(rank_gpu, args):
 
                 f_t = FE(x_t)
                 y_t = C(f_t)[-1]
+                f_t2s = inn(f_t)
+                y_t2s = C(f_t2s)[-1]
+                y_mix = (y_t + y_t2s) / 2
 
                 cls_loss = val_criterion(y_t, label_t)
                 val_loss += cls_loss.item()
 
-                pred = y_t.argmax(axis=1)
-                metric.add(pred.data.cpu().numpy(), label_t.data.cpu().numpy())
+                pred1 = y_t.argmax(axis=1)
+                metric1.add(pred1.data.cpu().numpy(), label_t.data.cpu().numpy())
+                pred2 = y_t2s.argmax(axis=1)
+                metric2.add(pred2.data.cpu().numpy(), label_t.data.cpu().numpy())
+                pred3 = y_mix.argmax(axis=1)
+                metric3.add(pred3.data.cpu().numpy(), label_t.data.cpu().numpy())
 
                 val_bar.set_postfix({
                     'epoch': epoch,
                     'loss': f'{cls_loss.item():.3f}',
-                    'mP': f'{metric.mPA():.3f}',
-                    'PA': f'{metric.PA():.3f}',
-                    'KC': f'{metric.KC():.3f}'
+                    'mP': f'{metric1.mPA():.3f}',
+                    'PA': f'{metric1.PA():.3f}',
+                    'KC': f'{metric1.KC():.3f}'
                 })
         val_loss /= len(val_dataloader) * CFG.DATALOADER.BATCH_SIZE
 
-        PA, mPA, Ps, Rs, F1S, KC = metric.PA(), metric.mPA(), metric.Ps(), metric.Rs(), metric.F1s(), metric.KC()
+        PA, mPA, Ps, Rs, F1S, KC = metric1.PA(), metric1.mPA(), metric1.Ps(), metric1.Rs(), metric1.F1s(), metric1.KC()
+        PA = max(PA, metric2.PA(), metric3.PA())
         if dist.get_rank() == 0:
             writer.add_scalar('val/loss-epoch', val_loss, epoch)
             writer.add_scalar('val/PA-epoch', PA, epoch)

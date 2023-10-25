@@ -39,4 +39,4 @@ SCHEDULER:
 EPOCHS: 5
 
 HYPERPARAMS:
-  - 5
+  - 3
