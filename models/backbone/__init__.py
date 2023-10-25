@@ -1,3 +1,5 @@
+from configs import CFG
+
 from .resnet import ResNet
 from .extractor import FeatureExtractor
 from .extractor_attention import AttentionFeatureExtractor
@@ -22,7 +24,7 @@ def build_backbone(num_channels, model_name):
     elif model_name == 'resnet101':
         return ResNet(num_channels, depth=101)
     elif model_name == 'fe':
-        return FeatureExtractor(num_channels)
+        return FeatureExtractor(num_channels, patch_size=CFG.DATASET.PATCH.HEIGHT)
     elif model_name == 'fe_pos':
         return AttentionFeatureExtractor(num_channels, attention='pos')
     elif model_name == 'fe_can':

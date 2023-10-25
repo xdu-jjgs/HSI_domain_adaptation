@@ -2,8 +2,8 @@ DATASET:
   NAME: 'ShangHang'
   ROOT: 'E:/zzy/GAN/data/ShanghaiHangzhou'
   PATCH:
-    HEIGHT: 11
-    WIDTH: 11
+    HEIGHT: 27
+    WIDTH: 27
     PAD_MODE: 'symmetric'
 
 DATALOADER:
@@ -13,7 +13,7 @@ DATALOADER:
 
 MODEL:
   NAME: 'hma_ddc'
-  BACKBONE: 'resnet18'
+  BACKBONE: 'fe'
 
 CRITERION:
   ITEMS:
