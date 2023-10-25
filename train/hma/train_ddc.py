@@ -361,7 +361,9 @@ def worker(rank_gpu, args):
         val_loss /= len(val_dataloader) * CFG.DATALOADER.BATCH_SIZE
 
         PA, mPA, Ps, Rs, F1S, KC = metric1.PA(), metric1.mPA(), metric1.Ps(), metric1.Rs(), metric1.F1s(), metric1.KC()
-        PA = max(PA, metric2.PA(), metric3.PA())
+        PAs = [PA, metric2.PA(), metric3.PA()]
+        PA = max(PAs)
+        logging.info("max: {}".format(PAs.index(PA)))
         if dist.get_rank() == 0:
             writer.add_scalar('val/loss-epoch', val_loss, epoch)
             writer.add_scalar('val/PA-epoch', PA, epoch)
