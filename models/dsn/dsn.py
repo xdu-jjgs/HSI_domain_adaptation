@@ -8,7 +8,8 @@ from models.backbone import ImageClassifier
 
 
 class DSN(nn.Module):
-    def __init__(self, num_classes: int, experts: List[nn.Module], patch_size:int):
+    # TODO: denoise autoencoder
+    def __init__(self, num_classes: int, experts: List[nn.Module], patch_size: int):
         super(DSN, self).__init__()
         assert patch_size in [11]
         # backbone输入通道数

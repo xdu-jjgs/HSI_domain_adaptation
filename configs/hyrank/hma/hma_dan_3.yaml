@@ -21,7 +21,7 @@ CRITERION:
     - 'l2dis'
     - 'mmd'
   WEIGHTS:
-    - 1.0
+    - 0.5
     - 0.1
     - 1.0
   KERNEL_NUM: 5

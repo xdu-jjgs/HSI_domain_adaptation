@@ -8,21 +8,21 @@ from models.backbone.classifier import ImageClassifier
 
 
 class Block(nn.Module):
-    def __init__(self, in_nodes: int):
+    def __init__(self, in_channels: int):
         super(Block, self).__init__()
-        assert in_nodes % 2 == 0
-        mid_nodes = int(in_nodes / 2)
+        assert in_channels % 2 == 0
+        mid_channels = int(in_channels / 2)
         self.relu = nn.LeakyReLU()
 
         self.F = nn.Sequential(
-            nn.Linear(mid_nodes, mid_nodes),
+            nn.Conv2d(mid_channels, mid_channels, 1, 1, 0),
+            nn.BatchNorm2d(mid_channels),
             self.relu,
-            nn.Linear(mid_nodes, mid_nodes)
         )
         self.G = nn.Sequential(
-            nn.Linear(mid_nodes, mid_nodes),
+            nn.Conv2d(mid_channels, mid_channels, 1, 1, 0),
+            nn.BatchNorm2d(mid_channels),
             self.relu,
-            nn.Linear(mid_nodes, mid_nodes)
         )
 
     def forward(self, x, reverse: bool = False):
@@ -47,7 +47,7 @@ class INN(nn.Module):
         initialize_weights(self.blocks)
 
     def forward(self, x, reverse: bool = False):
-        x = torch.squeeze(x)
+        # x = torch.squeeze(x)
         if reverse:
             for b in reversed(self.blocks):
                 x = b(x, reverse=reverse)
@@ -64,7 +64,7 @@ class INNDANN(INN):
         self.domain_discriminator = ImageClassifier(in_nodes, 2)
 
     def forward(self, x, reverse: bool = False):
-        x = torch.squeeze(x)
+        # x = torch.squeeze(x)
         x_ = self.grl(x)
         out_domain1 = self.domain_discriminator(x_)[-1]
         if reverse:
