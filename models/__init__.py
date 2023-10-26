@@ -86,7 +86,7 @@ def build_model(num_channels, num_classes):
     elif CFG.MODEL.NAME == 'vdd_fixed':
         return VDDFixed(num_classes, backbone_)
     elif CFG.MODEL.NAME == 'dsn':
-        return DSN(num_classes, backbone_)
+        return DSN(num_classes, backbone_, CFG.DATASET.PATCH.WIDTH)
     elif CFG.MODEL.NAME == 'hma_ddc':
         FE = backbone_
         inn = INN(in_nodes=backbone_.out_channels, num_block=CFG.HYPERPARAMS[0])
