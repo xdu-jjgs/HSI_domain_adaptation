@@ -2,6 +2,7 @@ from .ddc import DDC
 from .dqn import DQN
 from .dst import DST
 from .dsn import DSN
+from .hma import INN, INNDANN
 from .dann import DANN
 from .vdd import VDD, VDDFixed
 from .dadst import DADST, DADASTMapping, DADSTFFT
@@ -86,6 +87,16 @@ def build_model(num_channels, num_classes):
         return VDDFixed(num_classes, backbone_)
     elif CFG.MODEL.NAME == 'dsn':
         return DSN(num_classes, backbone_)
+    elif CFG.MODEL.NAME == 'hma_ddc':
+        FE = backbone_
+        inn = INN(in_nodes=backbone_.out_channels, num_block=CFG.HYPERPARAMS[0])
+        C = ImageClassifier(backbone_.out_channels, num_classes)
+        return FE, inn, C
+    elif CFG.MODEL.NAME == 'hma_dann':
+        FE = backbone_
+        inn = INNDANN(in_nodes=backbone_.out_channels, num_block=CFG.HYPERPARAMS[0])
+        C = ImageClassifier(backbone_.out_channels, num_classes)
+        return FE, inn, C
     # elif CFG.MODEL.NAME == 'dqn':
     #     return DQN(backbone_.out_channels, num_classes)
     raise NotImplementedError('invalid model: {}'.format(CFG.MODEL.NAME))

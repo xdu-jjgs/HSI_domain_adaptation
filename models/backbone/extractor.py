@@ -9,12 +9,12 @@ class FeatureExtractor(nn.Module):
         self.out_channels = 512
         self.relu = nn.LeakyReLU()
         self.layer1 = nn.Sequential(
-            nn.Conv2d(self.in_channels, 64, 3, 2, 1),  # 27*27->13*13/ 11*11->6*6
+            nn.Conv2d(self.in_channels, 64, 3, 2, 1),  # 27*27->14*14/ 11*11->6*6
             nn.BatchNorm2d(64),
             self.relu,
         )
         self.layer2 = nn.Sequential(
-            nn.Conv2d(64, 128, 3, 2, 1),  # 6*6/3*3
+            nn.Conv2d(64, 128, 3, 2, 1),  # 7*7/3*3
             nn.BatchNorm2d(128),
             self.relu,
         )
@@ -26,7 +26,7 @@ class FeatureExtractor(nn.Module):
             )
         elif patch_size == 27:
             self.layer3 = nn.Sequential(
-                nn.Conv2d(128, 256, 3, 2, 1),  # 3*3
+                nn.Conv2d(128, 256, 3, 2, 0),  # 3*3
                 nn.BatchNorm2d(256),
                 self.relu,
             )
