@@ -15,7 +15,7 @@ python train/hma/train_ddc.py configs/houston/hma/hma_dan_3.yaml ^
         --opt-level O1
 
 rem hma
-python train/hma/train_ddc.py configs/houston/hma/hma_dann_3.yaml ^
+python train/hma/train_dann.py configs/houston/hma/hma_dann_3.yaml ^
         --path ./runs/houston/hma_dann-train ^
         --nodes 1 ^
         --gpus 1 ^

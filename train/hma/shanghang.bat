@@ -14,7 +14,7 @@ python train/hma/train_ddc.py configs/shanghang/hma/hma_dan_3.yaml ^
         --seed %~1% ^
         --opt-level O1
 
-python train/hma/train_ddc.py configs/shanghang/hma/hma_dann_3.yaml ^
+python train/hma/train_dann.py configs/shanghang/hma/hma_dann_3.yaml ^
         --path ./runs/shanghang/hma_dann-train ^
         --nodes 1 ^
         --gpus 1 ^

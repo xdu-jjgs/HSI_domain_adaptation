@@ -27,8 +27,9 @@ CRITERION:
   KERNEL_NUM: 5
 
 OPTIMIZER:
-  NAME: 'adam'
-  LR: 0.0001
+  NAME: 'sgd'
+  MOMENTUM: 0.9
+  LR: 0.001
 SCHEDULER:
   NAME: 'plateau'
   MODE: 'min'

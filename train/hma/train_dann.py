@@ -305,6 +305,7 @@ def worker(rank_gpu, args):
         source_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
         target_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
         inn_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
+        total_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
         PA, mPA, Ps, Rs, F1S, KC = metric1.PA(), metric1.mPA(), metric1.Ps(), metric1.Rs(), metric1.F1s(), metric1.KC()
         if dist.get_rank() == 0:
             writer.add_scalar('train/loss_s-epoch', source_loss_epoch, epoch)
@@ -341,7 +342,7 @@ def worker(rank_gpu, args):
 
                 f_t = FE(x_t)
                 y_t = C(f_t)[-1]
-                f_t2s = inn(f_t)
+                f_t2s, _, _ = inn(f_t)
                 y_t2s = C(f_t2s)[-1]
                 y_mix = (y_t + y_t2s) / 2
 
