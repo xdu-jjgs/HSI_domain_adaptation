@@ -1,0 +1,44 @@
+DATASET:
+  NAME: 'Houston'
+  ROOT: 'E:/zzy/GAN/data/Houston'
+  PATCH:
+    HEIGHT: 11
+    WIDTH: 11
+    PAD_MODE: 'symmetric'
+
+
+DATALOADER:
+  BATCH_SIZE: 64
+  NUM_WORKERS: 0
+  ITERATION: 40
+
+MODEL:
+  NAME: 'dsn_gate'
+  EXPERTS:
+    - 'fe'
+    - 'fe'
+    - 'fe'
+
+CRITERION:
+  ITEMS:
+    - 'softmax+ce'
+    - 'softmax+ce'
+    - 'orthogonal'
+    - 'l2dis'
+  WEIGHTS:
+    - 1.0
+    - 1.0
+    - 0.5
+    - 0.5
+
+OPTIMIZER:
+  NAME: 'adam'
+  LR: 0.001
+
+SCHEDULER:
+  NAME: 'plateau'
+  MODE: 'min'
+  FACTOR: 0.1
+  PATIENCE: 2
+
+EPOCHS: 30

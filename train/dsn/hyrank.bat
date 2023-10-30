@@ -14,3 +14,14 @@ python train/dsn/train.py configs/hyrank/dsn/dsn.yaml ^
         --seed %~1% ^
         --opt-level O1
 
+rem dsn_gate
+python train/dsn/train.py configs/hyrank/dsn/dsn_gate.yaml ^
+        --path ./runs/hyrank/dsn_gate-train ^
+        --nodes 1 ^
+        --gpus 1 ^
+        --rank-node 0 ^
+        --backend gloo ^
+        --master-ip localhost ^
+        --master-port 8890 ^
+        --seed %~1% ^
+        --opt-level O1
