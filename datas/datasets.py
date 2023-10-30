@@ -101,14 +101,14 @@ class HyRankDataset(HSIDataset):
         return [
             'Dense urban fabric',
             'Mineral extraction sites',
-            'Non irrigated land',
+            'Non-irrigated arable land',
             'Fruit trees',
             'Olive Groves',
             'Coniferous Forest',
-            'Dense Vegetation',
-            'Sparce Vegetation',
-            'Sparce Areas',
-            'Rocks and Sand',
+            'Dense scleroph, Vegetation',
+            'Sparse scleroph, Vegetation',
+            'Sparse vegetated areas',
+            'Rocks & sand',
             'Water',
             'Coastal Water'
         ]
