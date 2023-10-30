@@ -15,7 +15,7 @@ python train/dsn/train.py configs/houston/dsn/dsn.yaml ^
         --opt-level O1
 
 rem dsn_gate
-python train/dsn/train.py configs/houston/dsn/dsn_gate.yaml ^
+python train/dsn/train_gate.py configs/houston/dsn/dsn_gate.yaml ^
         --path ./runs/houston/dsn_gate-train ^
         --nodes 1 ^
         --gpus 1 ^

@@ -79,4 +79,4 @@ class DSN_Gate(DSN):
         class_output = self.classifier(features)[-1]
         reverse_features = self.grl(features)
         domain_output = self.domain_discriminator(reverse_features)[-1]
-        return shared_features, private_features, class_output, domain_output, decoder_output
+        return shared_features, private_features, class_output, domain_output, decoder_output, task_weight

@@ -15,7 +15,7 @@ python train/dsn/train.py configs/shanghang/dsn/dsn.yaml ^
         --opt-level O1
 
 rem dsn_gate
-python train/dsn/train.py configs/shanghang/dsn/dsn_gate.yaml ^
+python train/dsn/train_gate.py configs/shanghang/dsn/dsn_gate.yaml ^
         --path ./runs/shanghang/dsn_gate-train ^
         --nodes 1 ^
         --gpus 1 ^
