@@ -14,14 +14,6 @@ transform = transforms.Compose([
 ])
 
 
-def stretch_rgb2png(rgb, lower_percent=0.5, higher_percent=99.5):
-    low_values = np.percentile(rgb, lower_percent, axis=(0, 1))
-    high_values = np.percentile(rgb, higher_percent, axis=(0, 1))
-    stretched_rgb = (rgb - low_values) / (high_values - low_values) * 255
-    png = np.clip(stretched_rgb, 0, 255).astype(np.uint8)
-    return png
-
-
 def build_dataset(split: str):
     assert split in ['train', 'test']
     if CFG.DATASET.NAME == 'Houston':
@@ -63,7 +55,7 @@ for ind in range(len(source_dataset)):
     name = source_dataset.label2name(label_s)
     stretched_rgb = (img - low_values) / (high_values - low_values) * 255
     png = np.clip(stretched_rgb, 0, 255).astype(np.uint8)
-    Image.fromarray(png).save(r'E:\zts\dataset\hyrank_rgb\train\{}_{}.png'.format(ind + 1, name))
+    Image.fromarray(png).save(r'E:\zts\dataset\hyrank_rgb\train\{}_{}.png'.format(ind + 1, label_s))
 
 img = np.array(target_dataset.data[rgb_bands, ...].permute(1, 2, 0))
 low_values = np.percentile(img, lower_percent, axis=(0, 1))
@@ -77,4 +69,4 @@ for ind in range(len(target_dataset)):
     name = source_dataset.label2name(label_t)
     stretched_rgb = (img - low_values) / (high_values - low_values) * 255
     png = np.clip(stretched_rgb, 0, 255).astype(np.uint8)
-    Image.fromarray(png).save(r'E:\zts\dataset\hyrank_rgb\test\{}_{}.png'.format(ind + 1, name))
+    Image.fromarray(png).save(r'E:\zts\dataset\hyrank_rgb\test\{}_{}.png'.format(ind + 1, label_t))
