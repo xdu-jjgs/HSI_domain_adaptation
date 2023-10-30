@@ -60,7 +60,7 @@ class DSN_Gate(DSN):
     def __init__(self, num_classes: int, experts: List[nn.Module], patch_size: int):
         super(DSN_Gate, self).__init__(num_classes, experts, patch_size)
         self.num_task = 2  # domain specific and domain invariant
-        self.gates = nn.ModuleList([Gate(self.num_channels, len(experts)) for _ in range(self.num_task)])
+        self.gates = nn.ModuleList([Gate(self.num_channels, 2) for _ in range(self.num_task)])
 
     def forward(self, x, task_ind):
         assert task_ind in [1, 2]  # 1 for source domain and 2 for target domain
@@ -74,6 +74,7 @@ class DSN_Gate(DSN):
         experts_features = torch.stack([shared_features, private_features], 1)
         experts_features = torch.squeeze(experts_features)
         features = torch.matmul(task_weight, experts_features)
+        features = features.view(features.size()[0], self.out_channels, 1, 1)
         decoder_output = self.shared_decoder(features)
         class_output = self.classifier(features)[-1]
         reverse_features = self.grl(features)
