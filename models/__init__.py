@@ -86,15 +86,15 @@ def build_model(num_channels, num_classes):
     elif CFG.MODEL.NAME == 'vdd_fixed':
         return VDDFixed(num_classes, backbone_)
     elif CFG.MODEL.NAME == 'dsn':
-        return DSN(num_classes, backbone_)
+        return DSN(num_classes, backbone_, CFG.DATASET.PATCH.WIDTH)
     elif CFG.MODEL.NAME == 'hma_ddc':
         FE = backbone_
-        inn = INN(in_nodes=backbone_.out_channels, num_block=CFG.HYPERPARAMS[0])
+        inn = INN(in_channels=backbone_.out_channels, num_block=CFG.HYPERPARAMS[0])
         C = ImageClassifier(backbone_.out_channels, num_classes)
         return FE, inn, C
     elif CFG.MODEL.NAME == 'hma_dann':
         FE = backbone_
-        inn = INNDANN(in_nodes=backbone_.out_channels, num_block=CFG.HYPERPARAMS[0])
+        inn = INNDANN(in_channels=backbone_.out_channels, num_block=CFG.HYPERPARAMS[0])
         C = ImageClassifier(backbone_.out_channels, num_classes)
         return FE, inn, C
     # elif CFG.MODEL.NAME == 'dqn':

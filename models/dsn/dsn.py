@@ -8,8 +8,10 @@ from models.backbone import ImageClassifier
 
 
 class DSN(nn.Module):
-    def __init__(self, num_classes: int, experts: List[nn.Module]):
+    # TODO: denoise autoencoder
+    def __init__(self, num_classes: int, experts: List[nn.Module], patch_size: int):
         super(DSN, self).__init__()
+        assert patch_size in [11]
         # backbone输入通道数
         self.relu = nn.LeakyReLU()
         self.num_classes = num_classes
@@ -28,12 +30,12 @@ class DSN(nn.Module):
             self.relu,
 
             nn.Conv2d(128, 64, 3, 1, 1),
-            nn.Upsample(scale_factor=(2, 2)),  # 6*6 ==> 12*12
+            nn.Upsample(size=(11, 11)),  # 6*6 ==> 12*12
             nn.BatchNorm2d(64),
             self.relu,
 
-            nn.Conv2d(64, self.num_channels, 3, 1, 1),  # 12*12 ==> 24*24
-            nn.Upsample(size=(23, 23))
+            nn.Conv2d(64, self.num_channels, 3, 1, 1)
+            # nn.Upsample(size=(23, 23)) # 12*12 ==> 23*23
         )
         self.classifier = ImageClassifier(self.out_channels, num_classes)
         self.grl = GradientReverseLayer()

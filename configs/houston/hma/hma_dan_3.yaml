@@ -21,14 +21,13 @@ CRITERION:
     - 'l2dis'
     - 'mmd'
   WEIGHTS:
-    - 1.0
+    - 0.5
     - 0.1
     - 1.0
   KERNEL_NUM: 5
 
 OPTIMIZER:
-  NAME: 'sgd'
-  MOMENTUM: 0.9
+  NAME: 'adam'
   LR: 0.001
 SCHEDULER:
   NAME: 'plateau'
