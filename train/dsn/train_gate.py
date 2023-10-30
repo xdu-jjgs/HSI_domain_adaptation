@@ -184,7 +184,6 @@ def worker(rank_gpu, args):
     iteration = 0
     best_epoch = 0
     best_PA = 0.
-    experts = CFG.MODEL.EXPERTS
 
     # load checkpoint if specified
     if args.checkpoint is not None:
@@ -222,8 +221,8 @@ def worker(rank_gpu, args):
         train_bar = tqdm(range(1, CFG.DATALOADER.ITERATION + 1), desc='training', ascii=True)
         total_loss_epoch, cls_loss_epoch, domain_s_loss_epoch, domain_t_loss_epoch, difference_s_loss_epoch, \
             difference_t_loss_epoch, recon_s_loss_epoch, recon_t_loss_epoch, var_loss_epoch = 0., 0., 0., 0., 0., 0., 0., 0., 0.
-        source_weights_epoch = np.zeros((len(experts)))
-        target_weights_epoch = np.zeros((len(experts)))
+        source_weights_epoch = np.zeros(2)
+        target_weights_epoch = np.zeros(2)
         for iteration in train_bar:
             x_s, label = next(source_iterator)
             x_t, _ = next(target_iterator)
@@ -303,7 +302,7 @@ def worker(rank_gpu, args):
             writer.add_scalar('train/PA-epoch', PA, epoch)
             writer.add_scalar('train/mPA-epoch', mPA, epoch)
             writer.add_scalar('train/KC-epoch', KC, epoch)
-            for ind in range(len(experts)):
+            for ind in range(2):
                 writer.add_scalar('train/source_weight_expert_{}'.format(ind + 1), source_weights_epoch[ind], epoch)
                 writer.add_scalar('train/target_weight_expert_{}'.format(ind + 1), target_weights_epoch[ind], epoch)
                 writer.add_scalar('train/diff_weight_expert_{}'.format(ind + 1),
@@ -331,7 +330,7 @@ def worker(rank_gpu, args):
         with torch.no_grad():  # disable gradient back-propagation
             for x_t, label in val_bar:
                 x_t, label = x_t.to(device), label.to(device)
-                _, _, y_t, _, _ = model(x_t, 2)
+                _, _, y_t, _, _, _ = model(x_t, 2)
 
                 cls_loss = val_criterion(y_s=y_t, label_s=label)
                 val_loss += cls_loss.item()
