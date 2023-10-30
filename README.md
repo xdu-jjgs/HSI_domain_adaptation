@@ -44,7 +44,7 @@
 | 12    | Coastal Water            | 398              | 451             |
 | total | total                    | 20024            | 12208           |  
 | shape | N * H * C                | 250 * 1376 * 176 | 249 * 945 * 176 |  
-RGB: 23, 11, 07
+RGB bands: 23, 11, 07
 
 ### <a name="datasets-shanghang"></a> ShanghaiHangzhou数据集
 
