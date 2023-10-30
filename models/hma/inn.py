@@ -40,10 +40,10 @@ class Block(nn.Module):
 
 
 class INN(nn.Module):
-    def __init__(self, in_nodes: int, num_block: int):
+    def __init__(self, in_channels: int, num_block: int):
         super(INN, self).__init__()
         assert num_block > 0
-        self.blocks = nn.ModuleList([Block(in_nodes) for _ in range(num_block)])
+        self.blocks = nn.ModuleList([Block(in_channels) for _ in range(num_block)])
         initialize_weights(self.blocks)
 
     def forward(self, x, reverse: bool = False):
@@ -58,10 +58,10 @@ class INN(nn.Module):
 
 
 class INNDANN(INN):
-    def __init__(self, in_nodes: int, num_block: int):
-        super(INNDANN, self).__init__(in_nodes, num_block)
+    def __init__(self, in_channels: int, num_block: int):
+        super(INNDANN, self).__init__(in_channels, num_block)
         self.grl = GradientReverseLayer()
-        self.domain_discriminator = ImageClassifier(in_nodes, 2)
+        self.domain_discriminator = ImageClassifier(in_channels, 2)
 
     def forward(self, x, reverse: bool = False):
         # x = torch.squeeze(x)

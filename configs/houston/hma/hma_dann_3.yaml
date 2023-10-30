@@ -28,6 +28,7 @@ CRITERION:
 OPTIMIZER:
   NAME: 'adam'
   LR: 0.001
+
 SCHEDULER:
   NAME: 'plateau'
   MODE: 'min'

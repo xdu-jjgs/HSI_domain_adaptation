@@ -27,8 +27,7 @@ CRITERION:
   KERNEL_NUM: 5
 
 OPTIMIZER:
-  NAME: 'sgd'
-  MOMENTUM: 0.9
+  NAME: 'adam'
   LR: 0.001
 
 SCHEDULER:
