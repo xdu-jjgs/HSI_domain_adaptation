@@ -76,7 +76,8 @@ class DSN_Gate(DSN):
         features = torch.matmul(task_weight, experts_features)
         features = features.view(features.size()[0], self.out_channels, 1, 1)
         decoder_output = self.shared_decoder(features)
-        class_output = self.classifier(features)[-1]
-        reverse_features = self.grl(features)
+        # TODO: 完整特征≠判别性特征？
+        class_output = self.classifier(shared_features)[-1]
+        reverse_features = self.grl(shared_features)
         domain_output = self.domain_discriminator(reverse_features)[-1]
         return shared_features, private_features, class_output, domain_output, decoder_output, task_weight
