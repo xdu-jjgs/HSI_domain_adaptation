@@ -1,5 +1,6 @@
-from .dsn import DSN
+from .dsn import DSN, DSN_Gate
 
 __all__ = [
-    DSN
+    DSN,
+    DSN_Gate
 ]

@@ -1,9 +1,10 @@
 import torch
 import torch.nn as nn
 from typing import List
-from tllib.modules.grl import GradientReverseLayer, WarmStartGradientReverseLayer
 
+from models.modules import Gate
 from models.backbone import ImageClassifier
+from tllib.modules.grl import GradientReverseLayer, WarmStartGradientReverseLayer
 
 
 class DSN(nn.Module):
@@ -52,3 +53,31 @@ class DSN(nn.Module):
         reverse_shared_features = self.grl(shared_features)
         domain_output = self.domain_discriminator(reverse_shared_features)[-1]
         return shared_features, private_features, class_output, domain_output, decoder_output
+
+
+class DSN_Gate(DSN):
+    # TODO: 1. add var loss 2. use gate merely for reconstruct or both?
+    def __init__(self, num_classes: int, experts: List[nn.Module], patch_size: int):
+        super(DSN_Gate, self).__init__(num_classes, experts, patch_size)
+        self.num_task = 2  # domain specific and domain invariant
+        self.gates = nn.ModuleList([Gate(self.num_channels, 2) for _ in range(self.num_task)])
+
+    def forward(self, x, task_ind):
+        assert task_ind in [1, 2]  # 1 for source domain and 2 for target domain
+        shared_features = self.shared_encoder(x)
+        if task_ind == 1:
+            task_weight = self.gates[0](x)[-1].softmax(dim=1).unsqueeze(1)
+            private_features = self.private_source_encoder(x)
+        else:
+            task_weight = self.gates[1](x)[-1].softmax(dim=1).unsqueeze(1)
+            private_features = self.private_target_encoder(x)
+        experts_features = torch.stack([shared_features, private_features], 1)
+        experts_features = torch.squeeze(experts_features)
+        features = torch.matmul(task_weight, experts_features)
+        features = features.view(features.size()[0], self.out_channels, 1, 1)
+        decoder_output = self.shared_decoder(features)
+        # TODO: 完整特征≠判别性特征？
+        class_output = self.classifier(shared_features)[-1]
+        reverse_features = self.grl(shared_features)
+        domain_output = self.domain_discriminator(reverse_features)[-1]
+        return shared_features, private_features, class_output, domain_output, decoder_output, task_weight
