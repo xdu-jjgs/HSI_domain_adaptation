@@ -173,3 +173,61 @@ class ShangHangDataset(HSIDataset):
             [255, 255, 179],
             [190, 186, 218]
         ]
+
+
+class PaviaDataset(HSIDataset):
+    def __init__(self, root, split: str, window_size: Tuple[int, int], pad_mode: str, sample_num: int = None,
+                 sample_order: str = None, transform=None):
+        super(PaviaDataset, self).__init__(root, split, window_size, pad_mode, sample_num, sample_order, transform)
+        if split == 'train':
+            data_filename = 'PaviaU.mat'
+            gt_filename = 'PaviaU_gt.mat'
+        else:
+            # 验证集等于测试集
+            data_filename = 'Pavia.mat'
+            gt_filename = 'Pavia_gt.mat'
+        self.data_path = os.path.join(root, data_filename)
+        # N*W*C
+        self.data = sio.loadmat(self.data_path)['ori_data'].astype('float32')
+        self.gt_path = os.path.join(root, gt_filename)
+        self.gt = sio.loadmat(self.gt_path)['map'].astype('int')
+        self.gt_raw = self.gt.copy()
+
+        self.coordinates, self.gt = self.cube_data()
+
+        if self.transform is not None:
+            self.data, self.gt = self.transform(self.data, self.gt)
+
+        if self.sample_order:
+            self.coordinates, self.gt = self.sample_data()
+
+    def selector(self, x, y):
+        return y != 0
+
+    @property
+    def num_channels(self):
+        return 102
+
+    @property
+    def names(self):
+        return [
+            'Tree',
+            'Asphalt',
+            'Brick',
+            'Bitumen',
+            'Shadow',
+            'Meadow',
+            'Bare soil'
+        ]
+
+    @property
+    def pixels(self):
+        return [
+            [0, 31, 255],
+            [0, 175, 255],
+            [63, 255, 191],
+            [219, 255, 41],
+            [255, 159, 0],
+            [255, 15, 0],
+            [128, 0, 0]
+        ]

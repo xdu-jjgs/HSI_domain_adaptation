@@ -22,7 +22,6 @@ class HSIDataset(Dataset):
         self.data = None
         self.gt = None
         self.gt_raw = None
-        # self.selector = None
         self.coordinates = None
         self.transform = transform
 

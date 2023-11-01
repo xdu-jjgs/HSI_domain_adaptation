@@ -1,0 +1,41 @@
+DATASET:
+  NAME: 'HyRANK'
+  ROOT: 'E:/zzy/GAN/data/HyRANK'
+  PATCH:
+    HEIGHT: 27
+    WIDTH: 27
+    PAD_MODE: 'symmetric'
+
+DATALOADER:
+  BATCH_SIZE: 64
+  NUM_WORKERS: 0
+  ITERATION: 615
+
+MODEL:
+  NAME: 'hma_dann'
+  BACKBONE: 'fe'
+
+CRITERION:
+  ITEMS:
+    - 'softmax+ce'
+    - 'l2dis'
+    - 'softmax+ce'
+  WEIGHTS:
+    - 0.5
+    - 0.1
+    - 0.2
+
+OPTIMIZER:
+  NAME: 'adam'
+  LR: 0.001
+
+SCHEDULER:
+  NAME: 'plateau'
+  MODE: 'min'
+  FACTOR: 0.1
+  PATIENCE: 2
+
+EPOCHS: 15
+
+HYPERPARAMS:
+  - 3
