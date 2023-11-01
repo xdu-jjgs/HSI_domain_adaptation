@@ -1,6 +1,6 @@
 DATASET:
-  NAME: 'HyRANK'
-  ROOT: 'E:/zzy/GAN/data/HyRANK'
+  NAME: 'Pavia'
+  ROOT: 'E:/zzy/GAN/data/Pavia'
   PATCH:
     HEIGHT: 27
     WIDTH: 27
