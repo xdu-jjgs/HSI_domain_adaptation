@@ -231,3 +231,55 @@ class PaviaDataset(HSIDataset):
             [255, 15, 0],
             [128, 0, 0]
         ]
+
+
+class IndianaDataset(HSIDataset):
+    def __init__(self, root, split: str, window_size: Tuple[int, int], pad_mode: str, sample_num: int = None,
+                 sample_order: str = None, transform=None):
+        super(IndianaDataset, self).__init__(root, split, window_size, pad_mode, sample_num, sample_order, transform)
+
+        data_filename = 'DataCube.mat'
+        self.data_path = os.path.join(root, data_filename)
+        raw = sio.loadmat(self.data_path)
+        if split == 'train':
+            self.data = raw['DataCube1'].astype('float32')
+            self.gt = raw['gt1'].astype('int')
+        else:
+            self.data = raw['DataCube2'].astype('float32')
+            self.gt = raw['gt2'].astype('int')
+        self.gt_raw = self.gt.copy()
+        self.coordinates, self.gt = self.cube_data()
+
+        if self.transform is not None:
+            self.data, self.gt = self.transform(self.data, self.gt)
+
+        if self.sample_order:
+            self.coordinates, self.gt = self.sample_data()
+
+    @property
+    def num_channels(self):
+        return 220
+
+    @property
+    def names(self):
+        return [
+            'Concrete / Asphalt',
+            'Corn cleanTill',
+            'Corn cleanTill EW',
+            'Orchard',
+            'Soybeans cleanTill',
+            'Soybeans cleanTill EW',
+            'Wheat'
+        ]
+
+    @property
+    def pixels(self):
+        return [
+            [0, 0, 255],
+            [0, 255, 0],
+            [0, 255, 255],
+            [255, 0, 0],
+            [255, 0, 255],
+            [255, 255, 0],
+            [128, 128, 255]
+        ]

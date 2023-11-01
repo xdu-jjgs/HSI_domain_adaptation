@@ -1,0 +1,38 @@
+DATASET:
+  NAME: 'Indiana'
+  ROOT: 'E:/zzy/GAN/data/Indiana'
+  PATCH:
+    HEIGHT: 11
+    WIDTH: 11
+    PAD_MODE: 'symmetric'
+
+
+DATALOADER:
+  BATCH_SIZE: 64
+  NUM_WORKERS: 0
+  ITERATION: 658
+
+MODEL:
+  NAME: 'ddc'
+  BACKBONE: 'resnet18'
+
+CRITERION:
+  ITEMS:
+    - 'softmax+ce'
+    - 'mmd'
+  WEIGHTS:
+    - 1.0
+    - 1.0
+  KERNEL_NUM: 1
+
+OPTIMIZER:
+  NAME: 'adam'
+  LR: 0.001
+
+SCHEDULER:
+  NAME: 'plateau'
+  MODE: 'min'
+  FACTOR: 0.1
+  PATIENCE: 2
+
+EPOCHS: 15

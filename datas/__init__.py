@@ -10,7 +10,7 @@ from datas.datasets import HoustonDataset, HyRankDataset, ShangHangDataset, Pavi
 
 
 def build_transform():
-    if CFG.DATASET.NAME in ['Houston', 'HyRANK', 'ShangHang', 'Pavia']:
+    if CFG.DATASET.NAME in ['Houston', 'HyRANK', 'ShangHang', 'Pavia', 'Indiana']:
         transform = transforms.Compose([
             transforms.LabelRenumber(),
             transforms.ZScoreNormalize(),
