@@ -180,12 +180,12 @@ class PaviaDataset(HSIDataset):
                  sample_order: str = None, transform=None):
         super(PaviaDataset, self).__init__(root, split, window_size, pad_mode, sample_num, sample_order, transform)
         if split == 'train':
-            data_filename = 'PaviaU.mat'
-            gt_filename = 'PaviaU_gt.mat'
+            data_filename = 'paviaU.mat'
+            gt_filename = 'paviaU_7gt.mat'
         else:
             # 验证集等于测试集
-            data_filename = 'Pavia.mat'
-            gt_filename = 'Pavia_gt.mat'
+            data_filename = 'paviaC.mat'
+            gt_filename = 'paviaC_7gt.mat'
         self.data_path = os.path.join(root, data_filename)
         # N*W*C
         self.data = sio.loadmat(self.data_path)['ori_data'].astype('float32')
