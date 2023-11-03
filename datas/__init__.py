@@ -6,7 +6,7 @@ from tllib.utils.data import ForeverDataIterator
 
 from configs import CFG
 from datas.base import DynamicDataset
-from datas.datasets import HoustonDataset, HyRankDataset, ShangHangDataset, PaviaDataset
+from datas.datasets import HoustonDataset, HyRankDataset, ShangHangDataset, PaviaDataset, IndianaDataset
 
 
 def build_transform():
@@ -42,6 +42,11 @@ def build_dataset(split: str):
         dataset = PaviaDataset(CFG.DATASET.ROOT, split, (CFG.DATASET.PATCH.HEIGHT, CFG.DATASET.PATCH.WIDTH),
                                CFG.DATASET.PATCH.PAD_MODE, CFG.DATASET.SAMPLE_NUM if split == 'train' else None,
                                CFG.DATASET.SAMPLE_ORDER if split == 'train' else None, transform=build_transform())
+    elif CFG.DATASET.NAME == 'Indiana':
+        dataset = IndianaDataset(CFG.DATASET.ROOT, split, (CFG.DATASET.PATCH.HEIGHT, CFG.DATASET.PATCH.WIDTH),
+                                 CFG.DATASET.PATCH.PAD_MODE, CFG.DATASET.SAMPLE_NUM if split == 'train' else None,
+                                 CFG.DATASET.SAMPLE_ORDER if split == 'train' else None, transform=build_transform())
+
     else:
         raise NotImplementedError('invalid dataset: {} for dataset'.format(CFG.DATASET.NAME))
     return dataset

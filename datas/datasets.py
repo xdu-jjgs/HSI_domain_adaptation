@@ -256,6 +256,9 @@ class IndianaDataset(HSIDataset):
         if self.sample_order:
             self.coordinates, self.gt = self.sample_data()
 
+    def selector(self, x, y):
+        return y != 0
+
     @property
     def num_channels(self):
         return 220
