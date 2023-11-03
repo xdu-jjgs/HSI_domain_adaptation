@@ -1,12 +1,14 @@
 from configs import CFG
 
 from .resnet import ResNet
+from .revnet import RevNet
 from .extractor import FeatureExtractor
 from .extractor_attention import AttentionFeatureExtractor
 from .classifier import ImageClassifier, MultiHeadClassifier
 
 __all__ = [
     ResNet,
+    RevNet,
     FeatureExtractor,
     ImageClassifier,
     MultiHeadClassifier,
@@ -23,6 +25,12 @@ def build_backbone(num_channels, model_name):
         return ResNet(num_channels, depth=50)
     elif model_name == 'resnet101':
         return ResNet(num_channels, depth=101)
+    elif model_name == 'revnet38':
+        return RevNet(num_channels, depth=38)
+    elif model_name == 'revnet110':
+        return RevNet(num_channels, depth=110)
+    elif model_name == 'revnet164':
+        return RevNet(num_channels, depth=164)
     elif model_name == 'fe':
         return FeatureExtractor(num_channels, patch_size=CFG.DATASET.PATCH.HEIGHT)
     elif model_name == 'fe_pos':

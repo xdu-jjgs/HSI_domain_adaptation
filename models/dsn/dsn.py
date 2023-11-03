@@ -56,7 +56,6 @@ class DSN(nn.Module):
 
 
 class DSN_Gate(DSN):
-    # TODO: 1. add var loss 2. use gate merely for reconstruct or both?
     def __init__(self, num_classes: int, experts: List[nn.Module], patch_size: int):
         super(DSN_Gate, self).__init__(num_classes, experts, patch_size)
         self.num_task = 2  # domain specific and domain invariant
@@ -81,3 +80,54 @@ class DSN_Gate(DSN):
         reverse_features = self.grl(shared_features)
         domain_output = self.domain_discriminator(reverse_features)[-1]
         return shared_features, private_features, class_output, domain_output, decoder_output, task_weight
+
+
+class DSN_INN(nn.Module):
+    # TODO: denoise autoencoder
+    def __init__(self, num_classes: int, backbone: nn.Module, patch_size: int):
+        super(DSN_INN, self).__init__()
+        assert patch_size in [11]
+        # backbone输入通道数
+        self.relu = nn.LeakyReLU()
+        self.num_classes = num_classes
+        self.backbone = backbone
+        self.num_channels = backbone.in_channels
+        self.out_channels = 512
+        self.private_source_encoder = nn.Conv2d(backbone.out_channels, 512, 3, 1, 1)
+        self.shared_encoder = nn.Conv2d(backbone.out_channels, 512, 3, 1, 1)
+        self.private_target_encoder = nn.Conv2d(backbone.out_channels, 512, 3, 1, 1)
+        self.shared_decoder = nn.Sequential(
+            nn.Conv2d(self.out_channels, 256, 3, 1, 1),
+            nn.Upsample(size=(3, 3)),  # 1*1 ==> 3*3
+            nn.BatchNorm2d(256),
+            self.relu,
+
+            nn.Conv2d(256, 128, 3, 1, 1),
+            nn.Upsample(scale_factor=(2, 2)),  # 3*3 ==> 6*6
+            nn.BatchNorm2d(128),
+            self.relu,
+
+            nn.Conv2d(128, 64, 3, 1, 1),
+            nn.Upsample(size=(11, 11)),  # 6*6 ==> 12*12
+            nn.BatchNorm2d(64),
+            self.relu,
+
+            nn.Conv2d(64, self.num_channels, 3, 1, 1)
+            # nn.Upsample(size=(23, 23)) # 12*12 ==> 23*23
+        )
+        self.classifier = ImageClassifier(self.out_channels, num_classes)
+        self.grl = GradientReverseLayer()
+        self.domain_discriminator = ImageClassifier(self.out_channels, 2)
+
+    def forward(self, x, task_ind):
+        assert task_ind in [1, 2]  # 1 for source domain and 2 for target domain
+        shared_features = self.shared_encoder(x)
+        if task_ind == 1:
+            private_features = self.private_source_encoder(x)
+        else:
+            private_features = self.private_target_encoder(x)
+        decoder_output = self.shared_decoder(torch.add(shared_features, private_features))
+        class_output = self.classifier(shared_features)[-1]
+        reverse_shared_features = self.grl(shared_features)
+        domain_output = self.domain_discriminator(reverse_shared_features)[-1]
+        return shared_features, private_features, class_output, domain_output, decoder_output
