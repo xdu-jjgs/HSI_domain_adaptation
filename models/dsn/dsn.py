@@ -121,11 +121,12 @@ class DSN_INN(nn.Module):
 
     def forward(self, x, task_ind):
         assert task_ind in [1, 2]  # 1 for source domain and 2 for target domain
-        shared_features = self.shared_encoder(x)
+        features = self.backbone(x)
+        shared_features = self.shared_encoder(features)
         if task_ind == 1:
-            private_features = self.private_source_encoder(x)
+            private_features = self.private_source_encoder(features)
         else:
-            private_features = self.private_target_encoder(x)
+            private_features = self.private_target_encoder(features)
         decoder_output = self.shared_decoder(torch.add(shared_features, private_features))
         class_output = self.classifier(shared_features)[-1]
         reverse_shared_features = self.grl(shared_features)

@@ -6,8 +6,7 @@ from models.utils.download import load_pretrained_models
 
 
 class RevNet(nn.Module):
-    def __init__(self, in_channels: int, depth: int, pretrained=True,
-                 replace_stride_with_dilation=None):
+    def __init__(self, in_channels: int, depth: int, pretrained=False):
         super(RevNet, self).__init__()
         self.model_name = 'revnet{}'.format(depth)
         model: RevNet = getattr(revnet, self.model_name)()
@@ -21,7 +20,7 @@ class RevNet(nn.Module):
 
         if pretrained:
             model = load_pretrained_models(model, self.model_name)
-        model.init_block_conv = nn.Conv2d(self.in_channels, model.conv1.out_channels, (3, 3), stride=(1, 1),
+        model.init_block_conv = nn.Conv2d(self.in_channels, model.features.init_block.conv.out_channels, (3, 3), stride=(1, 1),
                                           padding=(1, 1), bias=False)
         if not pretrained:
             initialize_weights(model)
@@ -35,6 +34,7 @@ class RevNet(nn.Module):
         self.stage2 = model.features.stage2
         self.stage3 = model.features.stage3
         self.final_postactiv = model.features.final_postactiv
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
 
     def forward(self, x):
         x = self.init_block(x)
@@ -42,4 +42,5 @@ class RevNet(nn.Module):
         x = self.stage2(x)
         x = self.stage3(x)
         x = self.final_postactiv(x)
+        x = self.avgpool(x)
         return x

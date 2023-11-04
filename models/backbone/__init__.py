@@ -26,11 +26,11 @@ def build_backbone(num_channels, model_name):
     elif model_name == 'resnet101':
         return ResNet(num_channels, depth=101)
     elif model_name == 'revnet38':
-        return RevNet(num_channels, depth=38)
+        return RevNet(num_channels, depth=38, pretrained=False)
     elif model_name == 'revnet110':
-        return RevNet(num_channels, depth=110)
+        return RevNet(num_channels, depth=110, pretrained=False)
     elif model_name == 'revnet164':
-        return RevNet(num_channels, depth=164)
+        return RevNet(num_channels, depth=164, pretrained=False)
     elif model_name == 'fe':
         return FeatureExtractor(num_channels, patch_size=CFG.DATASET.PATCH.HEIGHT)
     elif model_name == 'fe_pos':
