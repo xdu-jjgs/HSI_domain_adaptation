@@ -48,7 +48,7 @@ RGB bands: 23, 11, 07
 
 ### <a name="datasets-shanghang"></a> ShanghaiHangzhou数据集
 
-| 类别    | 名称            | Shanghai         | Hangzhou        |
+| 类别    | 名称            | Hangzhou         | Shanghai        |
 |-------|---------------|------------------|-----------------|
 | 1     | Water         | 18043            | 123123          |
 | 2     | Land/Building | 77450            | 161689          |
@@ -56,6 +56,33 @@ RGB bands: 23, 11, 07
 | total | total         | 135700           | 368000          |  
 | shape | N * H * C     | 1600 * 260 * 198 | 590 * 230 * 198 |
 
+### <a name="datasets-pavia"></a> Pavia数据集
+
+| 类别    | 名称        | PaviaU          | PaviaC           |
+|-------|-----------|-----------------|------------------|
+| 1     | Tree      | 3064            | 7598             |
+| 2     | Asphalt   | 6631            | 9248             |
+| 3     | Brick     | 3682            | 2685             |
+| 4     | Bitumen   | 1330            | 7287             |
+| 5     | Shadow    | 947             | 2863             |
+| 6     | Meadow    | 18649           | 3090             |
+| 7     | Bare soil | 5029            | 6584             |
+| total | total     | 39332           | 39355            |  
+| shape | N * H * C | 610 * 340 * 102 | 1096 * 715 * 102 |
+
+### <a name="datasets-indiana"></a> Indiana数据集
+
+| 类别    | 名称                    | Source      | Target      |
+|-------|-----------------------|-------------|-------------|
+| 1     | Concrete/ Asphalt     | 4867        | 2942        |
+| 2     | Corn cleanTill        | 9822        | 6029        |
+| 3     | Corn cleanTill EW     | 11414       | 7999        |
+| 4     | Orchard               | 5106        | 1562        |
+| 5     | Soybeans cleanTill    | 4731        | 4792        |
+| 6     | Soybeans cleanTill EW | 2996        | 1638        |
+| 7     | Wheat                 | 3223        | 10739       |
+| total | total                 | 42159       | 35701       |  
+| shape | N * H * C             | 300*400*200 | 300*400*200 |
 
 ## <a name="models"></a> 支持的模型
 

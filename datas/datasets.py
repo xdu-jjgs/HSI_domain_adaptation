@@ -173,3 +173,116 @@ class ShangHangDataset(HSIDataset):
             [255, 255, 179],
             [190, 186, 218]
         ]
+
+
+class PaviaDataset(HSIDataset):
+    def __init__(self, root, split: str, window_size: Tuple[int, int], pad_mode: str, sample_num: int = None,
+                 sample_order: str = None, transform=None):
+        super(PaviaDataset, self).__init__(root, split, window_size, pad_mode, sample_num, sample_order, transform)
+        if split == 'train':
+            data_filename = 'paviaU.mat'
+            gt_filename = 'paviaU_7gt.mat'
+        else:
+            # 验证集等于测试集
+            data_filename = 'paviaC.mat'
+            gt_filename = 'paviaC_7gt.mat'
+        self.data_path = os.path.join(root, data_filename)
+        # N*W*C
+        self.data = sio.loadmat(self.data_path)['ori_data'].astype('float32')
+        self.gt_path = os.path.join(root, gt_filename)
+        self.gt = sio.loadmat(self.gt_path)['map'].astype('int')
+        self.gt_raw = self.gt.copy()
+
+        self.coordinates, self.gt = self.cube_data()
+
+        if self.transform is not None:
+            self.data, self.gt = self.transform(self.data, self.gt)
+
+        if self.sample_order:
+            self.coordinates, self.gt = self.sample_data()
+
+    def selector(self, x, y):
+        return y != 0
+
+    @property
+    def num_channels(self):
+        return 102
+
+    @property
+    def names(self):
+        return [
+            'Tree',
+            'Asphalt',
+            'Brick',
+            'Bitumen',
+            'Shadow',
+            'Meadow',
+            'Bare soil'
+        ]
+
+    @property
+    def pixels(self):
+        return [
+            [0, 31, 255],
+            [0, 175, 255],
+            [63, 255, 191],
+            [219, 255, 41],
+            [255, 159, 0],
+            [255, 15, 0],
+            [128, 0, 0]
+        ]
+
+
+class IndianaDataset(HSIDataset):
+    def __init__(self, root, split: str, window_size: Tuple[int, int], pad_mode: str, sample_num: int = None,
+                 sample_order: str = None, transform=None):
+        super(IndianaDataset, self).__init__(root, split, window_size, pad_mode, sample_num, sample_order, transform)
+
+        data_filename = 'DataCube.mat'
+        self.data_path = os.path.join(root, data_filename)
+        raw = sio.loadmat(self.data_path)
+        if split == 'train':
+            self.data = raw['DataCube1'].astype('float32')
+            self.gt = raw['gt1'].astype('int')
+        else:
+            self.data = raw['DataCube2'].astype('float32')
+            self.gt = raw['gt2'].astype('int')
+        self.gt_raw = self.gt.copy()
+        self.coordinates, self.gt = self.cube_data()
+
+        if self.transform is not None:
+            self.data, self.gt = self.transform(self.data, self.gt)
+
+        if self.sample_order:
+            self.coordinates, self.gt = self.sample_data()
+
+    def selector(self, x, y):
+        return y != 0
+
+    @property
+    def num_channels(self):
+        return 220
+
+    @property
+    def names(self):
+        return [
+            'Concrete / Asphalt',
+            'Corn cleanTill',
+            'Corn cleanTill EW',
+            'Orchard',
+            'Soybeans cleanTill',
+            'Soybeans cleanTill EW',
+            'Wheat'
+        ]
+
+    @property
+    def pixels(self):
+        return [
+            [0, 0, 255],
+            [0, 255, 0],
+            [0, 255, 255],
+            [255, 0, 0],
+            [255, 0, 255],
+            [255, 255, 0],
+            [128, 128, 255]
+        ]
