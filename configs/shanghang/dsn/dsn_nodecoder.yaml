@@ -1,6 +1,6 @@
 DATASET:
-  NAME: 'HyRANK'
-  ROOT: 'E:/zzy/GAN/data/HyRANK'
+  NAME: 'ShangHang'
+  ROOT: 'E:/zzy/GAN/data/ShanghaiHangzhou'
   PATCH:
     HEIGHT: 11
     WIDTH: 11
@@ -8,27 +8,25 @@ DATASET:
 
 
 DATALOADER:
-  BATCH_SIZE: 32
+  BATCH_SIZE: 128
   NUM_WORKERS: 6
-  ITERATION: 626
+  ITERATION: 1060
 
 MODEL:
-  NAME: 'dsn'
+  NAME: 'dsn_nodecoder'
   EXPERTS:
-    - 'resnet18'
-    - 'resnet18'
-    - 'resnet18'
+    - 'fe'
+    - 'fe'
+    - 'fe'
 
 CRITERION:
   ITEMS:
     - 'softmax+ce'
     - 'softmax+ce'
     - 'orthogonal'
-    - 'l2dis'
   WEIGHTS:
     - 1.0
     - 1.0
-    - 0.5
     - 0.5
 
 OPTIMIZER:
@@ -41,4 +39,4 @@ SCHEDULER:
   FACTOR: 0.1
   PATIENCE: 2
 
-EPOCHS: 20
+EPOCHS: 5
