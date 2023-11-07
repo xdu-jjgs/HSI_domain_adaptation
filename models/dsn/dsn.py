@@ -58,7 +58,7 @@ class DSN(nn.Module):
 class DSN_Gate(DSN):
     def __init__(self, num_classes: int, experts: List[nn.Module], patch_size: int):
         super(DSN_Gate, self).__init__(num_classes, experts, patch_size)
-        self.num_task = 2  # domain specific and domain invariant
+        self.num_task = 2
         self.gates = nn.ModuleList([Gate(self.num_channels, 2) for _ in range(self.num_task)])
 
     def forward(self, x, task_ind):
@@ -72,9 +72,9 @@ class DSN_Gate(DSN):
             private_features = self.private_target_encoder(x)
         experts_features = torch.stack([shared_features, private_features], 1)
         experts_features = torch.squeeze(experts_features)
-        features = torch.matmul(task_weight, experts_features)
-        features = features.view(features.size()[0], self.out_channels, 1, 1)
-        decoder_output = self.shared_decoder(features)
+        features_fusion = torch.matmul(task_weight, experts_features)
+        features_fusion = features_fusion.view(features_fusion.size()[0], self.out_channels, 1, 1)
+        decoder_output = self.shared_decoder(features_fusion)
         # TODO: 完整特征≠判别性特征？
         class_output = self.classifier(shared_features)[-1]
         reverse_features = self.grl(shared_features)
@@ -132,3 +132,31 @@ class DSN_INN(nn.Module):
         reverse_shared_features = self.grl(shared_features)
         domain_output = self.domain_discriminator(reverse_shared_features)[-1]
         return shared_features, private_features, class_output, domain_output, decoder_output
+
+
+class DSN_INN_Gate(DSN_INN):
+    def __init__(self, num_classes: int, experts: List[nn.Module], patch_size: int):
+        super(DSN_INN_Gate, self).__init__(num_classes, experts, patch_size)
+        self.num_task = 2
+        self.gates = nn.ModuleList([Gate(self.num_channels, 2) for _ in range(self.num_task)])
+
+    def forward(self, x, task_ind):
+        assert task_ind in [1, 2]  # 1 for source domain and 2 for target domain
+        features = self.backbone(x)
+        shared_features = self.shared_encoder(features)
+        if task_ind == 1:
+            # TODO:check the input of gate
+            task_weight = self.gates[0](x)[-1].softmax(dim=1).unsqueeze(1)
+            private_features = self.private_source_encoder(features)
+        else:
+            task_weight = self.gates[1](x)[-1].softmax(dim=1).unsqueeze(1)
+            private_features = self.private_target_encoder(features)
+        experts_features = torch.stack([shared_features, private_features], 1)
+        experts_features = torch.squeeze(experts_features)
+        features_fusion = torch.matmul(task_weight, experts_features)
+        features_fusion = features_fusion.view(features_fusion.size()[0], self.out_channels, 1, 1)
+        decoder_output = self.shared_decoder(features_fusion)
+        class_output = self.classifier(shared_features)[-1]
+        reverse_features = self.grl(shared_features)
+        domain_output = self.domain_discriminator(reverse_features)[-1]
+        return shared_features, private_features, class_output, domain_output, decoder_output, task_weight
