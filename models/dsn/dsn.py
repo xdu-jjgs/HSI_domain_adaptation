@@ -163,7 +163,6 @@ class DSN_INN_Gate(DSN_INN):
 
 
 class DSN_NoDecoder(nn.Module):
-    # TODO: denoise autoencoder
     def __init__(self, num_classes: int, experts: List[nn.Module], patch_size: int):
         super(DSN_NoDecoder, self).__init__()
         # backbone输入通道数
