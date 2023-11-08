@@ -1,6 +1,6 @@
 DATASET:
-  NAME: 'ShangHang'
-  ROOT: 'E:/zzy/GAN/data/ShanghaiHangzhou'
+  NAME: 'HyRANK'
+  ROOT: 'E:/zzy/GAN/data/HyRANK'
   PATCH:
     HEIGHT: 11
     WIDTH: 11
@@ -8,26 +8,22 @@ DATASET:
 
 
 DATALOADER:
-  BATCH_SIZE: 128
+  BATCH_SIZE: 32
   NUM_WORKERS: 0
-  ITERATION: 1060
+  ITERATION: 626
 
 MODEL:
-  NAME: 'dsn_inn_gate'
-  BACKBONE: 'revnet110'
+  NAME: 'dsn_inn_nodecoder_nospec'
+  BACKBONE: 'revnet38'
 
 CRITERION:
   ITEMS:
     - 'softmax+ce'
     - 'softmax+ce'
     - 'orthogonal'
-    - 'l2dis'
-    - 'var'
   WEIGHTS:
     - 1.0
     - 1.0
-    - 0.5
-    - 0.5
     - 0.5
 
 OPTIMIZER:
@@ -40,4 +36,4 @@ SCHEDULER:
   FACTOR: 0.1
   PATIENCE: 2
 
-EPOCHS: 5
+EPOCHS: 20

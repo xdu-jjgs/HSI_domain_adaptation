@@ -186,3 +186,84 @@ class DSN_NoDecoder(nn.Module):
         reverse_shared_features = self.grl(shared_features)
         domain_output = self.domain_discriminator(reverse_shared_features)[-1]
         return shared_features, private_features, class_output, domain_output
+
+
+class DSN_NoDecoder_Nospec(nn.Module):
+    def __init__(self, num_classes: int, experts: List[nn.Module], patch_size: int):
+        super(DSN_NoDecoder_Nospec, self).__init__()
+        # backbone输入通道数
+        self.relu = nn.LeakyReLU()
+        self.num_classes = num_classes
+        self.num_channels = experts[0].in_channels
+        self.out_channels = experts[0].out_channels
+        self.private_encoder, self.shared_encoder = experts
+        self.classifier = ImageClassifier(self.out_channels, num_classes)
+        self.grl = GradientReverseLayer()
+        self.domain_discriminator = ImageClassifier(self.out_channels, 2)
+
+    def forward(self, x, task_ind):
+        assert task_ind in [1, 2]  # 1 for source domain and 2 for target domain
+        shared_features = self.shared_encoder(x)
+        private_features = self.private_encoder(x)
+        class_output = self.classifier(shared_features)[-1]
+        reverse_shared_features = self.grl(shared_features)
+        domain_output = self.domain_discriminator(reverse_shared_features)[-1]
+        return shared_features, private_features, class_output, domain_output
+
+
+class DSN_INN_NoDecoder(nn.Module):
+    def __init__(self, num_classes: int, backbone: nn.Module, patch_size: int):
+        super(DSN_INN_NoDecoder, self).__init__()
+        assert patch_size in [11]
+        # backbone输入通道数
+        self.relu = nn.LeakyReLU()
+        self.num_classes = num_classes
+        self.backbone = backbone
+        self.num_channels = backbone.in_channels
+        self.out_channels = 512
+        self.private_source_encoder = nn.Conv2d(backbone.out_channels, 512, 3, 1, 1)
+        self.shared_encoder = nn.Conv2d(backbone.out_channels, 512, 3, 1, 1)
+        self.private_target_encoder = nn.Conv2d(backbone.out_channels, 512, 3, 1, 1)
+        self.classifier = ImageClassifier(self.out_channels, num_classes)
+        self.grl = GradientReverseLayer()
+        self.domain_discriminator = ImageClassifier(self.out_channels, 2)
+
+    def forward(self, x, task_ind):
+        assert task_ind in [1, 2]  # 1 for source domain and 2 for target domain
+        features = self.backbone(x)
+        shared_features = self.shared_encoder(features)
+        if task_ind == 1:
+            private_features = self.private_source_encoder(features)
+        else:
+            private_features = self.private_target_encoder(features)
+        class_output = self.classifier(shared_features)[-1]
+        reverse_shared_features = self.grl(shared_features)
+        domain_output = self.domain_discriminator(reverse_shared_features)[-1]
+        return shared_features, private_features, class_output, domain_output
+
+
+class DSN_INN_NoDecoder_Nospec(nn.Module):
+    def __init__(self, num_classes: int, backbone: nn.Module, patch_size: int):
+        super(DSN_INN_NoDecoder_Nospec, self).__init__()
+        assert patch_size in [11]
+        # backbone输入通道数
+        self.relu = nn.LeakyReLU()
+        self.num_classes = num_classes
+        self.backbone = backbone
+        self.num_channels = backbone.in_channels
+        self.out_channels = 512
+        self.private_encoder = nn.Conv2d(backbone.out_channels, 512, 3, 1, 1)
+        self.shared_encoder = nn.Conv2d(backbone.out_channels, 512, 3, 1, 1)
+        self.classifier = ImageClassifier(self.out_channels, num_classes)
+        self.grl = GradientReverseLayer()
+        self.domain_discriminator = ImageClassifier(self.out_channels, 2)
+
+    def forward(self, x, task_ind):
+        assert task_ind in [1, 2]  # 1 for source domain and 2 for target domain
+        features = self.backbone(x)
+        shared_features = self.shared_encoder(features)
+        private_features = self.private_encoder(features)
+        class_output = self.classifier(shared_features)[-1]
+        reverse_shared_features = self.grl(shared_features)
+        domain_output = self.domain_discriminator(reverse_shared_features)[-1]
+        return shared_features, private_features, class_output, domain_output
