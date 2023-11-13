@@ -7,10 +7,10 @@ import numpy as np
 import torch.distributed as dist
 import torch.multiprocessing as mp
 
-from apex import amp
 from tqdm import tqdm
 from datetime import datetime
 from tensorboardX import SummaryWriter
+from torch.cuda.amp import autocast, GradScaler
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data.distributed import DistributedSampler
 
@@ -69,10 +69,7 @@ def parse_args():
                         type=int,
                         default=30,
                         help='random seed')
-    parser.add_argument('--opt-level',
-                        type=str,
-                        default='O0',
-                        help='optimization level for nvidia/apex')
+
     args = parser.parse_args()
     args.path = os.path.join(args.path, str(args.seed))
     # number of GPUs totally, which equals to the number of processes
@@ -177,9 +174,8 @@ def worker(rank_gpu, args):
     optimizer = build_optimizer(model)
     # build scheduler
     scheduler = build_scheduler(optimizer)
-
-    # mixed precision
-    model, optimizer = amp.initialize(model, optimizer, opt_level=args.opt_level)
+    # grad scaler
+    scaler = GradScaler()
     # DDP
     model = DistributedDataParallel(model, broadcast_buffers=False)
 
@@ -236,18 +232,20 @@ def worker(rank_gpu, args):
             domain_label_s = torch.zeros(len(label_s))
             domain_label_t = torch.ones(len(label_s))  # len of label_s equal to label_t
             domain_label_s, domain_label_t = domain_label_s.to(device), domain_label_t.to(device)
+            optimizer.zero_grad()
 
-            y_s, _, y_s_adv_k, y_s_adv_d, source_weights = model(x_s, 1)
-            cls_loss = cls_criterion(y_s=y_s, label_s=label_s) * loss_weights[0]
-            y_t, y_pse, y_t_adv_k, y_t_adv_d, target_weights = model(x_t, 2)
-            cbst_loss, mask, pseudo_labels = cbst_criterion(y_pse, y_t)
-            cbst_loss *= loss_weights[1]
-            worst_loss = wcec_criterion(y_s, y_s_adv_k, y_t, y_t_adv_k) * loss_weights[2]
-            domain_s_loss = domain_criterion(y_s=y_s_adv_d, label_s=domain_label_s) * loss_weights[3]
-            domain_t_loss = domain_criterion(y_s=y_t_adv_d, label_s=domain_label_t) * loss_weights[3]
-            var_s_loss = var_criterion(y=source_weights) * loss_weights[4]
-            var_t_loss = var_criterion(y=target_weights) * loss_weights[4]
-            total_loss = cls_loss + cbst_loss + worst_loss + domain_s_loss + domain_t_loss + var_s_loss + var_t_loss
+            with autocast():
+                y_s, _, y_s_adv_k, y_s_adv_d, source_weights = model(x_s, 1)
+                cls_loss = cls_criterion(y_s=y_s, label_s=label_s) * loss_weights[0]
+                y_t, y_pse, y_t_adv_k, y_t_adv_d, target_weights = model(x_t, 2)
+                cbst_loss, mask, pseudo_labels = cbst_criterion(y_pse, y_t)
+                cbst_loss *= loss_weights[1]
+                worst_loss = wcec_criterion(y_s, y_s_adv_k, y_t, y_t_adv_k) * loss_weights[2]
+                domain_s_loss = domain_criterion(y_s=y_s_adv_d, label_s=domain_label_s) * loss_weights[3]
+                domain_t_loss = domain_criterion(y_s=y_t_adv_d, label_s=domain_label_t) * loss_weights[3]
+                var_s_loss = var_criterion(y=source_weights) * loss_weights[4]
+                var_t_loss = var_criterion(y=target_weights) * loss_weights[4]
+                total_loss = cls_loss + cbst_loss + worst_loss + domain_s_loss + domain_t_loss + var_s_loss + var_t_loss
             source_weights_epoch += source_weights.sum(dim=0).squeeze(0).detach().cpu().numpy()
             target_weights_epoch += target_weights.sum(dim=0).squeeze(0).detach().cpu().numpy()
 
@@ -258,10 +256,9 @@ def worker(rank_gpu, args):
             var_loss_epoch += var_s_loss.item() + var_t_loss.item()
             total_loss_epoch += total_loss.item()
 
-            optimizer.zero_grad()
-            with amp.scale_loss(total_loss, optimizer) as scaled_loss:
-                scaled_loss.backward()
-            optimizer.step()
+            scaler.scale(total_loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
 
             # update metric for cls, cls_adv and cls_pse
             pred_cls = y_s.argmax(axis=1)
@@ -355,15 +352,14 @@ def worker(rank_gpu, args):
         with torch.no_grad():  # disable gradient back-propagation
             for x_t, label_t in val_bar:
                 x_t, label_t = x_t.to(device), label_t.to(device)
-                y_t, _, _, _, target_weights = model(x_t, 2)
-
-                cls_loss = val_criterion(y_s=y_t, label_s=label_t)
-                val_loss += cls_loss.item()
+                with autocast():
+                    y_t, _, _, _, target_weights = model(x_t, 2)
+                    cls_loss = val_criterion(y_s=y_t, label_s=label_t)
+                    val_loss += cls_loss.item()
                 target_weights_epoch += target_weights.sum(dim=0).squeeze(0).detach().cpu().numpy()
 
                 pred = y_t.argmax(axis=1)
                 metric_cls.add(pred.data.cpu().numpy(), label_t.data.cpu().numpy())
-
                 val_bar.set_postfix({
                     'epoch': epoch,
                     'loss': f'{cls_loss.item():.3f}',

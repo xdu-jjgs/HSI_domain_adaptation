@@ -7,10 +7,10 @@ import numpy as np
 import torch.distributed as dist
 import torch.multiprocessing as mp
 
-from apex import amp
 from tqdm import tqdm
 from datetime import datetime
 from tensorboardX import SummaryWriter
+from torch.cuda.amp import autocast, GradScaler
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data.distributed import DistributedSampler
 
@@ -69,10 +69,7 @@ def parse_args():
                         type=int,
                         default=30,
                         help='random seed')
-    parser.add_argument('--opt-level',
-                        type=str,
-                        default='O0',
-                        help='optimization level for nvidia/apex')
+
     args = parser.parse_args()
     args.path = os.path.join(args.path, str(args.seed))
     # number of GPUs totally, which equals to the number of processes
@@ -169,8 +166,8 @@ def worker(rank_gpu, args):
     # build scheduler
     scheduler = build_scheduler(optimizer)
 
-    # mixed precision
-    mmoe, optimizer = amp.initialize(mmoe, optimizer, opt_level=args.opt_level)
+   # grad scaler
+    scaler = GradScaler()
     # DDP
     mmoe = DistributedDataParallel(mmoe, broadcast_buffers=False, find_unused_parameters=True)
 
@@ -243,10 +240,9 @@ def worker(rank_gpu, args):
             trans_loss_epoch += trans_loss.item()
             total_loss_epoch += total_loss.item()
 
-            optimizer.zero_grad()
-            with amp.scale_loss(total_loss, optimizer) as scaled_loss:
-                scaled_loss.backward()
-            optimizer.step()
+            scaler.scale(total_loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
 
             pred = y_s.argmax(axis=1)
             metric.add(pred.data.cpu().numpy(), label.data.cpu().numpy())

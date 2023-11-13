@@ -7,10 +7,10 @@ import numpy as np
 import torch.distributed as dist
 import torch.multiprocessing as mp
 
-from apex import amp
 from tqdm import tqdm
 from datetime import datetime
 from tensorboardX import SummaryWriter
+from torch.cuda.amp import autocast, GradScaler
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data.distributed import DistributedSampler
 
@@ -69,10 +69,6 @@ def parse_args():
                         type=int,
                         default=30,
                         help='random seed')
-    parser.add_argument('--opt-level',
-                        type=str,
-                        default='O0',
-                        help='optimization level for nvidia/apex')
     args = parser.parse_args()
     args.path = os.path.join(args.path, str(args.seed))
     # number of GPUs totally, which equals to the number of processes
@@ -170,9 +166,8 @@ def worker(rank_gpu, args):
     optimizer = build_optimizer(mmoe)
     # build scheduler
     scheduler = build_scheduler(optimizer)
-
-    # mixed precision
-    mmoe, optimizer = amp.initialize(mmoe, optimizer, opt_level=args.opt_level)
+   # grad scaler
+    scaler = GradScaler()
     # DDP
     mmoe = DistributedDataParallel(mmoe, broadcast_buffers=False)
 
@@ -229,18 +224,19 @@ def worker(rank_gpu, args):
             domain_label_s = torch.zeros(len(label))
             domain_label_t = torch.ones(len(label))
             domain_label_s, domain_label_t = domain_label_s.to(device), domain_label_t.to(device)
+            optimizer.zero_grad()
+            with autocast():
+                amp_f_s, y_s, y_s_adv_d, source_weights = mmoe(x_s, 1)
+                amp_f_t, y_t, y_t_adv_d, target_weights = mmoe(x_t, 2)
+                source_weights_epoch += source_weights.sum(dim=0).squeeze(0).detach().cpu().numpy()
+                target_weights_epoch += target_weights.sum(dim=0).squeeze(0).detach().cpu().numpy()
 
-            amp_f_s, y_s, y_s_adv_d, source_weights = mmoe(x_s, 1)
-            amp_f_t, y_t, y_t_adv_d, target_weights = mmoe(x_t, 2)
-            source_weights_epoch += source_weights.sum(dim=0).squeeze(0).detach().cpu().numpy()
-            target_weights_epoch += target_weights.sum(dim=0).squeeze(0).detach().cpu().numpy()
-
-            cls_loss = cls_criterion(label_s=label, y_s=y_s) * loss_weights[0]
-            domain_s_loss = domain_criterion(y_s=y_s_adv_d, label_s=domain_label_s) * loss_weights[1]
-            domain_t_loss = domain_criterion(y_s=y_t_adv_d, label_s=domain_label_t) * loss_weights[1]
-            var_s_loss = var_criterion(y=source_weights) * loss_weights[2]
-            var_t_loss = var_criterion(y=target_weights) * loss_weights[2]
-            total_loss = cls_loss + domain_s_loss + domain_t_loss + var_s_loss + var_t_loss
+                cls_loss = cls_criterion(label_s=label, y_s=y_s) * loss_weights[0]
+                domain_s_loss = domain_criterion(y_s=y_s_adv_d, label_s=domain_label_s) * loss_weights[1]
+                domain_t_loss = domain_criterion(y_s=y_t_adv_d, label_s=domain_label_t) * loss_weights[1]
+                var_s_loss = var_criterion(y=source_weights) * loss_weights[2]
+                var_t_loss = var_criterion(y=target_weights) * loss_weights[2]
+                total_loss = cls_loss + domain_s_loss + domain_t_loss + var_s_loss + var_t_loss
 
             cls_loss_epoch += cls_loss.item()
             domain_s_loss_epoch += domain_s_loss.item()
@@ -248,14 +244,12 @@ def worker(rank_gpu, args):
             var_loss_epoch += var_s_loss.item() + var_t_loss.item()
             total_loss_epoch += total_loss.item()
 
-            optimizer.zero_grad()
-            with amp.scale_loss(total_loss, optimizer) as scaled_loss:
-                scaled_loss.backward()
-            optimizer.step()
+            scaler.scale(total_loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
 
             pred = y_s.argmax(axis=1)
             metric.add(pred.data.cpu().numpy(), label.data.cpu().numpy())
-
             train_bar.set_postfix({
                 'epoch': epoch,
                 'loss': f'{total_loss.item():.3f}',
@@ -310,16 +304,14 @@ def worker(rank_gpu, args):
         with torch.no_grad():  # disable gradient back-propagation
             for x_t, label in val_bar:
                 x_t, label = x_t.to(device), label.to(device)
-
-                amp_f_t, y_t, _, target_weights = mmoe(x_t, 2)
-                target_weights_epoch += target_weights.sum(dim=0).squeeze(0).detach().cpu().numpy()
-
-                cls_loss = val_criterion(y_s=y_t, label_s=label)
+                with autocast():
+                    amp_f_t, y_t, _, target_weights = mmoe(x_t, 2)
+                    target_weights_epoch += target_weights.sum(dim=0).squeeze(0).detach().cpu().numpy()
+                    cls_loss = val_criterion(y_s=y_t, label_s=label)
                 val_loss += cls_loss.item()
 
                 pred = y_t.argmax(axis=1)
                 metric.add(pred.data.cpu().numpy(), label.data.cpu().numpy())
-
                 val_bar.set_postfix({
                     'epoch': epoch,
                     'loss': f'{cls_loss.item():.3f}',
