@@ -7,10 +7,10 @@ import numpy as np
 import torch.distributed as dist
 import torch.multiprocessing as mp
 
-from apex import amp
 from tqdm import tqdm
 from datetime import datetime
 from tensorboardX import SummaryWriter
+from torch.cuda.amp import autocast, GradScaler
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data.distributed import DistributedSampler
 
@@ -69,10 +69,7 @@ def parse_args():
                         type=int,
                         default=30,
                         help='random seed')
-    parser.add_argument('--opt-level',
-                        type=str,
-                        default='O0',
-                        help='optimization level for nvidia/apex')
+
     args = parser.parse_args()
     # number of GPUs totally, which equals to the number of processes
     args.world_size = args.nodes * args.gpus
@@ -167,9 +164,8 @@ def worker(rank_gpu, args):
     optimizer = build_optimizer(model)
     # build scheduler
     scheduler = build_scheduler(optimizer)
-
-    # mixed precision
-    model, optimizer = amp.initialize(model, optimizer, opt_level=args.opt_level)
+    # grad scaler
+    scaler = GradScaler()
     # DDP
     model = DistributedDataParallel(model, broadcast_buffers=False)
 
@@ -218,29 +214,28 @@ def worker(rank_gpu, args):
             x_t, _ = next(target_iterator)
             x_s, label = x_s.to(device), label.to(device)
             x_t = x_t.to(device)
+            optimizer.zero_grad()
+            with autocast():
+                f_s, y_s = model(x_s)
 
-            f_s, y_s = model(x_s)
-
-            model.eval()
-            with torch.no_grad():
-                f_t, y_t = model(x_t)
-            model.train()
-            cls_loss = cls_criterion(label_s=label, y_s=y_s) * loss_weights[0]
-            trans_loss = trans_criterion(f_s=f_s, f_t=f_t, label_s=label, y_s=y_s, y_t=y_t) * loss_weights[1]
-            total_loss = cls_loss + trans_loss
+                model.eval()
+                with torch.no_grad():
+                    f_t, y_t = model(x_t)
+                model.train()
+                cls_loss = cls_criterion(label_s=label, y_s=y_s) * loss_weights[0]
+                trans_loss = trans_criterion(f_s=f_s, f_t=f_t, label_s=label, y_s=y_s, y_t=y_t) * loss_weights[1]
+                total_loss = cls_loss + trans_loss
 
             cls_loss_epoch += cls_loss.item()
             trans_loss_epoch += trans_loss.item()
             total_loss_epoch += total_loss.item()
 
-            optimizer.zero_grad()
-            with amp.scale_loss(total_loss, optimizer) as scaled_loss:
-                scaled_loss.backward()
-            optimizer.step()
+            scaler.scale(total_loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
 
             pred = y_s.argmax(axis=1)
             metric.add(pred.data.cpu().numpy(), label.data.cpu().numpy())
-
             train_bar.set_postfix({
                 'epoch': epoch,
                 'loss': f'{total_loss.item():.3f}',
@@ -281,9 +276,9 @@ def worker(rank_gpu, args):
         with torch.no_grad():  # disable gradient back-propagation
             for x_t, label in val_bar:
                 x_t, label = x_t.to(device), label.to(device)
-                _, y_t = model(x_t)
-
-                cls_loss = val_criterion(y_s=y_t, label_s=label)
+                with autocast():
+                    _, y_t = model(x_t)
+                    cls_loss = val_criterion(y_s=y_t, label_s=label)
                 val_loss += cls_loss.item()
 
                 pred = y_t.argmax(axis=1)
@@ -313,7 +308,7 @@ def worker(rank_gpu, args):
         for c in range(NUM_CLASSES):
             logging.info(
                 'rank{} val epoch={} | class={} P={:.3f} R={:.3f} F1={:.3f}'.format(dist.get_rank() + 1, epoch, c,
-                                                                                     Ps[c], Rs[c], F1S[c]))
+                                                                                    Ps[c], Rs[c], F1S[c]))
 
         # adjust learning rate if specified
         if scheduler is not None:

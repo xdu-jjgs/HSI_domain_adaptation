@@ -7,10 +7,10 @@ import numpy as np
 import torch.distributed as dist
 import torch.multiprocessing as mp
 
-from apex import amp
 from tqdm import tqdm
 from datetime import datetime
 from sklearn.manifold import TSNE
+from torch.cuda.amp import autocast
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data.distributed import DistributedSampler
 
@@ -68,10 +68,6 @@ def parse_args():
                         type=int,
                         default=20,
                         help='random seed')
-    parser.add_argument('--opt-level',
-                        type=str,
-                        default='O0',
-                        help='optimization level for nvidia/apex')
     args = parser.parse_args()
     # number of GPUs totally, which equals to the number of processes
     args.world_size = args.nodes * args.gpus
@@ -134,7 +130,6 @@ def worker(rank_gpu, args):
     # build metric
     metric = Metric(NUM_CLASSES)
 
-    [FE, C1, C2] = amp.initialize([FE, C1, C2], opt_level=args.opt_level)
     # DDP
     FE = DistributedDataParallel(FE)
     C1 = DistributedDataParallel(C1)
@@ -163,10 +158,11 @@ def worker(rank_gpu, args):
         target_bar = tqdm(target_dataloader, desc='inferring-t', ascii=True)
         for batch, (x, label) in enumerate(target_bar):
             x, label = x.to(device), label.to(device)
-            f = FE(x)
-            p1, p2 = C1(f)[-1], C2(f)[-1]
-            y = (p1 + p2) / 2
-            pred = y.argmax(axis=1)
+            with autocast():
+                f = FE(x)
+                p1, p2 = C1(f)[-1], C2(f)[-1]
+                y = (p1 + p2) / 2
+                pred = y.argmax(axis=1)
             f = torch.squeeze(f)
             features_t.append(f.data.cpu().numpy())
             res.append(pred.data.cpu().numpy())
@@ -175,7 +171,8 @@ def worker(rank_gpu, args):
         source_bar = tqdm(source_dataloader, desc='inferring-s', ascii=True)
         for batch, (x, label) in enumerate(source_bar):
             x, label = x.to(device), label.to(device)
-            f = FE(x)
+            with autocast():
+                f = FE(x)
             f = torch.squeeze(f)
             features_s.append(f.data.cpu().numpy())
             labels_s.append(label.data.cpu().numpy())
@@ -187,8 +184,7 @@ def worker(rank_gpu, args):
     for c in range(NUM_CLASSES):
         logging.info(
             'inference | class={}{} P={:.3f} R={:.3f} F1={:.3f}'.format(c, target_dataset.names[c],
-                                                                         Ps[c],
-                                                                         Rs[c], F1S[c]))
+                                                                        Ps[c], Rs[c], F1S[c]))
 
     for i in range(NUM_CLASSES):
         fs = features_s[np.where(labels_s == i)]

@@ -7,10 +7,10 @@ import numpy as np
 import torch.distributed as dist
 import torch.multiprocessing as mp
 
-from apex import amp
 from tqdm import tqdm
 from datetime import datetime
 from tensorboardX import SummaryWriter
+from torch.cuda.amp import autocast, GradScaler
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data.distributed import DistributedSampler
 
@@ -69,10 +69,7 @@ def parse_args():
                         type=int,
                         default=30,
                         help='random seed')
-    parser.add_argument('--opt-level',
-                        type=str,
-                        default='O0',
-                        help='optimization level for nvidia/apex')
+
     args = parser.parse_args()
     # number of GPUs totally, which equals to the number of processes
     args.path = os.path.join(args.path, str(args.seed))
@@ -131,7 +128,8 @@ def worker(rank_gpu, args):
     target_dataset = build_dataset('test')
     val_dataset = target_dataset
     assert source_dataset.num_classes == val_dataset.num_classes
-    logging.info("Number of train {}, val {}, test {}".format(len(source_dataset), len(val_dataset), len(target_dataset)))
+    logging.info(
+        "Number of train {}, val {}, test {}".format(len(source_dataset), len(val_dataset), len(target_dataset)))
     NUM_CHANNELS = source_dataset.num_channels
     NUM_CLASSES = source_dataset.num_classes
     logging.info("Number of class: {}".format(NUM_CLASSES))
@@ -173,12 +171,8 @@ def worker(rank_gpu, args):
     scheduler1 = build_scheduler(optimizer_fe)
     scheduler2 = build_scheduler(optimizer_c1)
     scheduler3 = build_scheduler(optimizer_c2)
-
-    # mixed precision
-    [FE, C1, C2], [optimizer_fe, optimizer_c1, optimizer_c2] = amp.initialize([FE, C1, C2],
-                                                                              [optimizer_fe, optimizer_c1,
-                                                                               optimizer_c2],
-                                                                              opt_level=args.opt_level)
+    # grad scaler
+    scaler = GradScaler()
     # DDP
     FE = DistributedDataParallel(FE)
     C1 = DistributedDataParallel(C1)
@@ -236,54 +230,56 @@ def worker(rank_gpu, args):
             x_s, label = x_s.to(device), label.to(device)
             x_t = x_t.to(device)
 
-            # step1: train FE、C1 and C2
-            f_s = FE(x_s)
-            p1_s, p2_s = C1(f_s)[-1], C2(f_s)[-1]
-            step1_loss = cls_criterion(p1_s, label) + cls_criterion(p2_s, label)
-            step1_loss_epoch += step1_loss.item()
-
             optimizer_fe.zero_grad()
             optimizer_c1.zero_grad()
             optimizer_c2.zero_grad()
-            with amp.scale_loss(step1_loss, [optimizer_fe, optimizer_c1, optimizer_c2]) as scaled_loss:
-                scaled_loss.backward()
-            optimizer_fe.step()
-            optimizer_c1.step()
-            optimizer_c2.step()
+            with autocast():
+                # step1: train FE、C1 and C2
+                f_s = FE(x_s)
+                p1_s, p2_s = C1(f_s)[-1], C2(f_s)[-1]
+                step1_loss = cls_criterion(p1_s, label) + cls_criterion(p2_s, label)
+            step1_loss_epoch += step1_loss.item()
+
+            scaler.scale(step1_loss_epoch).backward()
+            scaler.step(optimizer_fe)
+            scaler.step(optimizer_c1)
+            scaler.step(optimizer_c2)
+            scaler.update()
 
             # step2: fix FE then train C1 and C2
             FE.eval()
-            with torch.no_grad():
-                f_s, f_t = FE(x_s), FE(x_t)
-            p1_s, p2_s = C1(f_s)[-1], C2(f_s)[-1]
-            p1_t, p2_t = C1(f_t)[-1], C2(f_t)[-1]
-            cls_loss = cls_criterion(p1_s, label) + cls_criterion(p2_s, label)
-            dis_loss = -1 * dis_criterion(p1_t, p2_t)
-            step2_loss = cls_loss + dis_loss
-            step2_loss_epoch += step2_loss.item()
-
-            optimizer_fe.zero_grad()
             optimizer_c1.zero_grad()
             optimizer_c2.zero_grad()
-            with amp.scale_loss(step2_loss, [optimizer_c1, optimizer_c2]) as scaled_loss:
-                scaled_loss.backward()
-            optimizer_c1.step()
-            optimizer_c2.step()
+            with autocast():
+                with torch.no_grad():
+                    f_s, f_t = FE(x_s), FE(x_t)
+                p1_s, p2_s = C1(f_s)[-1], C2(f_s)[-1]
+                p1_t, p2_t = C1(f_t)[-1], C2(f_t)[-1]
+                cls_loss = cls_criterion(p1_s, label) + cls_criterion(p2_s, label)
+                dis_loss = -1 * dis_criterion(p1_t, p2_t)
+                step2_loss = cls_loss + dis_loss
+            step2_loss_epoch += step2_loss.item()
+
+            scaler.scale(step2_loss).backward()
+            scaler.step(optimizer_c1)
+            scaler.step(optimizer_c2)
+            scaler.update()
 
             # step3: fix C1 and C2 then train FE
             FE.train()
             C1.eval()
             C2.eval()
             for i in range(CFG.EPOCHK):
-                f_t = FE(x_t)
-                p1_t, p2_t = C1(f_t)[-1], C2(f_t)[-1]
-                step3_loss = dis_criterion(p1_t, p2_t)
+                optimizer_fe.zero_grad()
+                with autocast():
+                    f_t = FE(x_t)
+                    p1_t, p2_t = C1(f_t)[-1], C2(f_t)[-1]
+                    step3_loss = dis_criterion(p1_t, p2_t)
                 step3_loss_epoch += step3_loss.item()
 
-                optimizer_fe.zero_grad()
-                with amp.scale_loss(step3_loss, optimizer_fe) as scaled_loss:
-                    scaled_loss.backward()
-                optimizer_fe.step()
+                scaler.scale(step3_loss).backward()
+                scaler.step(optimizer_fe)
+                scaler.update()
 
             pred = ((p1_s + p2_s) / 2).argmax(axis=1)
             metric.add(pred.data.cpu().numpy(), label.data.cpu().numpy())
@@ -332,17 +328,15 @@ def worker(rank_gpu, args):
         with torch.no_grad():  # disable gradient back-propagation
             for x_t, label in val_bar:
                 x_t, label = x_t.to(device), label.to(device)
-
-                f_t = FE(x_t)
-                p1_t, p2_t = C1(f_t)[-1], C2(f_t)[-1]
-                y_t = (p1_t + p2_t) / 2
-
-                cls_loss = val_criterion(y_t, label)
+                with autocast():
+                    f_t = FE(x_t)
+                    p1_t, p2_t = C1(f_t)[-1], C2(f_t)[-1]
+                    y_t = (p1_t + p2_t) / 2
+                    cls_loss = val_criterion(y_t, label)
                 val_loss += cls_loss.item()
 
                 pred = y_t.argmax(axis=1)
                 metric.add(pred.data.cpu().numpy(), label.data.cpu().numpy())
-
                 val_bar.set_postfix({
                     'epoch': epoch,
                     'loss': f'{cls_loss.item():.3f}',
@@ -367,7 +361,7 @@ def worker(rank_gpu, args):
         for c in range(NUM_CLASSES):
             logging.info(
                 'rank{} val epoch={} | class={} P={:.3f} R={:.3f} F1={:.3f}'.format(dist.get_rank() + 1, epoch, c,
-                                                                                     Ps[c], Rs[c], F1S[c]))
+                                                                                    Ps[c], Rs[c], F1S[c]))
 
         # adjust learning rate if specified
         for s in [scheduler1, scheduler2, scheduler3]:

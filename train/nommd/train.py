@@ -7,10 +7,10 @@ import numpy as np
 import torch.distributed as dist
 import torch.multiprocessing as mp
 
-from apex import amp
 from tqdm import tqdm
 from datetime import datetime
 from tensorboardX import SummaryWriter
+from torch.cuda.amp import autocast, GradScaler
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data.distributed import DistributedSampler
 
@@ -69,10 +69,7 @@ def parse_args():
                         type=int,
                         default=30,
                         help='random seed')
-    parser.add_argument('--opt-level',
-                        type=str,
-                        default='O0',
-                        help='optimization level for nvidia/apex')
+
     args = parser.parse_args()
     args.world_size = args.nodes * args.gpus
     # number of GPUs totally, which equals to the number of processes
@@ -162,9 +159,8 @@ def worker(rank_gpu, args):
     optimizer = build_optimizer(model)
     # build scheduler
     scheduler = build_scheduler(optimizer)
-
-    # mixed precision
-    model, optimizer = amp.initialize(model, optimizer, opt_level=args.opt_level)
+    # grad scaler
+    scaler = GradScaler()
     # DDP
     model = DistributedDataParallel(model, broadcast_buffers=False)
 
@@ -211,17 +207,17 @@ def worker(rank_gpu, args):
         for iteration in train_bar:
             x_s, label = next(source_iterator)
             x_s, label = x_s.to(device), label.to(device)
-            f_s, y_s = model(x_s)
-
-            cls_loss = cls_criterion(label_s=label, y_s=y_s) * loss_weights[0]
-            total_loss = cls_loss
+            optimizer.zero_grad()
+            with autocast():
+                f_s, y_s = model(x_s)
+                cls_loss = cls_criterion(label_s=label, y_s=y_s) * loss_weights[0]
+                total_loss = cls_loss
             cls_loss_epoch += cls_loss.item()
             total_loss_epoch += total_loss.item()
 
-            optimizer.zero_grad()
-            with amp.scale_loss(total_loss, optimizer) as scaled_loss:
-                scaled_loss.backward()
-            optimizer.step()
+            scaler.scale(total_loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
 
             pred = y_s.argmax(axis=1)
             metric.add(pred.data.cpu().numpy(), label.data.cpu().numpy())
@@ -265,14 +261,13 @@ def worker(rank_gpu, args):
         with torch.no_grad():  # disable gradient back-propagation
             for x_t, label in val_bar:
                 x_t, label = x_t.to(device), label.to(device)
-                _, y_t = model(x_t)
-
-                cls_loss = val_criterion(y_s=y_t, label_s=label)
+                with autocast():
+                    _, y_t = model(x_t)
+                    cls_loss = val_criterion(y_s=y_t, label_s=label)
                 val_loss += cls_loss.item()
 
                 pred = y_t.argmax(axis=1)
                 metric.add(pred.data.cpu().numpy(), label.data.cpu().numpy())
-
                 val_bar.set_postfix({
                     'epoch': epoch,
                     'loss': f'{cls_loss.item():.3f}',

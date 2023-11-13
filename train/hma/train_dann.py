@@ -7,10 +7,10 @@ import numpy as np
 import torch.distributed as dist
 import torch.multiprocessing as mp
 
-from apex import amp
 from tqdm import tqdm
 from datetime import datetime
 from tensorboardX import SummaryWriter
+from torch.cuda.amp import autocast, GradScaler
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data.distributed import DistributedSampler
 
@@ -69,10 +69,6 @@ def parse_args():
                         type=int,
                         default=30,
                         help='random seed')
-    parser.add_argument('--opt-level',
-                        type=str,
-                        default='O0',
-                        help='optimization level for nvidia/apex')
     args = parser.parse_args()
     # number of GPUs totally, which equals to the number of processes
     args.path = os.path.join(args.path, str(args.seed))
@@ -178,13 +174,8 @@ def worker(rank_gpu, args):
     scheduler1 = build_scheduler(optimizer_fe)
     scheduler2 = build_scheduler(optimizer_inn)
     scheduler3 = build_scheduler(optimizer_c)
-
-    # mixed precision
-    [FE, inn, C], [optimizer_fe, optimizer_inn, optimizer_c] = amp.initialize(
-        [FE, inn, C],
-        [optimizer_fe, optimizer_inn, optimizer_c],
-        opt_level=args.opt_level
-    )
+    # grad scaler
+    scaler = GradScaler()
     # DDP
     FE = DistributedDataParallel(FE, broadcast_buffers=False)
     inn = DistributedDataParallel(inn, broadcast_buffers=False)
@@ -239,59 +230,59 @@ def worker(rank_gpu, args):
             x_t, _ = next(target_iterator)
             x_s, label_s = x_s.to(device), label_s.to(device)
             x_t = x_t.to(device)
+            domain_label_s = torch.zeros(len(label_s))
+            domain_label_t = torch.ones(len(label_s))
+            domain_label_s, domain_label_t = domain_label_s.to(device), domain_label_t.to(device)
 
             FE.train()  # set model to training mode
             inn.eval()
             C.train()
-            f_s, f_t = FE(x_s), FE(x_t)
-            y_s, y_t = C(f_s)[-1], C(f_t)[-1]
-            with torch.no_grad():
-                f_s2t, _, _ = inn(f_s, reverse=True)
-                f_t2s, _, _ = inn(f_t)
-            y_s2t = C(f_s2t)[-1]
-            y_t2s = C(f_t2s)[-1]
-
-            source_loss = (cls_criterion(y_s, label_s) + cls_criterion(y_s2t, label_s)) * loss_weights[0]
-            source_loss_epoch += source_loss.item()
-            target_loss = con_criterion(y_t, y_t2s) * loss_weights[1]
-            target_loss_epoch += target_loss.item()
-            total_loss = source_loss + target_loss
-            total_loss_epoch += total_loss.item()
-
             optimizer_fe.zero_grad()
             optimizer_c.zero_grad()
-            with amp.scale_loss(total_loss, [optimizer_fe, optimizer_c]) as scaled_loss:
-                scaled_loss.backward()
-            optimizer_fe.step()
-            optimizer_c.step()
+            with autocast():
+                f_s, f_t = FE(x_s), FE(x_t)
+                y_s, y_t = C(f_s)[-1], C(f_t)[-1]
+                with torch.no_grad():
+                    f_s2t, _, _ = inn(f_s, reverse=True)
+                    f_t2s, _, _ = inn(f_t)
+                y_s2t = C(f_s2t)[-1]
+                y_t2s = C(f_t2s)[-1]
+
+                source_loss = (cls_criterion(y_s, label_s) + cls_criterion(y_s2t, label_s)) * loss_weights[0]
+                source_loss_epoch += source_loss.item()
+                target_loss = con_criterion(y_t, y_t2s) * loss_weights[1]
+                total_loss = source_loss + target_loss
+            target_loss_epoch += target_loss.item()
+            total_loss_epoch += total_loss.item()
+
+            scaler.scale(total_loss).backward()
+            scaler.step(optimizer_fe)
+            scaler.step(optimizer_c)
+            scaler.update()
 
             FE.eval()  # set model to training mode
             inn.train()
             C.eval()
-            with torch.no_grad():
-                f_s = FE(x_s)
-                f_t = FE(x_t)
-            f_s2t, y_s_adv_d, y_s2t_adv_d = inn(f_s, reverse=True)
-            f_t2s, y_t_adv_d, y_t2s_adv_d = inn(f_t)
-            domain_label_s = torch.zeros(len(label_s))
-            domain_label_t = torch.ones(len(label_s))
-            domain_label_s, domain_label_t = domain_label_s.to(device), domain_label_t.to(device)
-            # loss_inn
-            inn_loss = (domain_criterion(y_s=y_s_adv_d, label_s=domain_label_s) +
-                        domain_criterion(y_s=y_t2s_adv_d, label_s=domain_label_s) +
-                        domain_criterion(y_s=y_t_adv_d, label_s=domain_label_t) +
-                        domain_criterion(y_s=y_s2t_adv_d, label_s=domain_label_t)
-                        ) * loss_weights[2]
-            inn_loss_epoch += inn_loss.item()
-
             optimizer_inn.zero_grad()
-            with amp.scale_loss(inn_loss, optimizer_inn) as scaled_loss:
-                scaled_loss.backward()
-            optimizer_inn.step()
+            with autocast():
+                with torch.no_grad():
+                    f_s = FE(x_s)
+                    f_t = FE(x_t)
+                f_s2t, y_s_adv_d, y_s2t_adv_d = inn(f_s, reverse=True)
+                f_t2s, y_t_adv_d, y_t2s_adv_d = inn(f_t)
+                # loss_inn
+                inn_loss = (domain_criterion(y_s=y_s_adv_d, label_s=domain_label_s) +
+                            domain_criterion(y_s=y_t2s_adv_d, label_s=domain_label_s) +
+                            domain_criterion(y_s=y_t_adv_d, label_s=domain_label_t) +
+                            domain_criterion(y_s=y_s2t_adv_d, label_s=domain_label_t)
+                            ) * loss_weights[2]
+            inn_loss_epoch += inn_loss.item()
+            scaler.scale(inn_loss).backward()
+            scaler.step(optimizer_inn)
+            scaler.update()
 
             pred1 = y_s.argmax(axis=1)
             metric1.add(pred1.data.cpu().numpy(), label_s.data.cpu().numpy())
-
             train_bar.set_postfix({
                 'epoch': epoch,
                 'loss_s': f'{source_loss.item():.3f}',
@@ -339,14 +330,13 @@ def worker(rank_gpu, args):
         with torch.no_grad():  # disable gradient back-propagation
             for x_t, label_t in val_bar:
                 x_t, label_t = x_t.to(device), label_t.to(device)
-
-                f_t = FE(x_t)
-                y_t = C(f_t)[-1]
-                f_t2s, _, _ = inn(f_t)
-                y_t2s = C(f_t2s)[-1]
-                y_mix = (y_t + y_t2s) / 2
-
-                cls_loss = val_criterion(y_t, label_t)
+                with autocast():
+                    f_t = FE(x_t)
+                    y_t = C(f_t)[-1]
+                    f_t2s, _, _ = inn(f_t)
+                    y_t2s = C(f_t2s)[-1]
+                    y_mix = (y_t + y_t2s) / 2
+                    cls_loss = val_criterion(y_t, label_t)
                 val_loss += cls_loss.item()
 
                 pred1 = y_t.argmax(axis=1)
@@ -355,7 +345,6 @@ def worker(rank_gpu, args):
                 metric2.add(pred2.data.cpu().numpy(), label_t.data.cpu().numpy())
                 pred3 = y_mix.argmax(axis=1)
                 metric3.add(pred3.data.cpu().numpy(), label_t.data.cpu().numpy())
-
                 val_bar.set_postfix({
                     'epoch': epoch,
                     'loss': f'{cls_loss.item():.3f}',

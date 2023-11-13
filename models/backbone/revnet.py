@@ -20,7 +20,8 @@ class RevNet(nn.Module):
 
         if pretrained:
             model = load_pretrained_models(model, self.model_name)
-        model.init_block_conv = nn.Conv2d(self.in_channels, model.features.init_block.conv.out_channels, (3, 3), stride=(1, 1),
+        model.init_block_conv = nn.Conv2d(self.in_channels, model.features.init_block.conv.out_channels, (3, 3),
+                                          stride=(1, 1),
                                           padding=(1, 1), bias=False)
         if not pretrained:
             initialize_weights(model)
@@ -31,10 +32,10 @@ class RevNet(nn.Module):
             model.features.init_block.activ
         )
         self.stage1 = model.features.stage1
-        self.stage2 = model.features.stage2
-        self.stage3 = model.features.stage3
+        self.stage2 = model.features.stage2  # 6*6
+        self.stage3 = model.features.stage3  # 3*3
         self.final_postactiv = model.features.final_postactiv
-        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))  # 1*1
 
     def forward(self, x):
         x = self.init_block(x)
