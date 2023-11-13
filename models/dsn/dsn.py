@@ -4,6 +4,8 @@ from typing import List
 
 from models.modules import Gate
 from models.backbone import ImageClassifier
+from models.utils.init import initialize_weights
+from models.utils.hook import register_layer_hook
 from tllib.modules.grl import GradientReverseLayer, WarmStartGradientReverseLayer
 
 
@@ -40,6 +42,7 @@ class DSN(nn.Module):
         self.classifier = ImageClassifier(self.out_channels, num_classes)
         self.grl = GradientReverseLayer()
         self.domain_discriminator = ImageClassifier(self.out_channels, 2)
+        register_layer_hook(self)
 
     def forward(self, x, task_ind):
         assert task_ind in [1, 2]  # 1 for source domain and 2 for target domain
