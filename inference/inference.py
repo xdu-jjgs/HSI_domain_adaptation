@@ -10,7 +10,7 @@ import torch.multiprocessing as mp
 from tqdm import tqdm
 from datetime import datetime
 from sklearn.manifold import TSNE
-from torch.cuda.amp import autocast, GradScaler
+from torch.cuda.amp import autocast
 from torch.utils.data.distributed import DistributedSampler
 
 from configs import CFG
@@ -126,8 +126,6 @@ def worker(rank_gpu, args):
     model.to(device)
     # build metric
     metric = Metric(NUM_CLASSES)
-    # grad scaler
-    scaler = GradScaler()
 
     # load checkpoint
     if not os.path.isfile(args.checkpoint):
