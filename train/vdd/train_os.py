@@ -171,7 +171,7 @@ def worker(rank_gpu, args):
     scheduler = build_scheduler(optimizer)
 
     # mixed precision
-    model, optimize = amp.initialize(model, optimizer, opt_level=args.opt_level)
+    model, optimizer = amp.initialize(model, optimizer, opt_level=args.opt_level)
     # DDP
     model = DistributedDataParallel(model, broadcast_buffers=False)
 

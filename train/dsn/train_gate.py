@@ -7,10 +7,10 @@ import numpy as np
 import torch.distributed as dist
 import torch.multiprocessing as mp
 
-from apex import amp
 from tqdm import tqdm
 from datetime import datetime
 from tensorboardX import SummaryWriter
+from torch.cuda.amp import autocast, GradScaler
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data.distributed import DistributedSampler
 
@@ -69,10 +69,6 @@ def parse_args():
                         type=int,
                         default=30,
                         help='random seed')
-    parser.add_argument('--opt-level',
-                        type=str,
-                        default='O0',
-                        help='optimization level for nvidia/apex')
     args = parser.parse_args()
     args.path = os.path.join(args.path, str(args.seed))
     # number of GPUs totally, which equals to the number of processes
@@ -174,9 +170,8 @@ def worker(rank_gpu, args):
     optimizer = build_optimizer(model)
     # build scheduler
     scheduler = build_scheduler(optimizer)
-
-    # mixed precision
-    model, optimize = amp.initialize(model, optimizer, opt_level=args.opt_level)
+    # grad scaler
+    scaler = GradScaler()
     # DDP
     model = DistributedDataParallel(model, broadcast_buffers=False)
 
@@ -228,28 +223,28 @@ def worker(rank_gpu, args):
             x_t, _ = next(target_iterator)
             x_s, label = x_s.to(device), label.to(device)
             x_t = x_t.to(device)
-
-            shared_f_s, private_f_s, y_s, domain_out_s, decoder_out_s, source_weights = model(x_s, 1)
-            shared_f_t, private_f_t, y_t, domain_out_t, decoder_out_t, target_weights = model(x_t, 2)
-            source_weights_epoch += source_weights.sum(dim=0).squeeze(0).detach().cpu().numpy()
-            target_weights_epoch += target_weights.sum(dim=0).squeeze(0).detach().cpu().numpy()
-
             domain_label_s = torch.zeros(len(label))
             domain_label_t = torch.ones(len(label))
             domain_label_s, domain_label_t = domain_label_s.to(device), domain_label_t.to(device)
 
-            cls_loss = cls_criterion(y_s=y_s, label_s=label) * loss_weights[0]
-            domain_s_loss = domain_criterion(y_s=domain_out_s, label_s=domain_label_s) * loss_weights[1]
-            domain_t_loss = domain_criterion(y_s=domain_out_t, label_s=domain_label_t) * loss_weights[1]
-            difference_s_loss = difference_criterion(shared_f_s, private_f_s) * loss_weights[2]
-            difference_t_loss = difference_criterion(shared_f_t, private_f_t) * loss_weights[2]
-            recon_s_loss = recon_criterion(x_s, decoder_out_s) * loss_weights[3]
-            recon_t_loss = recon_criterion(x_t, decoder_out_t) * loss_weights[3]
-            var_s_loss = var_criterion(y=source_weights) * loss_weights[4]
-            var_t_loss = var_criterion(y=target_weights) * loss_weights[4]
+            optimizer.zero_grad()
+            with autocast():
+                shared_f_s, private_f_s, y_s, domain_out_s, decoder_out_s, source_weights = model(x_s, 1)
+                shared_f_t, private_f_t, y_t, domain_out_t, decoder_out_t, target_weights = model(x_t, 2)
+                source_weights_epoch += source_weights.sum(dim=0).squeeze(0).detach().cpu().numpy()
+                target_weights_epoch += target_weights.sum(dim=0).squeeze(0).detach().cpu().numpy()
 
-            total_loss = (cls_loss + domain_s_loss + domain_t_loss + difference_s_loss + difference_t_loss +
-                          recon_s_loss + recon_t_loss + var_s_loss + var_t_loss)
+                cls_loss = cls_criterion(y_s=y_s, label_s=label) * loss_weights[0]
+                domain_s_loss = domain_criterion(y_s=domain_out_s, label_s=domain_label_s) * loss_weights[1]
+                domain_t_loss = domain_criterion(y_s=domain_out_t, label_s=domain_label_t) * loss_weights[1]
+                difference_s_loss = difference_criterion(shared_f_s, private_f_s) * loss_weights[2]
+                difference_t_loss = difference_criterion(shared_f_t, private_f_t) * loss_weights[2]
+                recon_s_loss = recon_criterion(x_s, decoder_out_s) * loss_weights[3]
+                recon_t_loss = recon_criterion(x_t, decoder_out_t) * loss_weights[3]
+                var_s_loss = var_criterion(y=source_weights) * loss_weights[4]
+                var_t_loss = var_criterion(y=target_weights) * loss_weights[4]
+                total_loss = (cls_loss + domain_s_loss + domain_t_loss + difference_s_loss + difference_t_loss +
+                              recon_s_loss + recon_t_loss + var_s_loss + var_t_loss)
 
             cls_loss_epoch += cls_loss.item()
             domain_s_loss_epoch += domain_s_loss.item()
@@ -261,10 +256,13 @@ def worker(rank_gpu, args):
             var_loss_epoch += var_s_loss.item() + var_t_loss.item()
             total_loss_epoch += total_loss.item()
 
-            optimizer.zero_grad()
-            with amp.scale_loss(total_loss, optimizer) as scaled_loss:
-                scaled_loss.backward()
-            optimizer.step()
+            scaler.scale(total_loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
+            for name, grad in model.module.layer_gradients.items():
+                # writer.add_histogram('grad-h/{}'.format(name), grad, iteration + ((epoch-1)*CFG.DATALOADER.ITERATION))
+                writer.add_scalar('grad-s/{}'.format(name), grad.norm(2),
+                                  iteration + ((epoch - 1) * CFG.DATALOADER.ITERATION))
 
             pred = y_s.argmax(axis=1)
             metric.add(pred.data.cpu().numpy(), label.data.cpu().numpy())
@@ -330,14 +328,12 @@ def worker(rank_gpu, args):
         with torch.no_grad():  # disable gradient back-propagation
             for x_t, label in val_bar:
                 x_t, label = x_t.to(device), label.to(device)
-                _, _, y_t, _, _, _ = model(x_t, 2)
-
-                cls_loss = val_criterion(y_s=y_t, label_s=label)
+                with autocast():
+                    _, _, y_t, _, _, _ = model(x_t, 2)
+                    cls_loss = val_criterion(y_s=y_t, label_s=label)
                 val_loss += cls_loss.item()
-
                 pred = y_t.argmax(axis=1)
                 metric.add(pred.data.cpu().numpy(), label.data.cpu().numpy())
-
                 val_bar.set_postfix({
                     'epoch': epoch,
                     'loss': f'{cls_loss.item():.3f}',
@@ -362,7 +358,7 @@ def worker(rank_gpu, args):
         for c in range(NUM_CLASSES):
             logging.info(
                 'rank{} val epoch={} | class={} P={:.3f} R={:.3f} F1={:.3f}'.format(dist.get_rank() + 1, epoch, c,
-                                                                                     Ps[c], Rs[c], F1S[c]))
+                                                                                    Ps[c], Rs[c], F1S[c]))
 
         # adjust learning rate if specified
         if scheduler is not None:
