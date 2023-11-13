@@ -42,6 +42,7 @@ class DSN(nn.Module):
         self.classifier = ImageClassifier(self.out_channels, num_classes)
         self.grl = GradientReverseLayer()
         self.domain_discriminator = ImageClassifier(self.out_channels, 2)
+        initialize_weights(self)
         register_layer_hook(self)
 
     def forward(self, x, task_ind):
