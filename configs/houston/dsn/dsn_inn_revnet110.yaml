@@ -8,16 +8,13 @@ DATASET:
 
 
 DATALOADER:
-  BATCH_SIZE: 128
+  BATCH_SIZE: 64
   NUM_WORKERS: 0
-  ITERATION: 20
+  ITERATION: 40
 
 MODEL:
-  NAME: 'dsn'
-  EXPERTS:
-    - 'fe'
-    - 'fe'
-    - 'fe'
+  NAME: 'dsn_inn'
+  BACKBONE: 'revnet110'
 
 CRITERION:
   ITEMS:
