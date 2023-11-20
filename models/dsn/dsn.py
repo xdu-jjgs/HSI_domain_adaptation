@@ -122,6 +122,8 @@ class DSN_INN(nn.Module):
         self.classifier = ImageClassifier(self.out_channels, num_classes)
         self.grl = GradientReverseLayer()
         self.domain_discriminator = ImageClassifier(self.out_channels, 2)
+        initialize_weights(self)
+        # register_layer_hook(self)
 
     def forward(self, x, task_ind):
         assert task_ind in [1, 2]  # 1 for source domain and 2 for target domain
@@ -178,6 +180,8 @@ class DSN_NoDecoder(nn.Module):
         self.classifier = ImageClassifier(self.out_channels, num_classes)
         self.grl = GradientReverseLayer()
         self.domain_discriminator = ImageClassifier(self.out_channels, 2)
+        initialize_weights(self)
+        register_layer_hook(self)
 
     def forward(self, x, task_ind):
         assert task_ind in [1, 2]  # 1 for source domain and 2 for target domain
@@ -204,6 +208,8 @@ class DSN_NoDecoder_Nospec(nn.Module):
         self.classifier = ImageClassifier(self.out_channels, num_classes)
         self.grl = GradientReverseLayer()
         self.domain_discriminator = ImageClassifier(self.out_channels, 2)
+        initialize_weights(self)
+        register_layer_hook(self)
 
     def forward(self, x, task_ind):
         assert task_ind in [1, 2]  # 1 for source domain and 2 for target domain
@@ -231,6 +237,8 @@ class DSN_INN_NoDecoder(nn.Module):
         self.classifier = ImageClassifier(self.out_channels, num_classes)
         self.grl = GradientReverseLayer()
         self.domain_discriminator = ImageClassifier(self.out_channels, 2)
+        initialize_weights(self)
+        # register_layer_hook(self)
 
     def forward(self, x, task_ind):
         assert task_ind in [1, 2]  # 1 for source domain and 2 for target domain
@@ -261,6 +269,8 @@ class DSN_INN_NoDecoder_Nospec(nn.Module):
         self.classifier = ImageClassifier(self.out_channels, num_classes)
         self.grl = GradientReverseLayer()
         self.domain_discriminator = ImageClassifier(self.out_channels, 2)
+        initialize_weights(self)
+        # register_layer_hook(self)
 
     def forward(self, x, task_ind):
         assert task_ind in [1, 2]  # 1 for source domain and 2 for target domain

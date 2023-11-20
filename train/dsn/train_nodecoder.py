@@ -4,6 +4,7 @@ import random
 import logging
 import argparse
 import numpy as np
+import torch.nn.functional as F
 import torch.distributed as dist
 import torch.multiprocessing as mp
 
@@ -296,7 +297,7 @@ def worker(rank_gpu, args):
         model.eval()  # set model to evaluation mode
         metric.reset()  # reset metric
         val_bar = tqdm(val_dataloader, desc='validating', ascii=True)
-        val_loss = 0.
+        val_loss, confidence_sum = 0., 0.
         with torch.no_grad():  # disable gradient back-propagation
             for x_t, label in val_bar:
                 x_t, label = x_t.to(device), label.to(device)
@@ -304,6 +305,8 @@ def worker(rank_gpu, args):
                     _, _, y_t, _ = model(x_t, 2)
                     cls_loss = val_criterion(y_s=y_t, label_s=label)
                 val_loss += cls_loss.item()
+                confidence, pseudo_labels = F.softmax(y_t.detach(), dim=1).max(dim=1)
+                confidence_sum += sum(confidence)
                 pred = y_t.argmax(axis=1)
                 metric.add(pred.data.cpu().numpy(), label.data.cpu().numpy())
                 val_bar.set_postfix({
@@ -314,6 +317,7 @@ def worker(rank_gpu, args):
                     'KC': f'{metric.KC():.3f}'
                 })
         val_loss /= len(val_dataloader) * CFG.DATALOADER.BATCH_SIZE
+        confidence_sum /= len(val_dataloader) * CFG.DATALOADER.BATCH_SIZE
 
         PA, mPA, Ps, Rs, F1S, KC = metric.PA(), metric.mPA(), metric.Ps(), metric.Rs(), metric.F1s(), metric.KC()
         if dist.get_rank() == 0:
@@ -321,6 +325,7 @@ def worker(rank_gpu, args):
             writer.add_scalar('val/PA-epoch', PA, epoch)
             writer.add_scalar('val/mPA-epoch', mPA, epoch)
             writer.add_scalar('val/KC-epoch', KC, epoch)
+            writer.add_scalar('val/confidence-epoch', confidence_sum, epoch)
         if PA > best_PA:
             best_epoch = epoch
 
