@@ -7,10 +7,10 @@ import numpy as np
 import torch.distributed as dist
 import torch.multiprocessing as mp
 
-from apex import amp
 from tqdm import tqdm
 from datetime import datetime
 from tensorboardX import SummaryWriter
+from torch.cuda.amp import autocast, GradScaler
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data.distributed import DistributedSampler
 
@@ -69,10 +69,7 @@ def parse_args():
                         type=int,
                         default=30,
                         help='random seed')
-    parser.add_argument('--opt-level',
-                        type=str,
-                        default='O0',
-                        help='optimization level for nvidia/apex')
+
     args = parser.parse_args()
     args.path = os.path.join(args.path, str(args.seed))
     # number of GPUs totally, which equals to the number of processes
@@ -171,8 +168,8 @@ def worker(rank_gpu, args):
     # build scheduler
     scheduler = build_scheduler(optimizer)
 
-    # mixed precision
-    model, optimize = amp.initialize(model, optimizer, opt_level=args.opt_level)
+    # grad scaler
+    scaler = GradScaler()
     # DDP
     model = DistributedDataParallel(model, broadcast_buffers=False)
 
@@ -226,37 +223,38 @@ def worker(rank_gpu, args):
             domain_label_s = torch.zeros(len(label))
             domain_label_t = torch.ones(len(label))
             domain_label_s, domain_label_t = domain_label_s.to(device), domain_label_t.to(device)
+            optimizer.zero_grad()
+            with autocast():
+                # step1: The step of feature decomposition
+                di_s, ds_s, y_s, domain_out_s = model(x_s)
+                di_t, ds_t, y_t, domain_out_t = model(x_t)
 
-            # step1: The step of feature decomposition
-            di_s, ds_s, y_s, domain_out_s = model(x_s)
-            di_t, ds_t, y_t, domain_out_t = model(x_t)
-
-            cls_loss = cls_criterion(y_s=y_s, label_s=label) * loss_weights[0]
-            domain_s_loss = domain_criterion(y_s=domain_out_s, label_s=domain_label_s) * loss_weights[1]
-            domain_t_loss = domain_criterion(y_s=domain_out_t, label_s=domain_label_t) * loss_weights[1]
-            step1_loss = cls_loss + domain_s_loss + domain_t_loss
+                cls_loss = cls_criterion(y_s=y_s, label_s=label) * loss_weights[0]
+                domain_s_loss = domain_criterion(y_s=domain_out_s, label_s=domain_label_s) * loss_weights[1]
+                domain_t_loss = domain_criterion(y_s=domain_out_t, label_s=domain_label_t) * loss_weights[1]
+                step1_loss = cls_loss + domain_s_loss + domain_t_loss
 
             cls_loss_epoch += cls_loss.item()
             domain_s_loss_epoch += domain_s_loss.item()
             domain_t_loss_epoch += domain_t_loss.item()
             step1_loss_epoch += step1_loss.item()
 
-            optimizer.zero_grad()
-            with amp.scale_loss(step1_loss, optimizer) as scaled_loss:
-                scaled_loss.backward()
-            optimizer.step()
+            scaler.scale(step1_loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
 
             # step2: The step of feature orthogonalization
             model.module.freeze_backbone()
-            di_s, ds_s, y_s, domain_out_s = model(x_s)
-            di_t, ds_t, y_t, domain_out_t = model(x_t)
+            with autocast():
+                di_s, ds_s, y_s, domain_out_s = model(x_s)
+                di_t, ds_t, y_t, domain_out_t = model(x_t)
 
-            cls_loss = cls_criterion(y_s=y_s, label_s=label) * loss_weights[0]
-            domain_s_loss = domain_criterion(y_s=domain_out_s, label_s=domain_label_s) * loss_weights[1]
-            domain_t_loss = domain_criterion(y_s=domain_out_t, label_s=domain_label_t) * loss_weights[1]
-            decomposed_s_loss = decomposed_criterion(di_s, ds_s) * loss_weights[2]
-            decomposed_t_loss = decomposed_criterion(di_t, ds_t) * loss_weights[2]
-            step2_loss = cls_loss + domain_s_loss + domain_t_loss + decomposed_s_loss + decomposed_t_loss
+                cls_loss = cls_criterion(y_s=y_s, label_s=label) * loss_weights[0]
+                domain_s_loss = domain_criterion(y_s=domain_out_s, label_s=domain_label_s) * loss_weights[1]
+                domain_t_loss = domain_criterion(y_s=domain_out_t, label_s=domain_label_t) * loss_weights[1]
+                decomposed_s_loss = decomposed_criterion(di_s, ds_s) * loss_weights[2]
+                decomposed_t_loss = decomposed_criterion(di_t, ds_t) * loss_weights[2]
+                step2_loss = cls_loss + domain_s_loss + domain_t_loss + decomposed_s_loss + decomposed_t_loss
 
             cls_loss_epoch += cls_loss.item()
             domain_s_loss_epoch += domain_s_loss.item()
@@ -265,15 +263,14 @@ def worker(rank_gpu, args):
             decomposed_t_loss_epoch += decomposed_t_loss.item()
             step2_loss_epoch += step2_loss.item()
 
-            optimizer.zero_grad()
-            with amp.scale_loss(step2_loss, optimizer) as scaled_loss:
-                scaled_loss.backward()
-            optimizer.step()
+            scaler.scale(step2_loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
+
             model.module.activate_backbone()
 
             pred = y_s.argmax(axis=1)
             metric.add(pred.data.cpu().numpy(), label.data.cpu().numpy())
-
             train_bar.set_postfix({
                 'iteration': iteration,
                 'epoch': epoch,
@@ -325,14 +322,13 @@ def worker(rank_gpu, args):
         with torch.no_grad():  # disable gradient back-propagation
             for x_t, label in val_bar:
                 x_t, label = x_t.to(device), label.to(device)
-                _, _, y_t, _ = model(x_t)
-
-                cls_loss = val_criterion(y_s=y_t, label_s=label)
+                with autocast():
+                    _, _, y_t, _ = model(x_t)
+                    cls_loss = val_criterion(y_s=y_t, label_s=label)
                 val_loss += cls_loss.item()
 
                 pred = y_t.argmax(axis=1)
                 metric.add(pred.data.cpu().numpy(), label.data.cpu().numpy())
-
                 val_bar.set_postfix({
                     'epoch': epoch,
                     'loss': f'{cls_loss.item():.3f}',

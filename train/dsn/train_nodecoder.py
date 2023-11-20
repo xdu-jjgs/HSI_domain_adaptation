@@ -4,13 +4,14 @@ import random
 import logging
 import argparse
 import numpy as np
+import torch.nn.functional as F
 import torch.distributed as dist
 import torch.multiprocessing as mp
 
-from apex import amp
 from tqdm import tqdm
 from datetime import datetime
 from tensorboardX import SummaryWriter
+from torch.cuda.amp import autocast, GradScaler
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data.distributed import DistributedSampler
 
@@ -69,10 +70,6 @@ def parse_args():
                         type=int,
                         default=30,
                         help='random seed')
-    parser.add_argument('--opt-level',
-                        type=str,
-                        default='O0',
-                        help='optimization level for nvidia/apex')
     args = parser.parse_args()
     args.path = os.path.join(args.path, str(args.seed))
     # number of GPUs totally, which equals to the number of processes
@@ -170,9 +167,8 @@ def worker(rank_gpu, args):
     optimizer = build_optimizer(model)
     # build scheduler
     scheduler = build_scheduler(optimizer)
-
-    # mixed precision
-    model, optimize = amp.initialize(model, optimizer, opt_level=args.opt_level)
+    # grad scaler
+    scaler = GradScaler()
     # DDP
     model = DistributedDataParallel(model, broadcast_buffers=False)
 
@@ -222,21 +218,21 @@ def worker(rank_gpu, args):
             x_t, _ = next(target_iterator)
             x_s, label = x_s.to(device), label.to(device)
             x_t = x_t.to(device)
-
-            shared_f_s, private_f_s, y_s, domain_out_s = model(x_s, 1)
-            shared_f_t, private_f_t, y_t, domain_out_t = model(x_t, 2)
-
             domain_label_s = torch.zeros(len(label))
             domain_label_t = torch.ones(len(label))
             domain_label_s, domain_label_t = domain_label_s.to(device), domain_label_t.to(device)
 
-            cls_loss = cls_criterion(y_s=y_s, label_s=label) * loss_weights[0]
-            domain_s_loss = domain_criterion(y_s=domain_out_s, label_s=domain_label_s) * loss_weights[1]
-            domain_t_loss = domain_criterion(y_s=domain_out_t, label_s=domain_label_t) * loss_weights[1]
-            difference_s_loss = difference_criterion(shared_f_s, private_f_s) * loss_weights[2]
-            difference_t_loss = difference_criterion(shared_f_t, private_f_t) * loss_weights[2]
+            optimizer.zero_grad()
+            with autocast():
+                shared_f_s, private_f_s, y_s, domain_out_s = model(x_s, 1)
+                shared_f_t, private_f_t, y_t, domain_out_t = model(x_t, 2)
 
-            total_loss = cls_loss + domain_s_loss + domain_t_loss + difference_s_loss + difference_t_loss
+                cls_loss = cls_criterion(y_s=y_s, label_s=label) * loss_weights[0]
+                domain_s_loss = domain_criterion(y_s=domain_out_s, label_s=domain_label_s) * loss_weights[1]
+                domain_t_loss = domain_criterion(y_s=domain_out_t, label_s=domain_label_t) * loss_weights[1]
+                difference_s_loss = difference_criterion(shared_f_s, private_f_s) * loss_weights[2]
+                difference_t_loss = difference_criterion(shared_f_t, private_f_t) * loss_weights[2]
+                total_loss = cls_loss + domain_s_loss + domain_t_loss + difference_s_loss + difference_t_loss
 
             cls_loss_epoch += cls_loss.item()
             domain_s_loss_epoch += domain_s_loss.item()
@@ -245,14 +241,16 @@ def worker(rank_gpu, args):
             difference_t_loss_epoch += difference_t_loss.item()
             total_loss_epoch += total_loss.item()
 
-            optimizer.zero_grad()
-            with amp.scale_loss(total_loss, optimizer) as scaled_loss:
-                scaled_loss.backward()
-            optimizer.step()
+            scaler.scale(total_loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
+            for name, grad in model.module.layer_gradients.items():
+                # writer.add_histogram('grad-h/{}'.format(name), grad, iteration + ((epoch-1)*CFG.DATALOADER.ITERATION))
+                writer.add_scalar('grad-s/{}'.format(name), grad.norm(2),
+                                  iteration + ((epoch - 1) * CFG.DATALOADER.ITERATION))
 
             pred = y_s.argmax(axis=1)
             metric.add(pred.data.cpu().numpy(), label.data.cpu().numpy())
-
             train_bar.set_postfix({
                 'iteration': iteration,
                 'epoch': epoch,
@@ -299,18 +297,18 @@ def worker(rank_gpu, args):
         model.eval()  # set model to evaluation mode
         metric.reset()  # reset metric
         val_bar = tqdm(val_dataloader, desc='validating', ascii=True)
-        val_loss = 0.
+        val_loss, confidence_sum = 0., 0.
         with torch.no_grad():  # disable gradient back-propagation
             for x_t, label in val_bar:
                 x_t, label = x_t.to(device), label.to(device)
-                _, _, y_t, _ = model(x_t, 2)
-
-                cls_loss = val_criterion(y_s=y_t, label_s=label)
+                with autocast():
+                    _, _, y_t, _ = model(x_t, 2)
+                    cls_loss = val_criterion(y_s=y_t, label_s=label)
                 val_loss += cls_loss.item()
-
+                confidence, pseudo_labels = F.softmax(y_t.detach(), dim=1).max(dim=1)
+                confidence_sum += sum(confidence)
                 pred = y_t.argmax(axis=1)
                 metric.add(pred.data.cpu().numpy(), label.data.cpu().numpy())
-
                 val_bar.set_postfix({
                     'epoch': epoch,
                     'loss': f'{cls_loss.item():.3f}',
@@ -319,6 +317,7 @@ def worker(rank_gpu, args):
                     'KC': f'{metric.KC():.3f}'
                 })
         val_loss /= len(val_dataloader) * CFG.DATALOADER.BATCH_SIZE
+        confidence_sum /= len(val_dataloader) * CFG.DATALOADER.BATCH_SIZE
 
         PA, mPA, Ps, Rs, F1S, KC = metric.PA(), metric.mPA(), metric.Ps(), metric.Rs(), metric.F1s(), metric.KC()
         if dist.get_rank() == 0:
@@ -326,6 +325,7 @@ def worker(rank_gpu, args):
             writer.add_scalar('val/PA-epoch', PA, epoch)
             writer.add_scalar('val/mPA-epoch', mPA, epoch)
             writer.add_scalar('val/KC-epoch', KC, epoch)
+            writer.add_scalar('val/confidence-epoch', confidence_sum, epoch)
         if PA > best_PA:
             best_epoch = epoch
 

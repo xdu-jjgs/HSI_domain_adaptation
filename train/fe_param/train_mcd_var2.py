@@ -7,10 +7,10 @@ import numpy as np
 import torch.distributed as dist
 import torch.multiprocessing as mp
 
-from apex import amp
 from tqdm import tqdm
 from datetime import datetime
 from tensorboardX import SummaryWriter
+from torch.cuda.amp import autocast, GradScaler
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data.distributed import DistributedSampler
 
@@ -69,10 +69,7 @@ def parse_args():
                         type=int,
                         default=30,
                         help='random seed')
-    parser.add_argument('--opt-level',
-                        type=str,
-                        default='O0',
-                        help='optimization level for nvidia/apex')
+
     args = parser.parse_args()
     args.path = os.path.join(args.path, str(args.seed))
     # number of GPUs totally, which equals to the number of processes
