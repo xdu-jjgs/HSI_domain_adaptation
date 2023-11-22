@@ -107,3 +107,14 @@ python train/dsn/train_nodecoder_noamp_self_training.py configs/hyrank/dsn/dsn_i
         --master-ip localhost ^
         --master-port 9001 ^
         --seed %~1%
+
+rem dsn_inn_nodecoder_revnet38_dst
+python train/dsn/train_nodecoder_noamp_dst.py configs/hyrank/dsn/dsn_inn_nodecoder_revnet38_dst.yaml ^
+        --path ./runs/hyrank/dsn_inn_nodecoder_revnet38_dst-train ^
+        --nodes 1 ^
+        --gpus 1 ^
+        --rank-node 0 ^
+        --backend gloo ^
+        --master-ip localhost ^
+        --master-port 9001 ^
+        --seed %~1%

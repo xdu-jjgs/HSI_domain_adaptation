@@ -1,8 +1,8 @@
 from .ddc import DDC
 from .dqn import DQN
 from .dst import DST
-from .dsn import (DSN, DSN_Gate, DSN_INN, DSN_INN_Gate, DSN_NoDecoder, DSN_INN_NoDecoder,
-                  DSN_NoDecoder_Nospec, DSN_INN_NoDecoder_Nospec, DSN_self_training, DSN_INN_NoDecoder_self_training)
+from .dsn import (DSN, DSN_Gate, DSN_INN, DSN_INN_Gate, DSN_NoDecoder, DSN_INN_NoDecoder, DSN_NoDecoder_Nospec,
+                  DSN_INN_NoDecoder_Nospec, DSN_self_training, DSN_INN_NoDecoder_self_training, DSN_INN_NoDecoder_DST)
 from .hma import INN, INNDANN
 from .dann import DANN
 from .vdd import VDD, VDDFixed
@@ -104,6 +104,8 @@ def build_model(num_channels, num_classes):
         return DSN_INN_NoDecoder(num_classes, backbone_, CFG.DATASET.PATCH.WIDTH)
     elif CFG.MODEL.NAME == 'dsn_inn_nodecoder_self_training':
         return DSN_INN_NoDecoder_self_training(num_classes, backbone_, CFG.DATASET.PATCH.WIDTH)
+    elif CFG.MODEL.NAME == 'dsn_inn_nodecoder_dst':
+        return DSN_INN_NoDecoder_DST(num_classes, backbone_, CFG.DATASET.PATCH.WIDTH)
     elif CFG.MODEL.NAME == 'dsn_inn_nodecoder_nospec':
         return DSN_INN_NoDecoder_Nospec(num_classes, backbone_, CFG.DATASET.PATCH.WIDTH)
     elif CFG.MODEL.NAME == 'hma_ddc':
