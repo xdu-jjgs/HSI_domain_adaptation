@@ -297,7 +297,7 @@ def worker(rank_gpu, args):
             for x_t, label in val_bar:
                 x_t, label = x_t.to(device), label.to(device)
                 with autocast():
-                    _, _, y_t, _, _ = model(x_t, 2)
+                    _, _, y_t, _ = model(x_t, 2)
                     cls_s_loss = val_criterion(y_s=y_t, label_s=label)
                     val_loss += cls_s_loss.item()
                     confidence, pseudo_labels = F.softmax(y_t.detach(), dim=1).max(dim=1)
