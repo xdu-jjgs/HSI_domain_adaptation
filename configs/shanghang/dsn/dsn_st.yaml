@@ -13,7 +13,7 @@ DATALOADER:
   ITERATION: 1060
 
 MODEL:
-  NAME: 'dsn_self_training'
+  NAME: 'dsn_st'
   EXPERTS:
     - 'fe'
     - 'fe'

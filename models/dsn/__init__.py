@@ -1,10 +1,10 @@
-from .dsn import DSN, DSN_Gate, DSN_NoDecoder, DSN_NoDecoder_Nospec, DSN_self_training
+from .dsn import DSN, DSN_Gate, DSN_NoDecoder, DSN_NoDecoder_Nospec, DSN_ST
 from .dsn_inn import (DSN_INN, DSN_INN_Gate, DSN_INN_NoDecoder, DSN_INN_NoDecoder_Nospec,
-                      DSN_INN_NoDecoder_self_training, DSN_INN_NoDecoder_DST)
+                      DSN_INN_NoDecoder_ST, DSN_INN_NoDecoder_DST)
 
 __all__ = [
     DSN,
-    DSN_self_training,
+    DSN_ST,
     DSN_Gate,
     DSN_NoDecoder,
     DSN_NoDecoder_Nospec,
@@ -12,6 +12,6 @@ __all__ = [
     DSN_INN_Gate,
     DSN_INN_NoDecoder,
     DSN_INN_NoDecoder_Nospec,
-    DSN_INN_NoDecoder_self_training,
+    DSN_INN_NoDecoder_ST,
     DSN_INN_NoDecoder_DST
 ]

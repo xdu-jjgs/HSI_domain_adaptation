@@ -59,9 +59,9 @@ class DSN(nn.Module):
         return shared_features, private_features, class_output, domain_output, decoder_output
 
 
-class DSN_self_training(nn.Module):
+class DSN_ST(nn.Module):
     def __init__(self, num_classes: int, experts: List[nn.Module], patch_size: int):
-        super(DSN_self_training, self).__init__()
+        super(DSN_ST, self).__init__()
         assert patch_size in [11]
         # backbone输入通道数
         self.relu = nn.LeakyReLU()

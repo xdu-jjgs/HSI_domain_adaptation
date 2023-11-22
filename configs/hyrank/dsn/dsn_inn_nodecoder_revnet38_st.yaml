@@ -13,7 +13,7 @@ DATALOADER:
   ITERATION: 626
 
 MODEL:
-  NAME: 'dsn_inn_nodecoder_self_training'
+  NAME: 'dsn_inn_nodecoder_st'
   BACKBONE: 'revnet38'
 
 CRITERION:
