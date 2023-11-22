@@ -223,7 +223,7 @@ def worker(rank_gpu, args):
             shared_f_t, private_f_t, y_t, y_pse, y_t_adv = model(x_t, 2)
 
             cls_s_loss = cls_criterion(y_s=y_s, label_s=label) * loss_weights[0]
-            cbst_loss, mask, pseudo_labels = cbst_criterion(y_t, y_t)
+            cbst_loss, mask, pseudo_labels = cbst_criterion(y_pse, y_t)
             cbst_loss *= loss_weights[1]
             worst_loss = wcec_criterion(y_s, y_s_adv, y_t, y_t_adv) * loss_weights[2]
             difference_s_loss = difference_criterion(shared_f_s, private_f_s) * loss_weights[3]

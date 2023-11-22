@@ -194,8 +194,8 @@ class DSN_INN_NoDecoder_DST(nn.Module):
         self.shared_encoder = nn.Conv2d(backbone.out_channels, 512, 3, 1, 1)
         self.private_target_encoder = nn.Conv2d(backbone.out_channels, 512, 3, 1, 1)
         self.classifier = ImageClassifier(self.out_channels, num_classes)
-        self.classifier_adv = ImageClassifier(backbone.out_channels, num_classes)
-        self.classifier_pse = ImageClassifier(backbone.out_channels, num_classes)
+        self.classifier_adv = ImageClassifier(self.out_channels, num_classes)
+        self.classifier_pse = ImageClassifier(self.out_channels, num_classes)
         self.grl_layer = WarmStartGradientReverseLayer(alpha=1.0, lo=0.0, hi=1.0, max_iters=200, auto_step=True)
         initialize_weights(self)
 
@@ -207,8 +207,9 @@ class DSN_INN_NoDecoder_DST(nn.Module):
             private_features = self.private_source_encoder(features)
         else:
             private_features = self.private_target_encoder(features)
+
         out = self.classifier(shared_features)[-1]
-        out_pse = self.classifier_pse(features)[-1]
-        reverse_shared_features = self.grl(shared_features)
-        _, out_adv = self.classifier_adv(reverse_shared_features)
+        out_pse = self.classifier_pse(shared_features)[-1]
+        reverse_shared_features = self.grl_layer(shared_features)
+        out_adv = self.classifier_adv(reverse_shared_features)[-1]
         return shared_features, private_features, out, out_pse, out_adv

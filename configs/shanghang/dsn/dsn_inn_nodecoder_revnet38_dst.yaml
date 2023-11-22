@@ -13,7 +13,7 @@ DATALOADER:
   ITERATION: 1060
 
 MODEL:
-  NAME: 'dsn_inn_nodecoder_self_training'
+  NAME: 'dsn_inn_nodecoder_dst'
   BACKBONE: 'revnet38'
 
 CRITERION:
@@ -40,3 +40,6 @@ SCHEDULER:
   PATIENCE: 2
 
 EPOCHS: 5
+
+HYPERPARAMS:
+  - 2.0
