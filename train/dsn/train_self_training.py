@@ -223,8 +223,8 @@ def worker(rank_gpu, args):
 
             optimizer.zero_grad()
             with autocast():
-                shared_f_s, private_f_s, y_s, domain_out_s, decoder_out_s = model(x_s, 1)
-                shared_f_t, private_f_t, y_t, domain_out_t, decoder_out_t = model(x_t, 2)
+                shared_f_s, private_f_s, y_s, decoder_out_s = model(x_s, 1)
+                shared_f_t, private_f_t, y_t, decoder_out_t = model(x_t, 2)
 
                 cls_s_loss = cls_criterion(y_s=y_s, label_s=label) * loss_weights[0]
                 cls_t_loss, mask, pseudo_labels = similarity_criterion(y_t, y_t)

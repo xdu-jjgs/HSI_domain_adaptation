@@ -95,11 +95,10 @@ python train/dsn/train_self_training.py configs/hyrank/dsn/dsn_self_training.yam
         --backend gloo ^
         --master-ip localhost ^
         --master-port 9001 ^
-        --seed %~1% ^
-        --opt-level O1
+        --seed %~1%
 
-rem dsn_inn_revnet38_nodecoder_self_training
-python train/dsn/train_nodecoder_noamp_self_training.py.py configs/hyrank/dsn/dsn_inn_nodecoder_revnet38_self_training.yaml ^
+rem dsn_inn_nodecoder_revnet38_self_training
+python train/dsn/train_nodecoder_noamp_self_training.py configs/hyrank/dsn/dsn_inn_nodecoder_revnet38_self_training.yaml ^
         --path ./runs/hyrank/dsn_inn_nodecoder_revnet38_self_training-train ^
         --nodes 1 ^
         --gpus 1 ^
@@ -107,5 +106,4 @@ python train/dsn/train_nodecoder_noamp_self_training.py.py configs/hyrank/dsn/ds
         --backend gloo ^
         --master-ip localhost ^
         --master-port 9001 ^
-        --seed %~1% ^
-        --opt-level O1
+        --seed %~1%

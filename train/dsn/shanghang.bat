@@ -94,18 +94,16 @@ python train/dsn/train_self_training.py configs/shanghang/dsn/dsn_self_training.
         --rank-node 0 ^
         --backend gloo ^
         --master-ip localhost ^
-        --master-port 8890 ^
-        --seed %~1% ^
-        --opt-level O1
+        --master-port 9001 ^
+        --seed %~1%
 
-rem dsn_inn_revnet38_nodecoder_self_training
-python train/dsn/train_nodecoder_noamp_self_training.py.py configs/shanghang/dsn/dsn_inn_nodecoder_revnet38_self_training.yaml ^
-        --path ./runs/shanghang/dsn_inn_nodecoder_revnet38_self_training.yaml-train ^
+rem dsn_inn_nodecoder_revnet38_self_training
+python train/dsn/train_nodecoder_noamp_self_training.py configs/shanghang/dsn/dsn_inn_nodecoder_revnet38_self_training.yaml ^
+        --path ./runs/shanghang/dsn_inn_nodecoder_revnet38_self_training-train ^
         --nodes 1 ^
         --gpus 1 ^
         --rank-node 0 ^
         --backend gloo ^
         --master-ip localhost ^
-        --master-port 8890 ^
-        --seed %~1% ^
-        --opt-level O1
+        --master-port 9001 ^
+        --seed %~1%
