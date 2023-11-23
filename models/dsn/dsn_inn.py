@@ -152,9 +152,9 @@ class DSN_INN_NoDecoder_Nospec(nn.Module):
         return shared_features, private_features, class_output, domain_output
 
 
-class DSN_INN_NoDecoder_ST(nn.Module):
+class DSN_INN_NoDecoder_NoDis(nn.Module):
     def __init__(self, num_classes: int, backbone: nn.Module, patch_size: int):
-        super(DSN_INN_NoDecoder_ST, self).__init__()
+        super(DSN_INN_NoDecoder_NoDis, self).__init__()
         assert patch_size in [11]
         # backbone输入通道数
         self.relu = nn.LeakyReLU()
