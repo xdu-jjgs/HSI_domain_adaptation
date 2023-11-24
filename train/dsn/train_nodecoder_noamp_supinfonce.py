@@ -227,16 +227,14 @@ def worker(rank_gpu, args):
             cls_loss = cls_criterion(y_s=y_s, label_s=label) * loss_weights[0]
             domain_s_loss = domain_criterion(y_s=domain_out_s, label_s=domain_label_s) * loss_weights[1]
             domain_t_loss = domain_criterion(y_s=domain_out_t, label_s=domain_label_t) * loss_weights[1]
-            difference_inv_loss = (difference_criterion(shared_f_s, domain_label_inv) +
-                                   difference_criterion(shared_f_t, domain_label_inv)) * loss_weights[2]
-            difference_s_loss = difference_criterion(private_f_s, domain_label_s) * loss_weights[2]
-            difference_t_loss = difference_criterion(private_f_t, domain_label_t) * loss_weights[2]
-            total_loss = (cls_loss + domain_s_loss + domain_t_loss +
-                          difference_s_loss + difference_t_loss + difference_inv_loss)
+            difference_samples = torch.concat((private_f_s, private_f_t, shared_f_s, shared_f_t))
+            difference_labels = torch.concat((domain_label_s, domain_label_t, domain_label_inv, domain_label_inv))
+            difference_loss = difference_criterion(difference_samples, difference_labels) * loss_weights[2]
+            total_loss = (cls_loss + domain_s_loss + domain_t_loss + difference_loss)
 
             cls_loss_epoch += cls_loss.item()
             domain_loss_epoch += domain_s_loss.item() + domain_t_loss.item()
-            difference_loss_epoch += difference_s_loss.item() + difference_t_loss.item() + difference_inv_loss.item()
+            difference_loss_epoch += difference_loss.item()
             total_loss_epoch += total_loss.item()
 
             total_loss.backward()
@@ -252,7 +250,7 @@ def worker(rank_gpu, args):
                 'PA': f'{metric.PA():.3f}',
                 'KC': f'{metric.KC():.3f}'
             })
-
+        raise NotImplementedError
         total_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
         cls_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
         domain_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
