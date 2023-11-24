@@ -72,17 +72,17 @@ RGB bands: 23, 11, 07
 
 ### <a name="datasets-indiana"></a> Indiana数据集
 
-| 类别    | 名称                    | Source      | Target      |
-|-------|-----------------------|-------------|-------------|
-| 1     | Concrete/ Asphalt     | 4867        | 2942        |
-| 2     | Corn cleanTill        | 9822        | 6029        |
-| 3     | Corn cleanTill EW     | 11414       | 7999        |
-| 4     | Orchard               | 5106        | 1562        |
-| 5     | Soybeans cleanTill    | 4731        | 4792        |
-| 6     | Soybeans cleanTill EW | 2996        | 1638        |
-| 7     | Wheat                 | 3223        | 10739       |
-| total | total                 | 42159       | 35701       |  
-| shape | N * H * C             | 300*400*200 | 300*400*200 |
+| 类别    | 名称                    | Source          | Target          |
+|-------|-----------------------|-----------------|-----------------|
+| 1     | Concrete/ Asphalt     | 4867            | 2942            |
+| 2     | Corn cleanTill        | 9822            | 6029            |
+| 3     | Corn cleanTill EW     | 11414           | 7999            |
+| 4     | Orchard               | 5106            | 1562            |
+| 5     | Soybeans cleanTill    | 4731            | 4792            |
+| 6     | Soybeans cleanTill EW | 2996            | 1638            |
+| 7     | Wheat                 | 3223            | 10739           |
+| total | total                 | 42159           | 35701           |  
+| shape | N * H * C             | 300 * 400 * 200 | 300 * 400 * 200 |
 
 ## <a name="models"></a> 支持的模型
 
