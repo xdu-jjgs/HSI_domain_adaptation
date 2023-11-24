@@ -208,8 +208,7 @@ def worker(rank_gpu, args):
         model.train()  # set model to training mode
         metric.reset()  # reset metric
         train_bar = tqdm(range(1, CFG.DATALOADER.ITERATION + 1), desc='training', ascii=True)
-        total_loss_epoch, cls_loss_epoch, domain_s_loss_epoch, domain_t_loss_epoch, difference_s_loss_epoch, \
-            difference_t_loss_epoch = 0., 0., 0., 0., 0., 0.
+        total_loss_epoch, cls_loss_epoch, domain_loss_epoch, difference_loss_epoch = 0., 0., 0., 0.
         for iteration in train_bar:
             x_s, label = next(source_iterator)
             x_t, _ = next(target_iterator)
@@ -218,6 +217,8 @@ def worker(rank_gpu, args):
             domain_label_s = torch.zeros(len(label))
             domain_label_t = torch.ones(len(label))
             domain_label_s, domain_label_t = domain_label_s.to(device), domain_label_t.to(device)
+            domain_label_inv = torch.zeros(len(label)) + 2
+            domain_label_inv = domain_label_inv.to(device)
 
             optimizer.zero_grad()
             shared_f_s, private_f_s, y_s, domain_out_s = model(x_s, 1)
@@ -226,15 +227,16 @@ def worker(rank_gpu, args):
             cls_loss = cls_criterion(y_s=y_s, label_s=label) * loss_weights[0]
             domain_s_loss = domain_criterion(y_s=domain_out_s, label_s=domain_label_s) * loss_weights[1]
             domain_t_loss = domain_criterion(y_s=domain_out_t, label_s=domain_label_t) * loss_weights[1]
-            difference_s_loss = difference_criterion(shared_f_s, private_f_s) * loss_weights[2]
-            difference_t_loss = difference_criterion(shared_f_t, private_f_t) * loss_weights[2]
-            total_loss = cls_loss + domain_s_loss + domain_t_loss + difference_s_loss + difference_t_loss
+            difference_inv_loss = (difference_criterion(shared_f_s, domain_label_inv) +
+                                   difference_criterion(shared_f_t, domain_label_inv)) * loss_weights[2]
+            difference_s_loss = difference_criterion(private_f_s, domain_label_s) * loss_weights[2]
+            difference_t_loss = difference_criterion(private_f_t, domain_label_t) * loss_weights[2]
+            total_loss = (cls_loss + domain_s_loss + domain_t_loss +
+                          difference_s_loss + difference_t_loss + difference_inv_loss)
 
             cls_loss_epoch += cls_loss.item()
-            domain_s_loss_epoch += domain_s_loss.item()
-            domain_t_loss_epoch += domain_t_loss.item()
-            difference_s_loss_epoch += difference_s_loss.item()
-            difference_t_loss_epoch += difference_t_loss.item()
+            domain_loss_epoch += domain_s_loss.item() + domain_t_loss.item()
+            difference_loss_epoch += difference_s_loss.item() + difference_t_loss.item() + difference_inv_loss.item()
             total_loss_epoch += total_loss.item()
 
             total_loss.backward()
@@ -253,28 +255,21 @@ def worker(rank_gpu, args):
 
         total_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
         cls_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
-        domain_s_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
-        domain_t_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
-        difference_s_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
-        difference_t_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
+        domain_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
+        difference_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
         PA, mPA, Ps, Rs, F1S, KC = metric.PA(), metric.mPA(), metric.Ps(), metric.Rs(), metric.F1s(), metric.KC()
         if dist.get_rank() == 0:
             writer.add_scalar('train/loss_total-epoch', total_loss_epoch, epoch)
             writer.add_scalar('train/loss_cls-epoch', cls_loss_epoch, epoch)
-            writer.add_scalar('train/loss_domain_s-epoch', domain_s_loss_epoch, epoch)
-            writer.add_scalar('train/loss_domain_t-epoch', domain_t_loss_epoch, epoch)
-            writer.add_scalar('train/loss_difference_s-epoch', difference_s_loss_epoch, epoch)
-            writer.add_scalar('train/loss_difference_t-epoch', difference_t_loss_epoch, epoch)
-
+            writer.add_scalar('train/loss_domain-epoch', domain_loss_epoch, epoch)
+            writer.add_scalar('train/loss_difference-epoch', difference_loss_epoch, epoch)
             writer.add_scalar('train/PA-epoch', PA, epoch)
             writer.add_scalar('train/mPA-epoch', mPA, epoch)
             writer.add_scalar('train/KC-epoch', KC, epoch)
         logging.info(
-            'rank{} train epoch={} | loss_total={:.3f} loss_cls={:.3f} loss_domain_s={:.3f} loss_domain_t={:.3f} '
-            'loss_difference_s={:.3f} loss_difference_t={:.3f}'.format(
-                dist.get_rank() + 1, epoch, total_loss_epoch, cls_loss_epoch, domain_s_loss_epoch, domain_t_loss_epoch,
-                difference_s_loss_epoch, difference_t_loss_epoch
-            ))
+            'rank{} train epoch={} | loss_total={:.3f} loss_cls={:.3f} loss_domain={:.3f} loss_difference={:.3f} '
+            .format(dist.get_rank() + 1, epoch, total_loss_epoch, cls_loss_epoch, domain_loss_epoch,
+                    difference_loss_epoch))
         logging.info(
             'rank{} train epoch={} | PA={:.3f} mPA={:.3f} KC={:.3f}'.format(dist.get_rank() + 1, epoch, PA, mPA, KC))
         for c in range(NUM_CLASSES):
