@@ -250,7 +250,7 @@ def worker(rank_gpu, args):
                 'PA': f'{metric.PA():.3f}',
                 'KC': f'{metric.KC():.3f}'
             })
-        raise NotImplementedError
+
         total_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
         cls_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
         domain_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
