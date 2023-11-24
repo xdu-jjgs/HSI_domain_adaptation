@@ -1,6 +1,6 @@
 DATASET:
-  NAME: 'HyRANK'
-  ROOT: 'E:/zzy/GAN/data/HyRANK'
+  NAME: 'Houston'
+  ROOT: 'E:/zzy/GAN/data/Houston'
   PATCH:
     HEIGHT: 11
     WIDTH: 11
@@ -8,9 +8,9 @@ DATASET:
 
 
 DATALOADER:
-  BATCH_SIZE: 32
+  BATCH_SIZE: 64
   NUM_WORKERS: 0
-  ITERATION: 626
+  ITERATION: 40
 
 MODEL:
   NAME: 'dsn_inn_nodecoder'
@@ -24,12 +24,12 @@ CRITERION:
   WEIGHTS:
     - 1.0
     - 1.0
-    - 0.001
-  TEMPERATURE: 0.2
+    - 0.01
+  TEMPERATURE: 0.1
 
 OPTIMIZER:
   NAME: 'adam'
-  LR: 0.001
+  LR: 0.0001
 
 SCHEDULER:
   NAME: 'plateau'
@@ -37,4 +37,4 @@ SCHEDULER:
   FACTOR: 0.1
   PATIENCE: 2
 
-EPOCHS: 20
+EPOCHS: 30

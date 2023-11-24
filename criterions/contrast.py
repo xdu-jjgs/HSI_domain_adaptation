@@ -5,6 +5,7 @@ import torch.nn as nn
 class SupInfoNCELoss(nn.Module):
     def __init__(self, temperature=0.1):
         super(SupInfoNCELoss, self).__init__()
+        assert temperature > 0.
         self.temperature = temperature
 
     def forward(self, features, labels):

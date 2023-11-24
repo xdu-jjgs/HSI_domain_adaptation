@@ -61,7 +61,7 @@ def build_criterion(name):
     elif name == 'simse':
         return SIMSE()
     elif name == 'supinfonce':
-        return SupInfoNCELoss()
+        return SupInfoNCELoss(temperature=CFG.CRITERION.TEMPERATURE)
     else:
         raise NotImplementedError('invalid criterion: {}'.format(name))
     return criterion
