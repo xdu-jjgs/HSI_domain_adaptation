@@ -70,7 +70,6 @@ def parse_args():
                         type=int,
                         default=30,
                         help='random seed')
-
     args = parser.parse_args()
     args.path = os.path.join(args.path, str(args.seed))
     # number of GPUs totally, which equals to the number of processes
@@ -129,7 +128,8 @@ def worker(rank_gpu, args):
     target_dataset = build_dataset('test')
     val_dataset = target_dataset
     assert source_dataset.num_classes == val_dataset.num_classes
-    logging.info("Number of train {}, val {}, test {}".format(len(source_dataset), len(val_dataset), len(target_dataset)))
+    logging.info(
+        "Number of train {}, val {}, test {}".format(len(source_dataset), len(val_dataset), len(target_dataset)))
     NUM_CHANNELS = source_dataset.num_channels
     NUM_CLASSES = source_dataset.num_classes
     logging.info("Number of class: {}".format(NUM_CLASSES))
@@ -155,8 +155,12 @@ def worker(rank_gpu, args):
     assert len(loss_names) == len(loss_weights)
     cls_criterion = build_criterion(loss_names[0])
     cls_criterion.to(device)
-    domain_criterion = build_criterion(loss_names[1])
-    domain_criterion.to(device)
+    similarity_criterion = build_criterion(loss_names[1])
+    similarity_criterion.to(device)
+    difference_criterion = build_criterion(loss_names[2])
+    difference_criterion.to(device)
+    recon_criterion = build_criterion(loss_names[3])
+    recon_criterion.to(device)
     val_criterion = build_criterion('softmax+ce')
     val_criterion.to(device)
     # build metric
@@ -209,31 +213,33 @@ def worker(rank_gpu, args):
         model.train()  # set model to training mode
         metric.reset()  # reset metric
         train_bar = tqdm(range(1, CFG.DATALOADER.ITERATION + 1), desc='training', ascii=True)
-        total_loss_epoch, cls_loss_epoch, domain_s_loss_epoch, domain_t_loss_epoch = 0., 0., 0., 0.
-        p = float(iteration + epoch * len(source_dataloader)) / CFG.EPOCHS / len(source_dataloader)
-        alpha = 2. / (1. + np.exp(-10 * p)) - 1
+        total_loss_epoch, cls_s_loss_epoch, cls_t_loss_epoch, difference_s_loss_epoch, \
+            difference_t_loss_epoch, recon_s_loss_epoch, recon_t_loss_epoch = 0., 0., 0., 0., 0., 0., 0.
         for iteration in train_bar:
             x_s, label = next(source_iterator)
             x_t, _ = next(target_iterator)
             x_s, label = x_s.to(device), label.to(device)
             x_t = x_t.to(device)
-            domain_label_s = torch.zeros(len(label))
-            domain_label_t = torch.ones(len(label))
-            domain_label_s, domain_label_t = domain_label_s.to(device), domain_label_t.to(device)
 
             optimizer.zero_grad()
             with autocast():
-                _, y_s, domain_out_s = model(x_s, alpha)
-                _, _, domain_out_t = model(x_t, alpha)
+                shared_f_s, private_f_s, y_s, decoder_out_s = model(x_s, 1)
+                shared_f_t, private_f_t, y_t, decoder_out_t = model(x_t, 2)
 
-                cls_loss = cls_criterion(y_s=y_s, label_s=label) * loss_weights[0]
-                domain_s_loss = domain_criterion(y_s=domain_out_s, label_s=domain_label_s) * loss_weights[1]
-                domain_t_loss = domain_criterion(y_s=domain_out_t, label_s=domain_label_t) * loss_weights[1]
-                total_loss = cls_loss + domain_s_loss + domain_t_loss
+                cls_s_loss = cls_criterion(y_s=y_s, label_s=label) * loss_weights[0]
+                cls_t_loss, mask, pseudo_labels = similarity_criterion(y_t, y_t)
+                cls_t_loss *= loss_weights[1]
+                difference_s_loss = difference_criterion(shared_f_s, private_f_s) * loss_weights[2]
+                difference_t_loss = difference_criterion(shared_f_t, private_f_t) * loss_weights[2]
+                recon_s_loss = recon_criterion(x_s, decoder_out_s) * loss_weights[3]
+                recon_t_loss = recon_criterion(x_t, decoder_out_t) * loss_weights[3]
+                total_loss = cls_s_loss + cls_t_loss + difference_s_loss + difference_t_loss + recon_s_loss + recon_t_loss
 
-            cls_loss_epoch += cls_loss.item()
-            domain_s_loss_epoch += domain_s_loss.item()
-            domain_t_loss_epoch += domain_t_loss.item()
+            cls_s_loss_epoch += cls_s_loss.item()
+            difference_s_loss_epoch += difference_s_loss.item()
+            difference_t_loss_epoch += difference_t_loss.item()
+            recon_s_loss_epoch += recon_s_loss.item()
+            recon_t_loss_epoch += recon_t_loss.item()
             total_loss_epoch += total_loss.item()
 
             scaler.scale(total_loss).backward()
@@ -242,7 +248,6 @@ def worker(rank_gpu, args):
 
             pred = y_s.argmax(axis=1)
             metric.add(pred.data.cpu().numpy(), label.data.cpu().numpy())
-
             train_bar.set_postfix({
                 'iteration': iteration,
                 'epoch': epoch,
@@ -253,22 +258,27 @@ def worker(rank_gpu, args):
             })
 
         total_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
-        cls_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
-        domain_s_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
-        domain_t_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
+        cls_s_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
+        cls_t_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
+        difference_s_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
+        difference_t_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
+        recon_s_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
+        recon_t_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
         PA, mPA, Ps, Rs, F1S, KC = metric.PA(), metric.mPA(), metric.Ps(), metric.Rs(), metric.F1s(), metric.KC()
         if dist.get_rank() == 0:
             writer.add_scalar('train/loss_total-epoch', total_loss_epoch, epoch)
-            writer.add_scalar('train/loss_cls-epoch', cls_loss_epoch, epoch)
-            writer.add_scalar('train/loss_domain_s-epoch', domain_s_loss_epoch, epoch)
-            writer.add_scalar('train/loss_domain_t-epoch', domain_t_loss_epoch, epoch)
+            writer.add_scalar('train/loss_cls_s-epoch', cls_s_loss_epoch, epoch)
+            writer.add_scalar('train/loss_cls_t-epoch', cls_t_loss_epoch, epoch)
+            writer.add_scalar('train/loss_difference_s-epoch', difference_s_loss_epoch, epoch)
+            writer.add_scalar('train/loss_difference_t-epoch', difference_t_loss_epoch, epoch)
 
             writer.add_scalar('train/PA-epoch', PA, epoch)
             writer.add_scalar('train/mPA-epoch', mPA, epoch)
             writer.add_scalar('train/KC-epoch', KC, epoch)
         logging.info(
-            'rank{} train epoch={} | loss_total={:.3f} loss_cls={:.3f} loss_domain_s={:.3f} loss_domain_t={:.3f}'.format(
-                dist.get_rank() + 1, epoch, total_loss_epoch, cls_loss_epoch, domain_s_loss_epoch, domain_t_loss_epoch))
+            'rank{} train epoch={} | loss_total={:.3f}loss_cls_s={:.3f} loss_cls_t={:.3f} loss_difference_s={:.3f} '
+            'loss_difference_t={:.3f}'.format(dist.get_rank() + 1, epoch, total_loss_epoch, cls_s_loss_epoch,
+                                              cls_t_loss_epoch, difference_s_loss_epoch, difference_t_loss_epoch))
         logging.info(
             'rank{} train epoch={} | PA={:.3f} mPA={:.3f} KC={:.3f}'.format(dist.get_rank() + 1, epoch, PA, mPA, KC))
         for c in range(NUM_CLASSES):
@@ -287,16 +297,16 @@ def worker(rank_gpu, args):
             for x_t, label in val_bar:
                 x_t, label = x_t.to(device), label.to(device)
                 with autocast():
-                    _, y_t, _ = model(x_t, alpha=0)  # val阶段网络不需要反传，所以alpha=0
-                    cls_loss = val_criterion(y_s=y_t, label_s=label)
-                val_loss += cls_loss.item()
-                confidence, pseudo_labels = F.softmax(y_t.detach(), dim=1).max(dim=1)
+                    _, _, y_t, _ = model(x_t, 2)
+                    cls_s_loss = val_criterion(y_s=y_t, label_s=label)
+                    val_loss += cls_s_loss.item()
+                    confidence, pseudo_labels = F.softmax(y_t.detach(), dim=1).max(dim=1)
                 confidence_sum += sum(confidence)
                 pred = y_t.argmax(axis=1)
                 metric.add(pred.data.cpu().numpy(), label.data.cpu().numpy())
                 val_bar.set_postfix({
                     'epoch': epoch,
-                    'loss': f'{cls_loss.item():.3f}',
+                    'loss': f'{cls_s_loss.item():.3f}',
                     'mP': f'{metric.mPA():.3f}',
                     'PA': f'{metric.PA():.3f}',
                     'KC': f'{metric.KC():.3f}'
@@ -320,7 +330,7 @@ def worker(rank_gpu, args):
         for c in range(NUM_CLASSES):
             logging.info(
                 'rank{} val epoch={} | class={} P={:.3f} R={:.3f} F1={:.3f}'.format(dist.get_rank() + 1, epoch, c,
-                                                                                     Ps[c], Rs[c], F1S[c]))
+                                                                                    Ps[c], Rs[c], F1S[c]))
 
         # adjust learning rate if specified
         if scheduler is not None:

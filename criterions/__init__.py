@@ -3,11 +3,12 @@ import torch.nn as nn
 from configs import CFG
 from .focal import FocalLoss
 from .coral import CoralLoss
+from .contrast import SupInfoNCELoss
 from .bce import BCELoss, SigmoidBCELoss
 from .dice import DiceLoss, SigmoidDiceLoss
 from .ce import CELoss, SoftmaxCELoss, Entropy
+from .decomposed import OrthogonalDecomposedLoss
 from .mmd import MMDLoss, LocalMMDLoss, JointMMDLoss
-from .decomposed import OrthogonalDecomposed
 from .dis import L1Distance, L2Distance, SoftmaxL1Distance, VarLoss, SIMSE
 
 from tllib.self_training.dst import WorstCaseEstimationLoss
@@ -56,9 +57,11 @@ def build_criterion(name):
     elif name == 'var':
         return VarLoss()
     elif name == 'orthogonal':
-        return OrthogonalDecomposed()
+        return OrthogonalDecomposedLoss()
     elif name == 'simse':
         return SIMSE()
+    elif name == 'supinfonce':
+        return SupInfoNCELoss(temperature=CFG.CRITERION.TEMPERATURE)
     else:
         raise NotImplementedError('invalid criterion: {}'.format(name))
     return criterion

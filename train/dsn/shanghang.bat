@@ -58,7 +58,7 @@ python train/dsn/train.py configs/shanghang/dsn/dsn_inn_revnet110.yaml ^
         --rank-node 0 ^
         --backend gloo ^
         --master-ip localhost ^
-        --master-port 9001 ^
+        --master-port 9003 ^
         --seed %~1% ^
         --opt-level O1
 
@@ -70,7 +70,7 @@ python train/dsn/train_gate.py configs/shanghang/dsn/dsn_inn_gate_revnet38.yaml 
         --rank-node 0 ^
         --backend gloo ^
         --master-ip localhost ^
-        --master-port 9001 ^
+        --master-port 9003 ^
         --seed %~1% ^
         --opt-level O1
 
@@ -82,6 +82,39 @@ python train/dsn/train_gate.py configs/shanghang/dsn/dsn_inn_gate_revnet110.yaml
         --rank-node 0 ^
         --backend gloo ^
         --master-ip localhost ^
-        --master-port 9001 ^
+        --master-port 9003 ^
         --seed %~1% ^
         --opt-level O1
+
+rem dsn_st
+python train/dsn/train_st.py configs/shanghang/dsn/dsn_st.yaml ^
+        --path ./runs/shanghang/dsn_st-train ^
+        --nodes 1 ^
+        --gpus 1 ^
+        --rank-node 0 ^
+        --backend gloo ^
+        --master-ip localhost ^
+        --master-port 9003 ^
+        --seed %~1%
+
+rem dsn_inn_nodecoder_revnet38_st
+python train/dsn/train_nodecoder_noamp_st.py configs/shanghang/dsn/dsn_inn_nodecoder_revnet38_st.yaml ^
+        --path ./runs/shanghang/dsn_inn_nodecoder_revnet38_st-train ^
+        --nodes 1 ^
+        --gpus 1 ^
+        --rank-node 0 ^
+        --backend gloo ^
+        --master-ip localhost ^
+        --master-port 9003 ^
+        --seed %~1%
+
+rem dsn_inn_nodecoder_revnet38_dst
+python train/dsn/train_nodecoder_noamp_dst.py configs/shanghang/dsn/dsn_inn_nodecoder_revnet38_dst.yaml ^
+        --path ./runs/shanghang/dsn_inn_nodecoder_revnet38_dst-train ^
+        --nodes 1 ^
+        --gpus 1 ^
+        --rank-node 0 ^
+        --backend gloo ^
+        --master-ip localhost ^
+        --master-port 9003 ^
+        --seed %~1%

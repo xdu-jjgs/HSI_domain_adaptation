@@ -97,3 +97,14 @@ python train/dsn/train_nodecoder.py configs/houston/dsn/dsn_nodecoder.yaml ^
         --master-port 9001 ^
         --seed %~1% ^
         --opt-level O1
+
+rem dsn_inn_nodecoder_revnet38_supinfonce
+python train/dsn/train_nodecoder_noamp_supinfonce.py configs/houston/dsn/dsn_inn_nodecoder_revnet38_supinfonce.yaml ^
+        --path ./runs/houston/dsn_inn_nodecoder_revnet38_supinfonce-train ^
+        --nodes 1 ^
+        --gpus 1 ^
+        --rank-node 0 ^
+        --backend gloo ^
+        --master-ip localhost ^
+        --master-port 9001 ^
+        --seed %~1%

@@ -2,9 +2,9 @@ import torch
 import torch.nn as nn
 
 
-class OrthogonalDecomposed(nn.Module):
+class OrthogonalDecomposedLoss(nn.Module):
     def __init__(self):
-        super(OrthogonalDecomposed, self).__init__()
+        super(OrthogonalDecomposedLoss, self).__init__()
 
     def forward(self, *vectors, **kwargs):
         loss = 0.0
@@ -20,4 +20,6 @@ class OrthogonalDecomposed(nn.Module):
                 M = a_norm * b_norm
                 loss += torch.mean(torch.abs(torch.sum(M, dim=1)))
         return loss
+
+
 
