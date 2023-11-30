@@ -273,15 +273,17 @@ def worker(rank_gpu, args):
             writer.add_scalar('train/loss_domain_t-epoch', domain_t_loss_epoch, epoch)
             writer.add_scalar('train/loss_difference_s-epoch', difference_s_loss_epoch, epoch)
             writer.add_scalar('train/loss_difference_t-epoch', difference_t_loss_epoch, epoch)
+            writer.add_scalar('train/loss_recon_s-epoch', recon_s_loss_epoch, epoch)
+            writer.add_scalar('train/loss_recon_t-epoch', recon_t_loss_epoch, epoch)
 
             writer.add_scalar('train/PA-epoch', PA, epoch)
             writer.add_scalar('train/mPA-epoch', mPA, epoch)
             writer.add_scalar('train/KC-epoch', KC, epoch)
         logging.info(
             'rank{} train epoch={} | loss_total={:.3f} loss_cls={:.3f} loss_domain_s={:.3f} loss_domain_t={:.3f} '
-            'loss_difference_s={:.3f} loss_difference_t={:.3f}'.format(
+            'loss_difference_s={:.3f} loss_difference_t={:.3f} loss_recon_s={:.3f} loss_recon_t={:.3f}'.format(
                 dist.get_rank() + 1, epoch, total_loss_epoch, cls_loss_epoch, domain_s_loss_epoch, domain_t_loss_epoch,
-                difference_s_loss_epoch, difference_t_loss_epoch
+                difference_s_loss_epoch, difference_t_loss_epoch, recon_s_loss_epoch, recon_t_loss_epoch
             ))
         logging.info(
             'rank{} train epoch={} | PA={:.3f} mPA={:.3f} KC={:.3f}'.format(dist.get_rank() + 1, epoch, PA, mPA, KC))

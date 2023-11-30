@@ -13,7 +13,7 @@ DATALOADER:
   ITERATION: 626
 
 MODEL:
-  NAME: 'dsn_inn_nodecoder_channel_filter'
+  NAME: 'dsn_inn_filter'
   BACKBONE: 'revnet38'
 
 CRITERION:
@@ -21,9 +21,11 @@ CRITERION:
     - 'softmax+ce'
     - 'softmax+ce'
     - 'orthogonal'
+    - 'l2dis'
   WEIGHTS:
     - 1.0
     - 1.0
+    - 0.5
     - 0.5
 
 OPTIMIZER:

@@ -62,6 +62,69 @@ class DSN_INN(nn.Module):
         return shared_features, private_features, class_output, domain_output, decoder_output
 
 
+class DSN_INN_ChannelFilter(nn.Module):
+    def __init__(self, num_classes: int, backbone: nn.Module, patch_size: int, filter_ratio: float):
+        assert 0. <= filter_ratio <= 1.
+        super(DSN_INN_ChannelFilter, self).__init__()
+        assert patch_size in [11]
+        # backbone输入通道数
+        self.filter_ratio = filter_ratio
+        self.relu = nn.LeakyReLU()
+        self.num_classes = num_classes
+        self.backbone = backbone
+        self.num_channels = backbone.in_channels
+        self.out_channels = 512
+        self.private_source_encoder = nn.Conv2d(backbone.out_channels, 512, 3, 1, 1)
+        self.shared_encoder = nn.Conv2d(backbone.out_channels, 512, 3, 1, 1)
+        self.private_target_encoder = nn.Conv2d(backbone.out_channels, 512, 3, 1, 1)
+        self.shared_decoder = nn.Sequential(
+            nn.Conv2d(self.out_channels, 256, 3, 1, 1),
+            nn.Upsample(size=(3, 3)),  # 1*1 ==> 3*3
+            nn.BatchNorm2d(256),
+            self.relu,
+
+            nn.Conv2d(256, 128, 3, 1, 1),
+            nn.Upsample(scale_factor=(2, 2)),  # 3*3 ==> 6*6
+            nn.BatchNorm2d(128),
+            self.relu,
+
+            nn.Conv2d(128, 64, 3, 1, 1),
+            nn.Upsample(size=(11, 11)),  # 6*6 ==> 12*12
+            nn.BatchNorm2d(64),
+            self.relu,
+
+            nn.Conv2d(64, self.num_channels, 3, 1, 1)
+            # nn.Upsample(size=(23, 23)) # 12*12 ==> 23*23
+        )
+        self.classifier = ImageClassifier(self.out_channels, num_classes)
+        self.grl = GradientReverseLayer()
+        self.domain_discriminator = SingleLayerClassifier(self.out_channels, 2, drop_ratio)
+        initialize_weights(self)
+        # register_layer_hook(self)
+
+    def forward(self, x, task_ind):
+        assert task_ind in [1, 2]  # 1 for source domain and 2 for target domain
+        features = self.backbone(x)
+        shared_features = self.shared_encoder(features)
+        if task_ind == 1:
+            private_features = self.private_source_encoder(features)
+        else:
+            private_features = self.private_target_encoder(features)
+        class_output = self.classifier(shared_features)[-1]
+        reverse_shared_features = self.grl(shared_features)
+        domain_output = self.domain_discriminator(reverse_shared_features)[-1]
+        scores = self.domain_discriminator.cal_scores(reverse_shared_features, task_ind)
+        filter_num = int(self.filter_ratio * scores.size()[0])
+        print("filter num:{}".format(filter_num))
+        threshold, index = torch.topk(scores, k=filter_num)
+        mask = torch.ones_like(shared_features)
+        mask[index] = 0
+        masked_shared_features = shared_features * mask
+        decoder_output = self.shared_decoder(torch.add(masked_shared_features, private_features))
+        raise NotImplementedError
+        return shared_features, private_features, class_output, domain_output, decoder_output
+
+
 class DSN_INN_Gate(DSN_INN):
     def __init__(self, num_classes: int, experts: List[nn.Module], patch_size: int):
         super(DSN_INN_Gate, self).__init__(num_classes, experts, patch_size)
@@ -178,40 +241,6 @@ class DSN_INN_NoDecoder_NoDis(nn.Module):
             private_features = self.private_target_encoder(features)
         class_output = self.classifier(shared_features)[-1]
         return shared_features, private_features, class_output
-
-
-class DSN_INN_NoDecoder_ChannelFilter(nn.Module):
-    def __init__(self, num_classes: int, backbone: nn.Module, patch_size: int, drop_ratio: float = 0.):
-        super(DSN_INN_NoDecoder_ChannelFilter, self).__init__()
-        assert patch_size in [11]
-        # backbone输入通道数
-        self.relu = nn.LeakyReLU()
-        self.num_classes = num_classes
-        self.backbone = backbone
-        self.num_channels = backbone.in_channels
-        self.out_channels = 512
-        self.private_source_encoder = nn.Conv2d(backbone.out_channels, 512, 3, 1, 1)
-        self.shared_encoder = nn.Conv2d(backbone.out_channels, 512, 3, 1, 1)
-        self.private_target_encoder = nn.Conv2d(backbone.out_channels, 512, 3, 1, 1)
-        self.classifier = ImageClassifier(self.out_channels, num_classes)
-        self.grl = GradientReverseLayer()
-        self.domain_discriminator = SingleLayerClassifier(self.out_channels, 2, drop_ratio)
-        initialize_weights(self)
-        # register_layer_hook(self)
-
-    def forward(self, x, task_ind):
-        assert task_ind in [1, 2]  # 1 for source domain and 2 for target domain
-        features = self.backbone(x)
-        shared_features = self.shared_encoder(features)
-        if task_ind == 1:
-            private_features = self.private_source_encoder(features)
-        else:
-            private_features = self.private_target_encoder(features)
-        class_output = self.classifier(shared_features)[-1]
-        reverse_shared_features = self.grl(shared_features)
-        domain_output = self.domain_discriminator(reverse_shared_features)[-1]
-        scores = self.domain_discriminator.cal_scores(reverse_shared_features, task_ind)
-        return shared_features, private_features, class_output, domain_output, scores
 
 
 class DSN_INN_NoDecoder_DST(nn.Module):
