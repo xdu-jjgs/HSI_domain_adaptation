@@ -25,7 +25,7 @@ CRITERION:
     - 1.0
     - 1.0
     - 0.001
-  TEMPERATURE: 0.2
+  TEMPERATURE: 0.3
 
 OPTIMIZER:
   NAME: 'adam'

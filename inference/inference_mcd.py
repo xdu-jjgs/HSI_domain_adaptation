@@ -4,6 +4,7 @@ import random
 import logging
 import argparse
 import numpy as np
+import matplotlib.pyplot as plt
 import torch.distributed as dist
 import torch.multiprocessing as mp
 
@@ -115,8 +116,14 @@ def worker(rank_gpu, args):
     # build dataset
     source_dataset = build_dataset('train')
     target_dataset = build_dataset('test')
+    assert source_dataset.num_classes == target_dataset.num_classes
+    logging.info(
+        "Number of train {}, val {}, test {}".format(len(source_dataset), len(target_dataset), len(target_dataset)))
+
     NUM_CHANNELS = target_dataset.num_channels
     NUM_CLASSES = target_dataset.num_classes
+    logging.info("Number of class: {}".format(NUM_CLASSES))
+    logging.info("Number of channels: {}".format(NUM_CHANNELS))
     source_sampler = DistributedSampler(source_dataset, shuffle=False)
     target_sampler = DistributedSampler(target_dataset, shuffle=False)
     # build data loader
@@ -127,13 +134,12 @@ def worker(rank_gpu, args):
     FE.to(device)
     C1.to(device)
     C2.to(device)
-    # build metric
-    metric = Metric(NUM_CLASSES)
-
     # DDP
     FE = DistributedDataParallel(FE)
     C1 = DistributedDataParallel(C1)
     C2 = DistributedDataParallel(C2)
+    # build metric
+    metric = Metric(NUM_CLASSES)
 
     # load checkpoint
     if not os.path.isfile(args.checkpoint):
@@ -183,8 +189,42 @@ def worker(rank_gpu, args):
     logging.info('inference | PA={:.3f} mPA={:.3f}'.format(PA, mPA))
     for c in range(NUM_CLASSES):
         logging.info(
-            'inference | class={}{} P={:.3f} R={:.3f} F1={:.3f}'.format(c, target_dataset.names[c],
-                                                                        Ps[c], Rs[c], F1S[c]))
+            'inference | class={}-{} P={:.3f} R={:.3f} F1={:.3f}'.format(c, target_dataset.names[c],
+                                                                         Ps[c], Rs[c], F1S[c]))
+    print(features_s.shape, np.max(features_s), features_t.shape, np.max(features_t).shape)
+    std_s = np.std(features_s, axis=0)
+    std_s_max_finite_value = np.max(std_s[np.isfinite(std_s)])
+    std_s[np.isinf(std_s)] = std_s_max_finite_value
+    print(std_s.shape, np.min(std_s), np.max(std_s))
+    std_t = np.std(features_t, axis=0)
+    std_t_max_finite_value = np.max(std_t[np.isfinite(std_t)])
+    std_t[np.isinf(std_t)] = std_t_max_finite_value
+    print(std_t.shape, np.min(std_t), np.max(std_t))
+    features_mix = np.concatenate([features_s[:min(features_s.shape[0], features_t.shape[0])],
+                                   features_t[:min(features_s.shape[0], features_t.shape[0])]])
+    # features_mix = (features_mix - np.mean(features_mix)) / np.std(features_mix)
+    std_mix = np.std(features_mix, axis=0)
+    print(std_mix.shape, np.min(std_mix), np.max(std_mix))
+    nan_elements = std_mix[np.isnan(std_mix)]
+    inf_elements = std_mix[np.isinf(std_mix)]
+    if nan_elements.size > 0:
+        std_mix_min_finite_value = np.min(std_mix[np.isfinite(std_mix)])
+        std_mix[np.isnan(std_mix)] = std_mix_min_finite_value
+    if inf_elements.size > 0:
+        std_mix_max_finite_value = np.max(std_mix[np.isfinite(std_mix)])
+        std_mix[np.isinf(std_mix)] = std_mix_max_finite_value
+    print(std_mix.shape, np.min(std_mix), np.max(std_mix))
+    model_name = os.path.dirname(args.path).split('/')[-1].split('-')[0]
+    np.save(os.path.join(args.path, 'std_mix_{}_{}.npy'.format(model_name, int(best_PA * 1000))), std_mix)
+    raise NotImplementedError
+
+    # plt.xlabel('Magnitude of Standard Deviations')
+    # plt.ylabel('Number of Channels')
+    # plt.hist(std_s, bins=20, alpha=0.5, label='Source Features')
+    # plt.hist(std_t, bins=20, alpha=0.5, label='Target Features')
+    # plt.hist(std_mix, bins=20, alpha=0.5, label='Mixture Features')
+    # plt.legend()
+    # plt.show()
 
     for i in range(NUM_CLASSES):
         fs = features_s[np.where(labels_s == i)]
