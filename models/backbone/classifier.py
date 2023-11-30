@@ -71,3 +71,32 @@ class MultiHeadClassifier(nn.Module):
         for h in self.heads:
             outs.append(h(x))
         return x, outs
+
+
+class SingleLayerClassifier(nn.Module):
+    def __init__(self, in_nodes: int, num_classes: int, drop_ratio: float = 0.):
+        super(SingleLayerClassifier, self).__init__()
+        self.drop_ratio = drop_ratio
+        self.relu = nn.LeakyReLU()
+        self.gap = nn.AdaptiveAvgPool2d((1, 1))
+        self.head = nn.Sequential(
+            nn.Linear(in_nodes, num_classes)
+        )
+        initialize_weights(self.head)
+
+    def cal_scores(self, features, labels):
+        features_ = features.detach()
+        weights = self.head.weight.clone().detach()  # num_domains x C
+        print(weights.size(), features_.size(), labels.size())
+        domain_num, channel_num = weights.shape[0], weights.shape[1]
+        weights = weights[labels]
+        batch_size, _ = features_.shape # features after gap
+        scores = torch.mul(weights, features_)
+        return scores
+
+    def forward(self, x):
+        x = self.gap(x)
+        x = torch.squeeze(x)
+        out = self.head(x)
+
+        return x, out

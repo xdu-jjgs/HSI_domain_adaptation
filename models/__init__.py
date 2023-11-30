@@ -2,7 +2,8 @@ from .ddc import DDC
 from .dqn import DQN
 from .dst import DST
 from .dsn import (DSN, DSN_Gate, DSN_INN, DSN_INN_Gate, DSN_NoDecoder, DSN_INN_NoDecoder, DSN_NoDecoder_Nospec,
-                  DSN_INN_NoDecoder_Nospec, DSN_NoDis, DSN_INN_NoDecoder_NoDis, DSN_INN_NoDecoder_DST)
+                  DSN_INN_NoDecoder_Nospec, DSN_NoDis, DSN_INN_NoDecoder_NoDis, DSN_INN_NoDecoder_DST,
+                  DSN_INN_NoDecoder_ChannelFilter)
 from .hma import INN, INNDANN
 from .dann import DANN
 from .vdd import VDD, VDDFixed
@@ -100,6 +101,8 @@ def build_model(num_channels, num_classes):
         return DSN_NoDecoder(num_classes, backbone_, CFG.DATASET.PATCH.WIDTH)
     elif CFG.MODEL.NAME == 'dsn_nodecoder_nospec':
         return DSN_NoDecoder_Nospec(num_classes, backbone_, CFG.DATASET.PATCH.WIDTH)
+    elif CFG.MODEL.NAME == 'dsn_nodecoder_channel_filter':
+        return DSN_INN_NoDecoder_ChannelFilter(num_classes, backbone_, CFG.DATASET.PATCH.WIDTH)
     elif CFG.MODEL.NAME == 'dsn_inn_nodecoder':
         return DSN_INN_NoDecoder(num_classes, backbone_, CFG.DATASET.PATCH.WIDTH)
     elif CFG.MODEL.NAME == 'dsn_inn_nodecoder_nodis':
