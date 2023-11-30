@@ -130,7 +130,7 @@ python train/dsn/train_nodecoder_noamp_supinfonce.py configs/hyrank/dsn/dsn_inn_
         --master-port 9002 ^
         --seed %~1%
 
-rem dsn_inn_nodecoder_revnet38_supinfonce
+rem dsn_inn_revnet38_filter_0
 python train/dsn/train_noamp_score.py configs/hyrank/dsn/dsn_inn_revnet38_filter_0.yaml ^
         --path ./runs/hyrank/dsn_inn_revnet38_filter_0-train ^
         --nodes 1 ^

@@ -22,6 +22,7 @@ from optimizers import build_optimizer
 from schedulers import build_scheduler
 from datas import build_dataset, build_dataloader, build_iterator
 
+os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -303,7 +304,7 @@ def worker(rank_gpu, args):
         with torch.no_grad():  # disable gradient back-propagation
             for x_t, label in val_bar:
                 x_t, label = x_t.to(device), label.to(device)
-                _, _, y_t, _ = model(x_t, 2)
+                _, _, y_t, _, _ = model(x_t, 2)
                 cls_loss = val_criterion(y_s=y_t, label_s=label)
                 val_loss += cls_loss.item()
                 confidence, pseudo_labels = F.softmax(y_t.detach(), dim=1).max(dim=1)

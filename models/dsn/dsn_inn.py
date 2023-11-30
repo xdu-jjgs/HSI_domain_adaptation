@@ -98,7 +98,7 @@ class DSN_INN_ChannelFilter(nn.Module):
         )
         self.classifier = ImageClassifier(self.out_channels, num_classes)
         self.grl = GradientReverseLayer()
-        self.domain_discriminator = SingleLayerClassifier(self.out_channels, 2, drop_ratio)
+        self.domain_discriminator = SingleLayerClassifier(self.out_channels, 2)
         initialize_weights(self)
         # register_layer_hook(self)
 
@@ -114,14 +114,15 @@ class DSN_INN_ChannelFilter(nn.Module):
         reverse_shared_features = self.grl(shared_features)
         domain_output = self.domain_discriminator(reverse_shared_features)[-1]
         scores = self.domain_discriminator.cal_scores(reverse_shared_features, task_ind)
-        filter_num = int(self.filter_ratio * scores.size()[0])
-        print("filter num:{}".format(filter_num))
-        threshold, index = torch.topk(scores, k=filter_num)
+        filter_num = int(self.filter_ratio * scores.size()[1])
+        threshold, index = scores.topk(filter_num)
         mask = torch.ones_like(shared_features)
-        mask[index] = 0
+        # print("filter num:{}/{} {} {}".format(filter_num, scores.size()[1], index.size(), mask.size()))
+        row = torch.arange(mask.size()[0]).unsqueeze(1)
+        mask[row, index] = 0.
         masked_shared_features = shared_features * mask
         decoder_output = self.shared_decoder(torch.add(masked_shared_features, private_features))
-        raise NotImplementedError
+        # print(shared_features.size(), mask.size(), masked_shared_features.size(), private_features.size(), decoder_output.size())
         return shared_features, private_features, class_output, domain_output, decoder_output
 
 

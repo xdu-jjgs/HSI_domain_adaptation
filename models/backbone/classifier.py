@@ -74,9 +74,8 @@ class MultiHeadClassifier(nn.Module):
 
 
 class SingleLayerClassifier(nn.Module):
-    def __init__(self, in_nodes: int, num_classes: int, drop_ratio: float = 0.):
+    def __init__(self, in_nodes: int, num_classes: int):
         super(SingleLayerClassifier, self).__init__()
-        self.drop_ratio = drop_ratio
         self.relu = nn.LeakyReLU()
         self.gap = nn.AdaptiveAvgPool2d((1, 1))
         self.head = nn.Linear(in_nodes, num_classes)
@@ -84,7 +83,7 @@ class SingleLayerClassifier(nn.Module):
 
     def cal_scores(self, features, task_ind: int):
         assert task_ind in [1, 2]  # 1 for source domain, 2 for target domain
-        features_ = features.detach()
+        features_ = features.squeeze().detach()
         weights = self.head.weight.clone().detach()  # num_domains x C
         weights = weights[task_ind - 1, :]  # domain label: 0 for source domain, 1 for target domain
         scores = torch.mul(weights, features_)
@@ -95,5 +94,4 @@ class SingleLayerClassifier(nn.Module):
         x = self.gap(x)
         x = torch.squeeze(x)
         out = self.head(x)
-
         return x, out
