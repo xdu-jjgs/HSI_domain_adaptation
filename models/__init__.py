@@ -101,10 +101,10 @@ def build_model(num_channels, num_classes):
         return DSN_NoDecoder(num_classes, backbone_, CFG.DATASET.PATCH.WIDTH)
     elif CFG.MODEL.NAME == 'dsn_nodecoder_nospec':
         return DSN_NoDecoder_Nospec(num_classes, backbone_, CFG.DATASET.PATCH.WIDTH)
-    elif CFG.MODEL.NAME == 'dsn_nodecoder_channel_filter':
-        return DSN_INN_NoDecoder_ChannelFilter(num_classes, backbone_, CFG.DATASET.PATCH.WIDTH)
     elif CFG.MODEL.NAME == 'dsn_inn_nodecoder':
         return DSN_INN_NoDecoder(num_classes, backbone_, CFG.DATASET.PATCH.WIDTH)
+    elif CFG.MODEL.NAME == 'dsn_inn_nodecoder_channel_filter':
+        return DSN_INN_NoDecoder_ChannelFilter(num_classes, backbone_, CFG.DATASET.PATCH.WIDTH)
     elif CFG.MODEL.NAME == 'dsn_inn_nodecoder_nodis':
         return DSN_INN_NoDecoder_NoDis(num_classes, backbone_, CFG.DATASET.PATCH.WIDTH)
     elif CFG.MODEL.NAME == 'dsn_inn_nodecoder_dst':

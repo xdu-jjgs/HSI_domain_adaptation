@@ -181,7 +181,7 @@ class DSN_INN_NoDecoder_NoDis(nn.Module):
 
 
 class DSN_INN_NoDecoder_ChannelFilter(nn.Module):
-    def __init__(self, num_classes: int, backbone: nn.Module, patch_size: int, drop_ratio:float=0.):
+    def __init__(self, num_classes: int, backbone: nn.Module, patch_size: int, drop_ratio: float = 0.):
         super(DSN_INN_NoDecoder_ChannelFilter, self).__init__()
         assert patch_size in [11]
         # backbone输入通道数
@@ -195,11 +195,11 @@ class DSN_INN_NoDecoder_ChannelFilter(nn.Module):
         self.private_target_encoder = nn.Conv2d(backbone.out_channels, 512, 3, 1, 1)
         self.classifier = ImageClassifier(self.out_channels, num_classes)
         self.grl = GradientReverseLayer()
-        self.domain_discriminator = SingleLayerClassifier(self.out_channels, 2 ,drop_ratio)
+        self.domain_discriminator = SingleLayerClassifier(self.out_channels, 2, drop_ratio)
         initialize_weights(self)
         # register_layer_hook(self)
 
-    def forward(self, x, task_ind, domain_label):
+    def forward(self, x, task_ind):
         assert task_ind in [1, 2]  # 1 for source domain and 2 for target domain
         features = self.backbone(x)
         shared_features = self.shared_encoder(features)
@@ -210,7 +210,7 @@ class DSN_INN_NoDecoder_ChannelFilter(nn.Module):
         class_output = self.classifier(shared_features)[-1]
         reverse_shared_features = self.grl(shared_features)
         domain_output = self.domain_discriminator(reverse_shared_features)[-1]
-        scores = self.domain_discriminator.cal_scores(reverse_shared_features, domain_label)
+        scores = self.domain_discriminator.cal_scores(reverse_shared_features, task_ind)
         return shared_features, private_features, class_output, domain_output, scores
 
 

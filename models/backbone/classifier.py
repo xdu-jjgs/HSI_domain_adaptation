@@ -79,19 +79,16 @@ class SingleLayerClassifier(nn.Module):
         self.drop_ratio = drop_ratio
         self.relu = nn.LeakyReLU()
         self.gap = nn.AdaptiveAvgPool2d((1, 1))
-        self.head = nn.Sequential(
-            nn.Linear(in_nodes, num_classes)
-        )
+        self.head = nn.Linear(in_nodes, num_classes)
         initialize_weights(self.head)
 
-    def cal_scores(self, features, labels):
+    def cal_scores(self, features, task_ind: int):
+        assert task_ind in [1, 2]  # 1 for source domain, 2 for target domain
         features_ = features.detach()
         weights = self.head.weight.clone().detach()  # num_domains x C
-        print(weights.size(), features_.size(), labels.size())
-        domain_num, channel_num = weights.shape[0], weights.shape[1]
-        weights = weights[labels]
-        batch_size, _ = features_.shape # features after gap
+        weights = weights[task_ind - 1, :]  # domain label: 0 for source domain, 1 for target domain
         scores = torch.mul(weights, features_)
+        # print(weights.size(), features_.size(), task_ind, scores.size())
         return scores
 
     def forward(self, x):
