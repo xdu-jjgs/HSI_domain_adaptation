@@ -86,6 +86,7 @@ class SingleLayerClassifier(nn.Module):
         features_ = features.squeeze().detach()
         weights = self.head.weight.clone().detach()  # num_domains x C
         weights = weights[task_ind - 1, :]  # domain label: 0 for source domain, 1 for target domain
+        # [N*C] * [N*C]  = [N*C]
         scores = torch.mul(weights, features_)
         # print(weights.size(), features_.size(), task_ind, scores.size())
         return scores

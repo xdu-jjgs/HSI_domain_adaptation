@@ -140,3 +140,15 @@ python train/dsn/train_noamp_score.py configs/hyrank/dsn/dsn_inn_revnet38_filter
         --master-ip localhost ^
         --master-port 9002 ^
         --seed %~1%
+
+rem dsn_inn_revnet38_grad_filter_0
+python train/dsn/train_noamp_score.py configs/hyrank/dsn/dsn_inn_revnet38_grad_filter_0.yaml ^
+        --path ./runs/hyrank/dsn_inn_revnet38_grad_filter_0-train ^
+        --nodes 1 ^
+        --gpus 1 ^
+        --rank-node 0 ^
+        --backend gloo ^
+        --master-ip localhost ^
+        --master-port 9002 ^
+        --seed %~1%
+
