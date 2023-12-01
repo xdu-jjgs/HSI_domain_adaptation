@@ -22,7 +22,6 @@ from optimizers import build_optimizer
 from schedulers import build_scheduler
 from datas import build_dataset, build_dataloader, build_iterator
 
-os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -223,8 +222,8 @@ def worker(rank_gpu, args):
             domain_label_s, domain_label_t = domain_label_s.to(device), domain_label_t.to(device)
 
             optimizer.zero_grad()
-            shared_f_s, private_f_s, y_s, domain_out_s, decoder_out_s = model(x_s, 1)
-            shared_f_t, private_f_t, y_t, domain_out_t, decoder_out_t = model(x_t, 2)
+            shared_f_s, private_f_s, y_s, domain_out_s, decoder_out_s = model(x_s, 1, True)
+            shared_f_t, private_f_t, y_t, domain_out_t, decoder_out_t = model(x_t, 2, True)
 
             cls_loss = cls_criterion(y_s=y_s, label_s=label) * loss_weights[0]
             domain_s_loss = domain_criterion(y_s=domain_out_s, label_s=domain_label_s) * loss_weights[1]

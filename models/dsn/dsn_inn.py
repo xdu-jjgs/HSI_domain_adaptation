@@ -102,7 +102,7 @@ class DSN_INN_ChannelFilter(nn.Module):
         initialize_weights(self)
         # register_layer_hook(self)
 
-    def forward(self, x, task_ind):
+    def forward(self, x, task_ind, channel_filter: bool = False):
         assert task_ind in [1, 2]  # 1 for source domain and 2 for target domain
         features = self.backbone(x)
         shared_features = self.shared_encoder(features)
@@ -113,16 +113,20 @@ class DSN_INN_ChannelFilter(nn.Module):
         class_output = self.classifier(shared_features)[-1]
         reverse_shared_features = self.grl(shared_features)
         domain_output = self.domain_discriminator(reverse_shared_features)[-1]
-        scores = self.domain_discriminator.cal_scores(reverse_shared_features, task_ind)
-        filter_num = int(self.filter_ratio * scores.size()[1])
-        threshold, index = scores.topk(filter_num)
+
         mask = torch.ones_like(shared_features).to(shared_features.device)
-        # print("filter num:{}/{} {} {}".format(filter_num, scores.size()[1], index.size(), mask.size()))
-        row = torch.arange(mask.size()[0]).unsqueeze(1).to(mask.device)
-        mask[row, index] = 0.
+        if channel_filter:
+            scores = self.domain_discriminator.cal_scores(reverse_shared_features, task_ind)
+            filter_num = int(self.filter_ratio * scores.size()[1])
+            threshold, index = scores.topk(filter_num)
+            # print("filter num:{}/{} {} {} {}".format(filter_num, scores.size()[1], scores.size(), index.size(),
+            # mask.size()))
+            row = torch.arange(mask.size()[0]).unsqueeze(1).to(mask.device)
+            mask[row, index] = 0.
         masked_shared_features = shared_features * mask
         decoder_output = self.shared_decoder(torch.add(masked_shared_features, private_features))
-        # print(shared_features.size(), mask.size(), masked_shared_features.size(), private_features.size(), decoder_output.size())
+        # print(shared_features.size(), mask.size(), masked_shared_features.size(), private_features.size(),
+        # decoder_output.size())
         return shared_features, private_features, class_output, domain_output, decoder_output
 
 
@@ -166,21 +170,17 @@ class DSN_INN_Grad_ChannelFilter(nn.Module):
         initialize_weights(self)
         # register_layer_hook(self)
 
-    def cal_score(self, features, out, task_ind: int):
+    def cal_scores(self, features, out, task_ind: int):
         assert task_ind in [1, 2]  # 1 for source domain, 2 for target domain
-        features_ = features.squeeze().clone()
-        with torch.no_grad():
-            self.zero_grad()
-            out = out[:, task_ind - 1]
-        self.zero_grad()
-        out.backward(retain_graph=True)
-        grad = features_.grad()
-        weights = grad.mean(dim=(2, 3))
-        scores = torch.mul(weights, features_)
-        # print(weights.size(), features_.size(), task_ind, scores.size())
+        out_class = out[:, task_ind - 1].sum()
+        grads = torch.autograd.grad(out_class, features, retain_graph=True)[0]
+        features.squeeze()
+        scores = torch.mul(grads, features)
+        scores = scores.squeeze()
+        # print(grads)
         return scores
 
-    def forward(self, x, task_ind):
+    def forward(self, x, task_ind, channel_filter: bool = False):
         assert task_ind in [1, 2]  # 1 for source domain and 2 for target domain
         features = self.backbone(x)
         shared_features = self.shared_encoder(features)
@@ -191,19 +191,21 @@ class DSN_INN_Grad_ChannelFilter(nn.Module):
         class_output = self.classifier(shared_features)[-1]
         reverse_shared_features = self.grl(shared_features)
         domain_output = self.domain_discriminator(reverse_shared_features)[-1]
-
-        scores = self.domain_discriminator.cal_scores(reverse_shared_features, task_ind)
-        filter_num = int(self.filter_ratio * scores.size()[1])
-        threshold, index = scores.topk(filter_num)
         mask = torch.ones_like(shared_features).to(shared_features.device)
-        # print("filter num:{}/{} {} {}".format(filter_num, scores.size()[1], index.size(), mask.size()))
-        row = torch.arange(mask.size()[0]).unsqueeze(1).to(mask.device)
-        mask[row, index] = 0.
+        if channel_filter:
+            scores = self.cal_scores(reverse_shared_features, domain_output, task_ind)
+            filter_num = int(self.filter_ratio * scores.size()[1])
+            threshold, index = scores.topk(filter_num)
+            # print("filter num:{}/{} {} {}".format(filter_num, scores.size()[1], index.size(), mask.size()))
+            # print(scores)
+            row = torch.arange(mask.size()[0]).unsqueeze(1).to(mask.device)
+            # print(mask[row, index].size())
+            mask[row, index] = 0.
         masked_shared_features = shared_features * mask
 
-
         decoder_output = self.shared_decoder(torch.add(masked_shared_features, private_features))
-        # print(shared_features.size(), mask.size(), masked_shared_features.size(), private_features.size(), decoder_output.size())
+        # print(shared_features.size(), mask.size(), masked_shared_features.size(), private_features.size(),
+        # decoder_output.size())
         return shared_features, private_features, class_output, domain_output, decoder_output
 
 
