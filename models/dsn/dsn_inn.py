@@ -188,7 +188,7 @@ class DSN_INN_Grad_ChannelFilter(nn.Module):
             private_features = self.private_source_encoder(features)
         else:
             private_features = self.private_target_encoder(features)
-        class_output = self.classifier(shared_features)[-1]
+
         reverse_shared_features = self.grl(shared_features)
         domain_output = self.domain_discriminator(reverse_shared_features)[-1]
         mask = torch.ones_like(shared_features).to(shared_features.device)
@@ -204,6 +204,7 @@ class DSN_INN_Grad_ChannelFilter(nn.Module):
         masked_shared_features = shared_features * mask
 
         decoder_output = self.shared_decoder(torch.add(masked_shared_features, private_features))
+        class_output = self.classifier(masked_shared_features)[-1]
         # print(shared_features.size(), mask.size(), masked_shared_features.size(), private_features.size(),
         # decoder_output.size())
         return shared_features, private_features, class_output, domain_output, decoder_output
