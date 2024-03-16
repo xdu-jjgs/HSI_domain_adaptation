@@ -1,8 +1,10 @@
 from .ddc import DDC
 from .dqn import DQN
 from .dst import DST
-from .dsn import (DSN, DSN_Gate, DSN_INN, DSN_INN_Gate, DSN_NoDecoder, DSN_INN_NoDecoder, DSN_NoDecoder_Nospec,
-                  DSN_INN_NoDecoder_Nospec, DSN_NoDis, DSN_INN_NoDecoder_NoDis, DSN_INN_NoDecoder_DST,
+from .dsn import (DSN, DSN_Gate, DSN_NoDis, DSN_NoDecoder_NoDis, DSN_INN, DSN_INN_NoDis, DSN_INN_NoDecoder_NoCls,
+                  DSN_INN_NoDecoder_NoSpec_NoCis,
+                  DSN_INN_Gate, DSN_NoDecoder, DSN_INN_NoDecoder, DSN_NoDecoder_NoSpec, DSN_INN_NoDecoder_NoSpec,
+                  DSN_INN_NoDecoder_NoSpec_NoDis, DSN_NoDis, DSN_INN_NoDecoder_NoDis, DSN_INN_NoDecoder_DST,
                   DSN_INN_ChannelFilter, DSN_INN_Grad_ChannelFilter)
 from .hma import INN, INNDANN
 from .dann import DANN
@@ -94,25 +96,41 @@ def build_model(num_channels, num_classes):
     elif CFG.MODEL.NAME == 'dsn_gate':
         return DSN_Gate(num_classes, backbone_, CFG.DATASET.PATCH.WIDTH)
     elif CFG.MODEL.NAME == 'dsn_inn':
-        return DSN_INN(num_classes, backbone_, CFG.DATASET.PATCH.WIDTH)
+        return DSN_INN(num_classes, backbone_, CFG.DATASET.PATCH.WIDTH, CFG.HYPERPARAMS[0])
+    elif CFG.MODEL.NAME == 'dsn_inn_nodis':
+        return DSN_INN_NoDis(num_classes, backbone_, CFG.DATASET.PATCH.WIDTH)
     elif CFG.MODEL.NAME == 'dsn_inn_gate':
         return DSN_INN_Gate(num_classes, backbone_, CFG.DATASET.PATCH.WIDTH)
     elif CFG.MODEL.NAME == 'dsn_nodecoder':
-        return DSN_NoDecoder(num_classes, backbone_, CFG.DATASET.PATCH.WIDTH)
+        return DSN_NoDecoder(num_classes, backbone_)
+    elif CFG.MODEL.NAME == 'dsn_nodecoder_nodis':
+        return DSN_NoDecoder_NoDis(num_classes, backbone_)
     elif CFG.MODEL.NAME == 'dsn_nodecoder_nospec':
-        return DSN_NoDecoder_Nospec(num_classes, backbone_, CFG.DATASET.PATCH.WIDTH)
+        return DSN_NoDecoder_NoSpec(num_classes, backbone_)
     elif CFG.MODEL.NAME == 'dsn_inn_nodecoder':
-        return DSN_INN_NoDecoder(num_classes, backbone_, CFG.DATASET.PATCH.WIDTH)
+        return DSN_INN_NoDecoder(num_classes, backbone_, CFG.HYPERPARAMS)
     elif CFG.MODEL.NAME == 'dsn_inn_filter':
-        return DSN_INN_ChannelFilter(num_classes, backbone_, CFG.DATASET.PATCH.WIDTH, CFG.HYPERPARAMS[0])
+        return DSN_INN_ChannelFilter(num_classes, backbone_, CFG.DATASET.PATCH.WIDTH, CFG.HYPERPARAMS)
     elif CFG.MODEL.NAME == 'dsn_inn_grad_filter':
-        return DSN_INN_Grad_ChannelFilter(num_classes, backbone_, CFG.DATASET.PATCH.WIDTH, CFG.HYPERPARAMS[0])
+        return DSN_INN_Grad_ChannelFilter(num_classes, backbone_, CFG.DATASET.PATCH.WIDTH, CFG.HYPERPARAMS)
     elif CFG.MODEL.NAME == 'dsn_inn_nodecoder_nodis':
-        return DSN_INN_NoDecoder_NoDis(num_classes, backbone_, CFG.DATASET.PATCH.WIDTH)
+        return DSN_INN_NoDecoder_NoDis(num_classes, backbone_, CFG.HYPERPARAMS)
+    elif CFG.MODEL.NAME == 'dsn_inn_nodecoder_nospec_nodis':
+        return DSN_INN_NoDecoder_NoSpec_NoDis(num_classes, backbone_)
+    elif CFG.MODEL.NAME == 'dsn_inn_nodecoder_nocls':
+        model = DSN_INN_NoDecoder_NoCls(num_classes, backbone_, CFG.HYPERPARAMS)
+        classifier = ImageClassifier(model.out_channels, num_classes)
+        domain_classifier = ImageClassifier(model.out_channels, 2)
+        return model, classifier, domain_classifier
+    elif CFG.MODEL.NAME == 'dsn_inn_nodecoder_nospec_nocls':
+        model = DSN_INN_NoDecoder_NoSpec_NoCis(num_classes, backbone_, CFG.HYPERPARAMS)
+        classifier = ImageClassifier(model.out_channels, num_classes)
+        domain_classifier = ImageClassifier(model.out_channels, 2)
+        return model, classifier, domain_classifier
     elif CFG.MODEL.NAME == 'dsn_inn_nodecoder_dst':
-        return DSN_INN_NoDecoder_DST(num_classes, backbone_, CFG.DATASET.PATCH.WIDTH)
+        return DSN_INN_NoDecoder_DST(num_classes, backbone_)
     elif CFG.MODEL.NAME == 'dsn_inn_nodecoder_nospec':
-        return DSN_INN_NoDecoder_Nospec(num_classes, backbone_, CFG.DATASET.PATCH.WIDTH)
+        return DSN_INN_NoDecoder_NoSpec(num_classes, backbone_, CFG.HYPERPARAMS)
     elif CFG.MODEL.NAME == 'hma_ddc':
         FE = backbone_
         inn = INN(in_channels=backbone_.out_channels, num_block=CFG.HYPERPARAMS[0])

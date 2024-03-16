@@ -3,6 +3,7 @@ from configs import CFG
 from .resnet import ResNet
 from .revnet import RevNet
 from .extractor import FeatureExtractor
+from .extractor_rev import RevFeatureExtractor
 from .extractor_attention import AttentionFeatureExtractor
 from .classifier import ImageClassifier, MultiHeadClassifier, SingleLayerClassifier
 
@@ -10,6 +11,7 @@ __all__ = [
     ResNet,
     RevNet,
     FeatureExtractor,
+    RevFeatureExtractor,
     ImageClassifier,
     MultiHeadClassifier,
     SingleLayerClassifier,
@@ -38,4 +40,6 @@ def build_backbone(num_channels, model_name):
         return AttentionFeatureExtractor(num_channels, attention='pos')
     elif model_name == 'fe_can':
         return AttentionFeatureExtractor(num_channels, attention='can')
+    elif model_name == 'fe_rev':
+        return RevFeatureExtractor(num_channels)
     raise NotImplementedError('invalid model: {}'.format(model_name))

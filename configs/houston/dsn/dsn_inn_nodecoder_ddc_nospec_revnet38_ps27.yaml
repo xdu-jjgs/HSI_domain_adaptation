@@ -1,0 +1,40 @@
+DATASET:
+  NAME: 'Houston'
+  ROOT: 'E:/zzy/GAN/data/Houston'
+  PATCH:
+    HEIGHT: 27
+    WIDTH: 27
+    PAD_MODE: 'symmetric'
+
+
+DATALOADER:
+  BATCH_SIZE: 64
+  NUM_WORKERS: 0
+  ITERATION: 40
+
+MODEL:
+  NAME: 'dsn_inn_nodecoder_nospec_nodis'
+  BACKBONE: 'revnet38'
+
+CRITERION:
+  ITEMS:
+    - 'softmax+ce'
+    - 'mmd'
+    - 'orthogonal'
+  WEIGHTS:
+    - 1.0
+    - 1.0
+    - 0.5
+  KERNEL_NUM: 1
+
+OPTIMIZER:
+  NAME: 'adam'
+  LR: 0.001
+
+SCHEDULER:
+  NAME: 'plateau'
+  MODE: 'min'
+  FACTOR: 0.1
+  PATIENCE: 2
+
+EPOCHS: 30

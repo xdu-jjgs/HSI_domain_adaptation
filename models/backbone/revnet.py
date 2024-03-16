@@ -45,3 +45,4 @@ class RevNet(nn.Module):
         x = self.final_postactiv(x)
         x = self.avgpool(x)
         return x
+

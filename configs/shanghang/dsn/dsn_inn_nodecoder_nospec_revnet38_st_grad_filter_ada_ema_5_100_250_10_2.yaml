@@ -1,0 +1,48 @@
+DATASET:
+  NAME: 'ShangHang'
+  ROOT: 'E:/zzy/GAN/data/ShanghaiHangzhou'
+  PATCH:
+    HEIGHT: 11
+    WIDTH: 11
+    PAD_MODE: 'symmetric'
+
+
+DATALOADER:
+  BATCH_SIZE: 128
+  NUM_WORKERS: 0
+  ITERATION: 1060
+
+MODEL:
+  NAME: 'dsn_inn_nodecoder_nospec_nocls'
+  BACKBONE: 'revnet38'
+
+CRITERION:
+  ITEMS:
+    - 'softmax+ce'
+    - 'cbst'
+    - 'orthogonal'
+    - 'softmax+ce'
+  WEIGHTS:
+    - 1.0
+    - 2.0
+    - 0.5
+    - 0.5
+  THRESHOLD: 0.7
+
+OPTIMIZER:
+  NAME: 'adam'
+  LR: 0.001
+
+SCHEDULER:
+  NAME: 'plateau'
+  MODE: 'min'
+  FACTOR: 0.1
+  PATIENCE: 2
+
+EPOCHS: 10
+
+HYPERPARAMS:
+  - 0.05
+  - 1.0
+  - 2.5
+  - 0.1

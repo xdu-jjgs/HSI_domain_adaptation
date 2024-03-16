@@ -167,7 +167,7 @@ def worker(rank_gpu, args):
     # build scheduler
     scheduler = build_scheduler(optimizer)
     # DDP
-    model = DistributedDataParallel(model, broadcast_buffers=False)
+    model = DistributedDataParallel(model, broadcast_buffers=False, find_unused_parameters=True)
 
     epoch = 0
     iteration = 0
@@ -218,7 +218,10 @@ def worker(rank_gpu, args):
 
             optimizer.zero_grad()
             shared_f_s, private_f_s, y_s = model(x_s, 1)
-            shared_f_t, private_f_t, y_t = model(x_t, 2)
+            model.eval()
+            with torch.no_grad():
+                shared_f_t, private_f_t, y_t = model(x_t, 2)
+            model.train()
 
             cls_s_loss = cls_criterion(y_s=y_s, label_s=label_s) * loss_weights[0]
             sim_loss = similarity_criterion(f_s=shared_f_s, f_t=shared_f_t, label_s=label_s,

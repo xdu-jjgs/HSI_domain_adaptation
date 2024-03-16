@@ -6,7 +6,6 @@ DATASET:
     WIDTH: 11
     PAD_MODE: 'symmetric'
 
-
 DATALOADER:
   BATCH_SIZE: 32
   NUM_WORKERS: 0

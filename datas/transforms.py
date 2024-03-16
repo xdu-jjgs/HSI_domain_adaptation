@@ -113,6 +113,7 @@ class FFTCut(nn.Module):
             return data, labels
         _, h, w = data.size()
         img_f = torch.fft.fft2(data)
+        # TODO： 好像反了
         if self.mode in ['h', 'b']:
             highest_band_height = int(h * (1. - self.high_percent))
             highest_band_width = int(w * (1. - self.high_percent))
@@ -120,7 +121,7 @@ class FFTCut(nn.Module):
             highest_band_w = highest_band_width // 2
 
             img_low = torch.empty(data.size(), dtype=img_f.dtype, device=img_f.device)
-            # 高频在中心，被去除
+            # 低频在中心，被去除
             img_low[:, :highest_band_h, :highest_band_w] = img_f[:, :highest_band_h, :highest_band_w]  # upper left
             img_low[:, -highest_band_h:, :highest_band_w] = img_f[:, -highest_band_h:, :highest_band_w]  # lower left
             img_low[:, :highest_band_h, -highest_band_w:] = img_f[:, :highest_band_h, -highest_band_w:]  # upper right
@@ -139,7 +140,7 @@ class FFTCut(nn.Module):
             else:
                 img_high = img_low.clone()
             # print(lowest_band_w)
-            # 只保留中心的高频
+            # 只保留中心的低频
             img_high[:, :lowest_band_h, :lowest_band_w] = 0
             img_high[:, -lowest_band_h:, :lowest_band_w] = 0
             img_high[:, :lowest_band_h, -lowest_band_w:] = 0

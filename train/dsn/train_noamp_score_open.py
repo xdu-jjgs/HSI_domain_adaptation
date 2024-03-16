@@ -300,23 +300,22 @@ def worker(rank_gpu, args):
         metric.reset()  # reset metric
         val_bar = tqdm(val_dataloader, desc='validating', ascii=True)
         val_loss, confidence_sum = 0., 0.
-        with torch.no_grad():  # disable gradient back-propagation
-            for x_t, label in val_bar:
-                x_t, label = x_t.to(device), label.to(device)
-                _, _, y_t, _, _ = model(x_t, 2, True)
-                cls_loss = val_criterion(y_s=y_t, label_s=label)
-                val_loss += cls_loss.item()
-                confidence, pseudo_labels = F.softmax(y_t.detach(), dim=1).max(dim=1)
-                confidence_sum += sum(confidence)
-                pred = y_t.argmax(axis=1)
-                metric.add(pred.data.cpu().numpy(), label.data.cpu().numpy())
-                val_bar.set_postfix({
-                    'epoch': epoch,
-                    'loss': f'{cls_loss.item():.3f}',
-                    'mP': f'{metric.mPA():.3f}',
-                    'PA': f'{metric.PA():.3f}',
-                    'KC': f'{metric.KC():.3f}'
-                })
+        for x_t, label in val_bar:
+            x_t, label = x_t.to(device), label.to(device)
+            _, _, y_t, _, _ = model(x_t, 2, True)
+            cls_loss = val_criterion(y_s=y_t, label_s=label)
+            val_loss += cls_loss.item()
+            confidence, pseudo_labels = F.softmax(y_t.detach(), dim=1).max(dim=1)
+            confidence_sum += sum(confidence)
+            pred = y_t.argmax(axis=1)
+            metric.add(pred.data.cpu().numpy(), label.data.cpu().numpy())
+            val_bar.set_postfix({
+                'epoch': epoch,
+                'loss': f'{cls_loss.item():.3f}',
+                'mP': f'{metric.mPA():.3f}',
+                'PA': f'{metric.PA():.3f}',
+                'KC': f'{metric.KC():.3f}'
+            })
         val_loss /= len(val_dataloader) * CFG.DATALOADER.BATCH_SIZE
         confidence_sum /= len(val_dataloader) * CFG.DATALOADER.BATCH_SIZE
 

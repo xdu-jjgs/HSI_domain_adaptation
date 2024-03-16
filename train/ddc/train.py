@@ -216,11 +216,11 @@ def worker(rank_gpu, args):
             x_t = x_t.to(device)
             optimizer.zero_grad()
             with autocast():
-                f_s, y_s = model(x_s)
+                _, f_s, y_s = model(x_s)
 
                 model.eval()
                 with torch.no_grad():
-                    f_t, y_t = model(x_t)
+                    _, f_t, y_t = model(x_t)
                 model.train()
                 cls_loss = cls_criterion(label_s=label, y_s=y_s) * loss_weights[0]
                 trans_loss = trans_criterion(f_s=f_s, f_t=f_t, label_s=label, y_s=y_s, y_t=y_t) * loss_weights[1]
@@ -244,9 +244,9 @@ def worker(rank_gpu, args):
                 'KC': f'{metric.KC():.3f}',
             })
 
-        total_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
-        cls_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
-        trans_loss_epoch /= iteration * CFG.DATALOADER.BATCH_SIZE
+        total_loss_epoch /= iteration
+        cls_loss_epoch /= iteration
+        trans_loss_epoch /= iteration
         PA, mPA, Ps, Rs, F1S, KC = metric.PA(), metric.mPA(), metric.Ps(), metric.Rs(), metric.F1s(), metric.KC()
         if dist.get_rank() == 0:
             writer.add_scalar('train/loss_total-epoch', total_loss_epoch, epoch)
@@ -277,7 +277,7 @@ def worker(rank_gpu, args):
             for x_t, label in val_bar:
                 x_t, label = x_t.to(device), label.to(device)
                 with autocast():
-                    _, y_t = model(x_t)
+                    _, _, y_t = model(x_t)
                     cls_loss = val_criterion(y_s=y_t, label_s=label)
                 val_loss += cls_loss.item()
 

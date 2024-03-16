@@ -37,19 +37,25 @@ class Metric:
 
     def Ps(self):
         # precision of each class
-        accs = np.diag(self.matrix) / self.matrix.sum(axis=0)
+        with np.errstate(divide='ignore', invalid='ignore'):
+            accs = np.diag(self.matrix) / self.matrix.sum(axis=0)
+            accs = np.nan_to_num(accs)  # 将 NaN 替换为 0
         return accs
 
     def Rs(self):
         # recall of each class
-        rs = np.diag(self.matrix) / self.matrix.sum(axis=1)  # 沿着1求和，相当于excel求到最右侧的单元格
+        with np.errstate(divide='ignore', invalid='ignore'):
+            rs = np.diag(self.matrix) / self.matrix.sum(axis=1)
+            rs = np.nan_to_num(rs)  # 沿着1求和，相当于excel求到最右侧的单元格
         return rs
 
     def F1s(self):
         # F1 score
         ps = self.Ps()
         rs = self.Ps()
-        f1s = 2 * ps * rs / (ps + rs)
+        with np.errstate(divide='ignore', invalid='ignore'):
+            f1s = 2 * ps * rs / (ps + rs)
+            f1s = np.nan_to_num(f1s)  # 将 NaN 替换为 0
         return f1s
 
     def KC(self):

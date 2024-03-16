@@ -3,32 +3,35 @@ import re
 import matplotlib.pyplot as plt
 import numpy as np
 
-
 path = [
-    r'runs/houston/nommd-train/1',
-    r'runs/houston/ddc-train/1',
-    r'runs/houston/dan-train/1',
-    r'runs/houston/jan-train/1',
-    r'runs/houston/dsan-train/1',
-    r'runs/houston/dann-train/2',
-    r'runs/houston/mcd-train/1',
-    r'runs/houston/dst_1_1_1_07_2-train/1'
+    # r'runs/hyrank/nommd-train/1',
+    # r'runs/hyrank/ddc-train/1',
+    r'runs/hyrank/dan-train/1',
+    r'runs/hyrank/jan-train/1',
+    # r'runs/hyrank/dsan-train/1',
+    r'runs/hyrank/dann-train/1',
+    # r'runs/hyrank/mcd-train/1',
+    # r'runs/hyrank/dst_1_1_1_07_2-train/1'
 ]
 
 plt.xlabel('Magnitude of Standard Deviations')
 plt.ylabel('Number of Channels')
 
-for p in path[2:]:
+ans = []
+for p in path:
     files = os.listdir(p)
     for f in files:
         res = re.findall(r'std_mix_(\w+)_(\d+)', f)
         if res:
             model_name, pa = res[0]
-            print(model_name, pa)
             file_path = os.path.join(p, f)
-            plt.hist(np.load(file_path), bins=30, alpha=0.5, label='{}_{}'.format(model_name, pa))
-
-# plt.xlim(-0.5,2)
+            data = np.load(file_path)
+            # data = data[np.random.choice(len(data), 100)]
+            ans.append([model_name, pa, np.mean(data)])
+            print(model_name, len(data))
+            plt.hist(data, bins=20, alpha=0.5, label='{}'.format(model_name.upper(), pa))
+ans.sort(key=lambda x: x[1], reverse=True)
+print(*ans)
+# plt.xlim(-0.2, 6)
 plt.legend()
 plt.show()
-

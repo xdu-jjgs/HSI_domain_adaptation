@@ -209,7 +209,7 @@ def worker(rank_gpu, args):
             x_s, label = x_s.to(device), label.to(device)
             optimizer.zero_grad()
             with autocast():
-                f_s, y_s = model(x_s)
+                _, f_s, y_s = model(x_s)
                 cls_loss = cls_criterion(label_s=label, y_s=y_s) * loss_weights[0]
                 total_loss = cls_loss
             cls_loss_epoch += cls_loss.item()
@@ -262,7 +262,7 @@ def worker(rank_gpu, args):
             for x_t, label in val_bar:
                 x_t, label = x_t.to(device), label.to(device)
                 with autocast():
-                    _, y_t = model(x_t)
+                    _, _, y_t = model(x_t)
                     cls_loss = val_criterion(y_s=y_t, label_s=label)
                 val_loss += cls_loss.item()
 

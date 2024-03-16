@@ -228,6 +228,7 @@ def worker(rank_gpu, args):
             total_loss = cls_s_loss + cls_t_loss + difference_s_loss + difference_t_loss
 
             cls_s_loss_epoch += cls_s_loss.item()
+            cls_t_loss_epoch += cls_t_loss.item()
             difference_s_loss_epoch += difference_s_loss.item()
             difference_t_loss_epoch += difference_t_loss.item()
             total_loss_epoch += total_loss.item()
