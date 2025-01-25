@@ -44,7 +44,7 @@ class DSN_INN(nn.Module):
         domain_output = self.domain_discriminator(reverse_shared_features)[-1]
         if channel_filter:
             assert self.filter_ratio > 0.
-            scores = cal_grad_scores(reverse_shared_features, domain_output, task_ind, use_abs)
+            scores = cal_grad_scores(reverse_shared_features, domain_output, task_ind)
             filter_num = int(self.filter_ratio * scores.size()[1])
             masked_ds_shared_features = mask_channels(shared_features, scores, filter_num)
             # masked_ds_private_features = private_features * mask_ds
@@ -176,7 +176,7 @@ class DSN_INN_Grad_ChannelFilter(nn.Module):
         reverse_shared_features = self.grl(shared_features)
         domain_output = self.domain_discriminator(reverse_shared_features)[-1]
         if channel_filter:
-            scores = cal_grad_scores(reverse_shared_features, domain_output, task_ind, use_abs)
+            scores = cal_grad_scores(reverse_shared_features, domain_output, task_ind)
             filter_num = int(self.filter_ratio * scores.size()[1])
 
             # print("filter num:{}/{} {} {}".format(filter_num, scores.size()[1], index_ds_channels.size(),
@@ -264,7 +264,7 @@ class DSN_INN_NoDecoder(nn.Module):
         domain_output = self.domain_discriminator(reverse_shared_features)[-1]
         if channel_filter:
             assert self.filter_ratio > 0.
-            scores = cal_grad_scores(reverse_shared_features, domain_output, task_ind, use_abs)
+            scores = cal_grad_scores(reverse_shared_features, domain_output, task_ind)
             filter_num = int(self.filter_ratio * scores.size()[1])
             masked_ds_shared_features = mask_channels(shared_features, scores, filter_num)
             class_output = self.classifier(masked_ds_shared_features)[-1]
@@ -275,9 +275,9 @@ class DSN_INN_NoDecoder(nn.Module):
         return shared_features, private_features, class_output, domain_output
 
 
-class DSN_INN_NoDecoder_NoSpec(nn.Module):
+class S4DL(nn.Module):
     def __init__(self, num_classes: int, backbone: nn.Module, hyperparams: List = None):
-        super(DSN_INN_NoDecoder_NoSpec, self).__init__()
+        super(S4DL, self).__init__()
         if hyperparams:
             assert 0. <= hyperparams[0] <= 1.
             self.filter_ratio = hyperparams[0]
@@ -294,30 +294,36 @@ class DSN_INN_NoDecoder_NoSpec(nn.Module):
         initialize_weights(self)
         # register_layer_hook(self)
 
-    def forward(self, x, task_ind, mask_ds: bool = False, use_abs=False, mask_di: bool = False, cal_std: bool = False):
+    def forward(self, x, task_ind, mask_ds: bool = False, mask_di: bool = False, return_features: bool = False):
         assert task_ind in [1, 2]  # 1 for source domain and 2 for target domain
         features = self.backbone(x)
-        shared_features = self.shared_encoder(features)
-        private_features = features - shared_features
-        reverse_shared_features = self.grl(shared_features)
-        domain_output = self.domain_discriminator(reverse_shared_features)[-1]
-        if mask_ds:
+        channels = x.size()[1]
+        features_di = self.shared_encoder(features)
+        features_ds = features - features_di
+        reverse_features_di = self.grl(features_di)
+        domain_output_di = self.domain_discriminator(reverse_features_di)[-1]
+        if mask_di or mask_ds:
             assert 0. <= self.filter_ratio <= 1.
-            scores = cal_grad_scores(reverse_shared_features, domain_output, task_ind, use_abs)
-            filter_num = int(self.filter_ratio * scores.size()[1])
-            masked_shared_features = mask_channels(shared_features, scores, filter_num)
-            class_output = self.classifier(masked_shared_features)[-1]
+            filter_num = int(self.filter_ratio * channels)
+            masked_features_di = features_di
+            masked_features_ds = features_ds
             if mask_di:
-                scores_abs = scores.abs()
-                masked_private_features = mask_channels(private_features, scores_abs, filter_num, largest=False)
-                if cal_std:
-                    return masked_shared_features, masked_private_features, class_output, domain_output, \
-                        shared_features, private_features
-                else:
-                    return masked_shared_features, masked_private_features, class_output, domain_output
+                scores_di = cal_grad_scores(reverse_features_di, domain_output_di, task_ind)
+                masked_features_di = mask_channels(features_di, scores_di, filter_num)
+            if mask_ds:
+                reverse_features_ds = self.grl(features_ds)
+                domain_output_ds = self.domain_discriminator(reverse_features_ds)[-1]
+                score_ds = cal_grad_scores(reverse_features_ds, domain_output_ds, task_ind)
+                scores_abs = score_ds.abs()
+                masked_features_ds = mask_channels(features_ds, scores_abs, filter_num, largest=False)
+            class_output = self.classifier(masked_features_di)[-1]
+            if return_features:
+                return masked_features_di, masked_features_ds, class_output, domain_output_di, features_di, features_ds
+            else:
+                return masked_features_di, masked_features_ds, class_output, domain_output_di
         else:
-            class_output = self.classifier(shared_features)[-1]
-        return shared_features, private_features, class_output, domain_output
+            class_output = self.classifier(features_di)[-1]
+        return features_di, features_ds, class_output, domain_output_di
 
 
 class DSN_INN_NoDecoder_NoDis(nn.Module):

@@ -10,8 +10,8 @@ k2, c2 = 2, 3
 # 创建一个Tensor，包含正值
 x = torch.linspace(0, 10, 100)
 # 计算函数值
-y5 = adjusted_sigmoid(x, k=k1, c=c1) # k=1, c=3
-y6 = adjusted_sigmoid(x, k=k2, c=c2) # k=2, c=3
+y5 = adjusted_sigmoid(x, k=k1, s=c1) # k=1, c=3
+y6 = adjusted_sigmoid(x, k=k2, s=c2) # k=2, c=3
 
 # 绘制图像
 plt.figure(figsize=(12, 6))

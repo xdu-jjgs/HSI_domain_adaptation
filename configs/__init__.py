@@ -48,6 +48,12 @@ _C.SCHEDULER.PATIENCE = 0
 _C.EPOCHS = 0
 _C.EPOCHK = 0
 
+_C.GRL = CN()
+_C.GRL.ALPHA = 1.0
+_C.GRL.LO = 1.0
+_C.GRL.HI = 1.0
+_C.GRL.MAX_ITERS = 1
+
 _C.HYPERPARAMS = [0.] * 10
 
 CFG = _C.clone()

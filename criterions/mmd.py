@@ -131,6 +131,8 @@ class JointMMDLoss(BaseMMDLoss):
         super(JointMMDLoss, self).__init__(kernel_mul, kernel_num)
 
     def forward(self, f_s, f_t, y_s, y_t, **kwargs):
+        f_s = torch.squeeze(f_s)
+        f_t = torch.squeeze(f_t)
         kernels1 = [GaussianKernel(alpha=self.kernel_mul * (i + 1)) for i in range(self.kernel_num)]
         kernels2 = [GaussianKernel(1.)]
         res = JointMultipleKernelMaximumMeanDiscrepancy(kernels=[kernels1, kernels2])((f_s, y_s), (f_t, y_t))

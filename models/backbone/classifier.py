@@ -14,7 +14,6 @@ class ImageClassifier(nn.Module):
             nn.Linear(in_nodes, 256),
             self.relu,
         )
-        # change 64 to 100 if load failed
         self.layer2 = nn.Sequential(
             nn.Linear(256, 100),
             self.relu

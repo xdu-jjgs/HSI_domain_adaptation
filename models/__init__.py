@@ -1,11 +1,16 @@
 from .ddc import DDC
 from .dqn import DQN
+from .modules import Decoder
+from .s4dl import S4DL_DANN, S4DL_TS, S4DL_CA_DANN, S4DL_CA
 from .dst import DST
 from .dsn import (DSN, DSN_Gate, DSN_NoDis, DSN_NoDecoder_NoDis, DSN_INN, DSN_INN_NoDis, DSN_INN_NoDecoder_NoCls,
                   DSN_INN_NoDecoder_NoSpec_NoCis,
-                  DSN_INN_Gate, DSN_NoDecoder, DSN_INN_NoDecoder, DSN_NoDecoder_NoSpec, DSN_INN_NoDecoder_NoSpec,
+                  DSN_INN_Gate, DSN_NoDecoder, DSN_INN_NoDecoder, DSN_NoDecoder_NoSpec,
                   DSN_INN_NoDecoder_NoSpec_NoDis, DSN_NoDis, DSN_INN_NoDecoder_NoDis, DSN_INN_NoDecoder_DST,
                   DSN_INN_ChannelFilter, DSN_INN_Grad_ChannelFilter)
+from .dranet import *
+from .sad import SAD
+from .uavod import UAVOD
 from .hma import INN, INNDANN
 from .dann import DANN
 from .vdd import VDD, VDDFixed
@@ -129,8 +134,6 @@ def build_model(num_channels, num_classes):
         return model, classifier, domain_classifier
     elif CFG.MODEL.NAME == 'dsn_inn_nodecoder_dst':
         return DSN_INN_NoDecoder_DST(num_classes, backbone_)
-    elif CFG.MODEL.NAME == 'dsn_inn_nodecoder_nospec':
-        return DSN_INN_NoDecoder_NoSpec(num_classes, backbone_, CFG.HYPERPARAMS)
     elif CFG.MODEL.NAME == 'hma_ddc':
         FE = backbone_
         inn = INN(in_channels=backbone_.out_channels, num_block=CFG.HYPERPARAMS[0])
@@ -141,6 +144,32 @@ def build_model(num_channels, num_classes):
         inn = INNDANN(in_channels=backbone_.out_channels, num_block=CFG.HYPERPARAMS[0])
         C = ImageClassifier(backbone_.out_channels, num_classes)
         return FE, inn, C
-    # elif CFG.MODEL.NAME == 'dqn':
-    #     return DQN(backbone_.out_channels, num_classes)
+    elif CFG.MODEL.NAME == 's4dl_dann':
+        return S4DL_DANN(num_classes, backbone_, CFG.HYPERPARAMS,
+                         alpha=CFG.GRL.ALPHA, lo=CFG.GRL.LO, hi=CFG.GRL.HI, max_iters=CFG.GRL.MAX_ITERS)
+    elif CFG.MODEL.NAME == 's4dl_ts':
+        model = S4DL_TS(num_classes, backbone_, CFG.HYPERPARAMS)
+        classifier = ImageClassifier(model.out_channels, num_classes)
+        domain_classifier = ImageClassifier(model.out_channels, 2)
+        return model, classifier, domain_classifier
+    elif CFG.MODEL.NAME == 's4dl_ca_dann':
+        return S4DL_CA_DANN(num_classes, backbone_, CFG.HYPERPARAMS)
+    elif CFG.MODEL.NAME == 's4dl_ca':
+        model = S4DL_CA(num_classes, backbone_, CFG.HYPERPARAMS)
+        return model
+    elif CFG.MODEL.NAME == 'dranet':
+        model = dict()
+        model['E'] = build_backbone(num_channels, CFG.MODEL.BACKBONE)
+        model['S'] = Separator((CFG.DATASET.PATCH.WIDTH, CFG.DATASET.PATCH.WIDTH), ['S2T'], model['E'].out_channels)
+        model['G'] = Generator(model['S'].out_channels, num_channels, CFG.DATASET.PATCH.WIDTH)
+        model['D'] = dict()
+        model['D']['S'] = DDC(2, build_backbone(num_channels, CFG.MODEL.BACKBONE))
+        model['D']['T'] = DDC(2, build_backbone(num_channels, CFG.MODEL.BACKBONE))
+        model['T'] = DDC(num_classes, build_backbone(num_channels, CFG.MODEL.BACKBONE))
+        model['P'] = backbone_
+        return model
+    elif CFG.MODEL.NAME == 'sad':
+        return SAD(num_classes, backbone_)
+    elif CFG.MODEL.NAME == 'uavod':
+        return UAVOD(num_classes, backbone_)
     raise NotImplementedError('invalid model: {}'.format(CFG.MODEL.NAME))

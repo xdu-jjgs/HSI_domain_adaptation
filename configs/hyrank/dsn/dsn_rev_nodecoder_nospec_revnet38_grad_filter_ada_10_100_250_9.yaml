@@ -12,7 +12,7 @@ DATALOADER:
   ITERATION: 626
 
 MODEL:
-  NAME: 'dsn_inn_nodecoder_nospec'
+  NAME: 's4dl'
   BACKBONE: 'fe_rev'
 
 CRITERION:

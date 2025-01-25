@@ -1,6 +1,8 @@
 import os
 import re
 
+import numpy as np
+
 root = r'E:/zts/HSI_domain_adaptation/runs'
 datasets = ['houston', 'hyrank', 'shanghang']
 pattern_best_pa = re.compile(r'Best epoch:(\d+), PA:(0.\d+)')
@@ -46,7 +48,7 @@ for dataset in datasets:
         min_pa, max_pa = pas[0], pas[-1]
 
         print(dataset, name, "times:{}, avg:{:.3f}±{:.3f} best:{:.3f} med:{:.3f} epoch_avg:{:.3f} max:{}"
-              .format(len(pas), avg_pa, (max_pa - min_pa) / 2, max_pa, pas[(len(pas) - 1) // 2],
-                      avg_epoch, max(epochs) ))
+              .format(len(pas), avg_pa, np.std(pas), max_pa, pas[(len(pas) - 1) // 2],
+                      avg_epoch, max(epochs)))
 
     # print(dataset, res)

@@ -1,0 +1,37 @@
+CRITERION:
+  ITEMS:
+  - softmax+ce
+  - softmax+ce
+  - orthogonal
+  WEIGHTS:
+  - 1.0
+  - 1.0
+  - 0.5
+DATALOADER:
+  BATCH_SIZE: 32
+  ITERATION: 626
+  NUM_WORKERS: 0
+DATASET:
+  NAME: HyRANK
+  PATCH:
+    HEIGHT: 11
+    PAD_MODE: symmetric
+    WIDTH: 11
+  ROOT: E:/zzy/GAN/data/HyRANK
+EPOCHS: 20
+HYPERPARAMS:
+- 0.1
+- 1
+- 0
+- 0.095
+MODEL:
+  BACKBONE: fe_rev
+  NAME: dsn_inn_nodecoder_nospec
+OPTIMIZER:
+  LR: 0.001
+  NAME: adam
+SCHEDULER:
+  FACTOR: 0.1
+  MODE: min
+  NAME: plateau
+  PATIENCE: 2

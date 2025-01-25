@@ -28,10 +28,10 @@ class RevUnit(nn.Module):
         if self.resize_identity:
             self.adjust_block = BasicBlock(in_channels, out_channels, kernel_size=3, stride=stride, padding=padding)
             in_channels2 = out_channels2
-            print(111111111111)
-        gm = BasicBlock(in_channels2, out_channels2, 3, 1, 1)
+            # print("Resize identity")
         fm = BasicBlock(in_channels2, out_channels2, 3, 1, 1)
-        self.body_block = ReversibleBlock(gm, fm)
+        gm = BasicBlock(in_channels2, out_channels2, 3, 1, 1)
+        self.body_block = ReversibleBlock(fm, gm)
 
     def forward(self, x):
         fea = x

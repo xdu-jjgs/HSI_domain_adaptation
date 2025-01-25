@@ -169,9 +169,9 @@ class ShangHangDataset(HSIDataset):
     @property
     def pixels(self):
         return [
-            [141, 211, 199],
-            [255, 255, 179],
-            [190, 186, 218]
+            [0, 157, 130],
+            [255, 255, 85],
+            [110, 101, 172]
         ]
 
 

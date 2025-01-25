@@ -19,6 +19,7 @@ from configs import CFG
 from metric import Metric
 from models import build_model
 from datas import build_dataset, build_dataloader
+from models.utils.stats import count_params, count_flops
 from plot import plot_confusion_matrix, plot_classification_image, plot_features
 
 
@@ -100,7 +101,7 @@ def worker(rank_gpu, args):
     # rank of global worker
     rank_process = args.gpus * args.rank_node + rank_gpu
     dist.init_process_group(backend=args.backend,
-                            init_method=f'tcp://{args.master_ip}:{args.master_port}',
+                            init_method=f'tcp://{args.master_ip}:{args.master_port}?use_libuv=False',
                             world_size=args.world_size,
                             rank=rank_process)
     # use device cuda:n in the process #n
@@ -124,8 +125,8 @@ def worker(rank_gpu, args):
     NUM_CLASSES = target_dataset.num_classes
     logging.info("Number of class: {}".format(NUM_CLASSES))
     logging.info("Number of channels: {}".format(NUM_CHANNELS))
-    source_sampler = DistributedSampler(source_dataset, shuffle=True)
-    target_sampler = DistributedSampler(target_dataset, shuffle=True)
+    source_sampler = DistributedSampler(source_dataset, shuffle=False)
+    target_sampler = DistributedSampler(target_dataset, shuffle=False)
     # build data loader
     source_dataloader = build_dataloader(source_dataset, sampler=source_sampler, drop_last=False)
     target_dataloader = build_dataloader(target_dataset, sampler=target_sampler, drop_last=False)
@@ -133,6 +134,7 @@ def worker(rank_gpu, args):
     model = build_model(NUM_CHANNELS, NUM_CLASSES)
     model.to(device)
     model = DistributedDataParallel(model, broadcast_buffers=False)
+    print("Num of params of {} ({}) is {:.2f}M".format(CFG.MODEL.NAME, CFG.MODEL.BACKBONE, count_params(model)))
     # build metric
     metric = Metric(NUM_CLASSES)
 
@@ -155,6 +157,9 @@ def worker(rank_gpu, args):
         target_bar = tqdm(target_dataloader, desc='inferring-t', ascii=True)
         for batch, (x, label) in enumerate(target_bar):
             x, label = x.to(device), label.to(device)
+            print("Num of FLOPs of {} ({}) is {:.2f}M.".format(CFG.MODEL.NAME, CFG.MODEL.BACKBONE,
+                                                               count_flops(model, x, 2)))
+            # raise NotImplementedError
             with autocast():
                 f, _, y, _, _ = model(x, 2)
             pred = y.argmax(axis=1)
@@ -185,13 +190,13 @@ def worker(rank_gpu, args):
     features_mix = np.concatenate([features_s[:1000],
                                    features_t[:1000]])
     # features_mix = (features_mix - np.mean(features_mix)) / np.std(features_mix)
-    std_mix = np.std(features_mix, axis=0)
-    std_mix = std_mix[~np.isinf(std_mix)]
-    print(std_mix.shape, np.min(std_mix), np.max(std_mix))
-    print(args.path, best_PA, np.mean(std_mix))
-    model_name = os.path.dirname(args.path).split('/')[-1].split('-')[0]
-    np.save(os.path.join(args.path, 'std_mix_{}_{}.npy'.format(model_name, int(best_PA * 1000))), std_mix)
-    raise NotImplementedError
+    # std_mix = np.std(features_mix, axis=0)
+    # std_mix = std_mix[~np.isinf(std_mix)]
+    # print(std_mix.shape, np.min(std_mix), np.max(std_mix))
+    # print(args.path, best_PA, np.mean(std_mix))
+    # model_name = os.path.dirname(args.path).split('/')[-1].split('-')[0]
+    # np.save(os.path.join(args.path, 'std_mix_{}_{}.npy'.format(model_name, int(best_PA * 1000))), std_mix)
+    # raise NotImplementedError
 
     # plt.xlabel('Magnitude of Standard Deviations')
     # plt.ylabel('Number of Channels')
@@ -216,7 +221,9 @@ def worker(rank_gpu, args):
         tsne = TSNE(n_components=2)
         f = tsne.fit_transform(f)
         fs, ft = f[:num_fs], f[num_fs:]
-        plot_features(fs, ft, os.path.join(args.path, 'feature_map_class{}.png'.format(i)))
+        # fs = tsne.fit_transform(fs)
+        # ft = tsne.fit_transform(ft)
+        plot_features(fs, ft, os.path.join(args.path, 'feature_map_class{}.png'.format(i+1)))
     plot_confusion_matrix(metric.matrix, os.path.join(args.path, 'confusion_matrix.png'))
     plot_classification_image(target_dataset, res, os.path.join(args.path, 'classification_map.png'))
     plot_classification_image(target_dataset, labels_t, os.path.join(args.path, 'gt_map.png'))

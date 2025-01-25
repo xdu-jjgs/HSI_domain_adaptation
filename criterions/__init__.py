@@ -3,7 +3,7 @@ import torch.nn as nn
 from configs import CFG
 from .focal import FocalLoss
 from .coral import CoralLoss
-from .contrast import SupInfoNCELoss
+from .contrast import InfoNCELoss
 from .bce import BCELoss, SigmoidBCELoss
 from .dice import DiceLoss, SigmoidDiceLoss
 from .ce import CELoss, SoftmaxCELoss, Entropy
@@ -60,8 +60,8 @@ def build_criterion(name):
         return OrthogonalDecomposedLoss()
     elif name == 'simse':
         return SIMSE()
-    elif name == 'supinfonce':
-        return SupInfoNCELoss(temperature=CFG.CRITERION.TEMPERATURE)
+    elif name == 'infonce':
+        return InfoNCELoss(temperature=CFG.CRITERION.TEMPERATURE)
     else:
         raise NotImplementedError('invalid criterion: {}'.format(name))
     return criterion

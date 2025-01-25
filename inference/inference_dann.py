@@ -19,6 +19,7 @@ from configs import CFG
 from metric import Metric
 from models import build_model
 from datas import build_dataset, build_dataloader
+from models.utils.stats import count_params, count_flops
 from plot import plot_confusion_matrix, plot_classification_image, plot_features
 
 
@@ -100,7 +101,7 @@ def worker(rank_gpu, args):
     # rank of global worker
     rank_process = args.gpus * args.rank_node + rank_gpu
     dist.init_process_group(backend=args.backend,
-                            init_method=f'tcp://{args.master_ip}:{args.master_port}',
+                            init_method=f'tcp://{args.master_ip}:{args.master_port}?use_libuv=False',
                             world_size=args.world_size,
                             rank=rank_process)
     # use device cuda:n in the process #n
@@ -124,14 +125,15 @@ def worker(rank_gpu, args):
     NUM_CLASSES = target_dataset.num_classes
     logging.info("Number of class: {}".format(NUM_CLASSES))
     logging.info("Number of channels: {}".format(NUM_CHANNELS))
-    source_sampler = DistributedSampler(source_dataset, shuffle=True)
-    target_sampler = DistributedSampler(target_dataset, shuffle=True)
+    source_sampler = DistributedSampler(source_dataset, shuffle=False)
+    target_sampler = DistributedSampler(target_dataset, shuffle=False)
     # build data loader
     source_dataloader = build_dataloader(source_dataset, sampler=source_sampler, drop_last=False)
     target_dataloader = build_dataloader(target_dataset, sampler=target_sampler, drop_last=False)
     # build model
     model = build_model(NUM_CHANNELS, NUM_CLASSES)
     model.to(device)
+    print("Num of params of {} ({}) is {}".format(CFG.MODEL.NAME, CFG.MODEL.BACKBONE, count_params(model)))
     model = DistributedDataParallel(model, broadcast_buffers=False)
     # build metric
     metric = Metric(NUM_CLASSES)
@@ -148,6 +150,7 @@ def worker(rank_gpu, args):
     # inference
     model.eval()  # set model to evaluation mode
     metric.reset()  # reset metric
+    data_s, data_t = [], []
     features_s, features_t = [], []
     labels_s, labels_t = [], []
     res = []
@@ -155,10 +158,14 @@ def worker(rank_gpu, args):
         target_bar = tqdm(target_dataloader, desc='inferring-t', ascii=True)
         for batch, (x, label) in enumerate(target_bar):
             x, label = x.to(device), label.to(device)
+            print("Num of FLOPs of {} ({}) is {:.2f}M".format(CFG.MODEL.NAME, CFG.MODEL.BACKBONE,
+                                                              count_flops(model, x, 0)))
+            # raise NotImplementedError
             with autocast():
                 f, y, _ = model(x, 0)
             pred = y.argmax(axis=1)
             f = torch.squeeze(f)
+            data_t.append(x.data.cpu().numpy())
             features_t.append(f.data.cpu().numpy())
             res.append(pred.data.cpu().numpy())
             labels_t.append(label.data.cpu().numpy())
@@ -169,10 +176,12 @@ def worker(rank_gpu, args):
             with autocast():
                 f, _, _ = model(x, 0)
             f = torch.squeeze(f)
+            data_s.append(x.data.cpu().numpy())
             features_s.append(f.data.cpu().numpy())
             labels_s.append(label.data.cpu().numpy())
     res = np.concatenate(res)
     labels_s, labels_t = np.concatenate(labels_s), np.concatenate(labels_t)
+    data_s, data_t = np.concatenate(data_s), np.concatenate(data_t)
     features_t = features_t[:3000]
     features_s, features_t = np.concatenate(features_s), np.concatenate(features_t)
     PA, mPA, Ps, Rs, F1S = metric.PA(), metric.mPA(), metric.Ps(), metric.Rs(), metric.F1s()
@@ -181,18 +190,18 @@ def worker(rank_gpu, args):
         logging.info(
             'inference | class={}-{} P={:.3f} R={:.3f} F1={:.3f}'.format(c, target_dataset.names[c],
                                                                          Ps[c], Rs[c], F1S[c]))
-    std_s = np.std(features_s, axis=0)
-    std_t = np.std(features_t, axis=0)
-    features_mix = np.concatenate([features_s[:1000],
-                                   features_t[:1000]])
-    # features_mix = (features_mix - np.mean(features_mix)) / np.std(features_mix)
-    std_mix = np.std(features_mix, axis=0)
-    std_mix = std_mix[~np.isinf(std_mix)]
-    print(std_mix.shape, np.min(std_mix), np.max(std_mix))
-    print(args.path, best_PA, np.mean(std_mix))
-    model_name = os.path.dirname(args.path).split('/')[-1].split('-')[0]
-    np.save(os.path.join(args.path, 'std_mix_{}_{}.npy'.format(model_name, int(best_PA * 1000))), std_mix)
-    raise NotImplementedError
+    # std_s = np.std(features_s, axis=0)
+    # std_t = np.std(features_t, axis=0)
+    # features_mix = np.concatenate([features_s[:1000],
+    #                                features_t[:1000]])
+    # # features_mix = (features_mix - np.mean(features_mix)) / np.std(features_mix)
+    # std_mix = np.std(features_mix, axis=0)
+    # std_mix = std_mix[~np.isinf(std_mix)]
+    # print(std_mix.shape, np.min(std_mix), np.max(std_mix))
+    # print(args.path, best_PA, np.mean(std_mix))
+    # model_name = os.path.dirname(args.path).split('/')[-1].split('-')[0]
+    # np.save(os.path.join(args.path, 'std_mix_{}_{}.npy'.format(model_name, int(best_PA * 1000))), std_mix)
+    # raise NotImplementedError
 
     for i in range(NUM_CLASSES):
         fs = features_s[np.where(labels_s == i)]
@@ -211,7 +220,20 @@ def worker(rank_gpu, args):
         fs, ft = f[:num_fs], f[num_fs:]
         # fs = tsne.fit_transform(fs)
         # ft = tsne.fit_transform(ft)
-        plot_features(fs, ft, os.path.join(args.path, 'feature_map_class{}.png'.format(i)))
+        plot_features(fs, ft, os.path.join(args.path, 'feature_map_class{}.png'.format(i + 1)))
+
+        xs = data_s[np.where(labels_s == i)]
+        xt = data_t[np.where(labels_t == i)]
+        # np.random.shuffle(fs)
+        # np.random.shuffle(ft)
+        xs, xt = xs[:args.sample_number, :50], xt[:args.sample_number, :50]
+        x = np.concatenate([xs, xt], axis=0)
+        x = x.reshape(x.shape[0], -1)
+        print(f.shape, x.shape)
+        tsne = TSNE(n_components=2)
+        x = tsne.fit_transform(x)
+        xs, xt = x[:num_fs], x[num_fs:]
+        plot_features(xs, xt, os.path.join(args.path, 'data_class{}.png'.format(i + 1)))
     plot_confusion_matrix(metric.matrix, os.path.join(args.path, 'confusion_matrix.png'))
     plot_classification_image(target_dataset, res, os.path.join(args.path, 'classification_map.png'))
     plot_classification_image(target_dataset, labels_t, os.path.join(args.path, 'gt_map.png'))

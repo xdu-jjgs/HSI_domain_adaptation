@@ -11,8 +11,7 @@ python train/dsn/train.py configs/pavia/dsn/dsn.yaml ^
         --backend gloo ^
         --master-ip localhost ^
         --master-port 8890 ^
-        --seed %~1% ^
-        --opt-level O1
+        --seed %~1% 
 
 rem dsn_gate
 python train/dsn/train_gate.py configs/pavia/dsn/dsn_gate.yaml ^
@@ -23,5 +22,4 @@ python train/dsn/train_gate.py configs/pavia/dsn/dsn_gate.yaml ^
         --backend gloo ^
         --master-ip localhost ^
         --master-port 8890 ^
-        --seed %~1% ^
-        --opt-level O1
+        --seed %~1% 

@@ -1,14 +1,12 @@
 import torch
 
 
-def cal_grad_scores(features, out, task_ind: int, use_abs: bool):
+def cal_grad_scores(features, out, task_ind: int):
     assert task_ind in [1, 2]  # 1 for source domain, 2 for target domain
     out_class = out[:, task_ind - 1].sum()
     grads = torch.autograd.grad(out_class, features, retain_graph=True)[0]
     scores = torch.mul(grads, features)
     scores = scores.squeeze()
-    if use_abs:
-        scores = torch.abs(scores)
     # print(grads)
     return scores
 

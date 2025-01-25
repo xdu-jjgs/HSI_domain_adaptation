@@ -4,24 +4,11 @@ set PYTHONPATH=%cd%
 
 rem jan
 python train/ddc/train.py configs/houston/jan/jan.yaml ^
-        --path ./runs/houston/jan-train ^
+        --path ./runs/houston/jan_tmp-train ^
         --nodes 1 ^
         --gpus 1 ^
         --rank-node 0 ^
         --backend gloo ^
         --master-ip localhost ^
         --master-port 8826 ^
-        --seed %~1% ^
-        --opt-level O2
-
-rem jan
-python train/ddc/train.py configs/houston/jan/jan_1260_average.yaml ^
-        --path ./runs/houston_sample/jan-train ^
-        --nodes 1 ^
-        --gpus 1 ^
-        --rank-node 0 ^
-        --backend gloo ^
-        --master-ip localhost ^
-        --master-port 8826 ^
-        --seed %~1% ^
-        --opt-level O2
+        --seed 1

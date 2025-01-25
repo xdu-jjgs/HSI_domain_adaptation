@@ -102,7 +102,7 @@ def worker(rank_gpu, args):
     # rank of global worker
     rank_process = args.gpus * args.rank_node + rank_gpu
     dist.init_process_group(backend=args.backend,
-                            init_method=f'tcp://{args.master_ip}:{args.master_port}',
+                            init_method=f'tcp://{args.master_ip}:{args.master_port}?use_libuv=False',
                             world_size=args.world_size,
                             rank=rank_process)
     # number of workers
@@ -272,7 +272,7 @@ def worker(rank_gpu, args):
         mean_std_mix = np.mean(std_mix)
         assert CFG.HYPERPARAMS[1] > 0.
         assert CFG.HYPERPARAMS[2] > 0.
-        cur_ratio = adjusted_sigmoid(mean_std_mix, k=CFG.HYPERPARAMS[1], c=CFG.HYPERPARAMS[2])
+        cur_ratio = adjusted_sigmoid(mean_std_mix, k=CFG.HYPERPARAMS[1], s=CFG.HYPERPARAMS[2])
         model.module.filter_ratio = cur_ratio
         logging.info("rank{} train epoch={} | std:{:.3f} filter ratio:{}"
                      .format(dist.get_rank() + 1, epoch, mean_std_mix, model.module.filter_ratio))

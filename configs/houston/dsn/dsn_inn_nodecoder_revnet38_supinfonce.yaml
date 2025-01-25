@@ -20,7 +20,7 @@ CRITERION:
   ITEMS:
     - 'softmax+ce'
     - 'softmax+ce'
-    - 'supinfonce'
+    - 'infonce'
   WEIGHTS:
     - 1.0
     - 1.0

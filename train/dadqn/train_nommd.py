@@ -103,7 +103,7 @@ def worker(rank_gpu, args):
     # rank of global worker
     rank_process = args.gpus * args.rank_node + rank_gpu
     dist.init_process_group(backend=args.backend,
-                            init_method=f'tcp://{args.master_ip}:{args.master_port}',
+                            init_method=f'tcp://{args.master_ip}:{args.master_port}?use_libuv=False',
                             world_size=args.world_size,
                             rank=rank_process)
     # number of workers

@@ -10,9 +10,8 @@ python train/dsn/train.py configs/shanghang/dsn/dsn.yaml ^
         --rank-node 0 ^
         --backend gloo ^
         --master-ip localhost ^
-        --master-port 8890 ^
-        --seed %~1% ^
-        --opt-level O1
+        --master-port 9003 ^
+        --seed %~1% 
 
 rem dsn_gate
 python train/dsn/train_gate.py configs/shanghang/dsn/dsn_gate.yaml ^
@@ -22,9 +21,8 @@ python train/dsn/train_gate.py configs/shanghang/dsn/dsn_gate.yaml ^
         --rank-node 0 ^
         --backend gloo ^
         --master-ip localhost ^
-        --master-port 8890 ^
-        --seed %~1% ^
-        --opt-level O1
+        --master-port 9003 ^
+        --seed %~1% 
 
 rem dsn_inn_resnet34
 python train/dsn/train.py configs/shanghang/dsn/dsn_inn_resnet34.yaml ^
@@ -34,9 +32,8 @@ python train/dsn/train.py configs/shanghang/dsn/dsn_inn_resnet34.yaml ^
         --rank-node 0 ^
         --backend gloo ^
         --master-ip localhost ^
-        --master-port 8890 ^
-        --seed %~1% ^
-        --opt-level O1
+        --master-port 9003 ^
+        --seed %~1% 
 
 rem dsn_inn_revnet38
 python train/dsn/train.py configs/shanghang/dsn/dsn_inn_revnet38.yaml ^
@@ -46,9 +43,8 @@ python train/dsn/train.py configs/shanghang/dsn/dsn_inn_revnet38.yaml ^
         --rank-node 0 ^
         --backend gloo ^
         --master-ip localhost ^
-        --master-port 8890 ^
-        --seed %~1% ^
-        --opt-level O1
+        --master-port 9003 ^
+        --seed %~1% 
 
 rem dsn_inn_revnet110
 python train/dsn/train.py configs/shanghang/dsn/dsn_inn_revnet110.yaml ^
@@ -59,8 +55,7 @@ python train/dsn/train.py configs/shanghang/dsn/dsn_inn_revnet110.yaml ^
         --backend gloo ^
         --master-ip localhost ^
         --master-port 9003 ^
-        --seed %~1% ^
-        --opt-level O1
+        --seed %~1% 
 
 rem dsn_inn_gate_revnet38
 python train/dsn/train_gate.py configs/shanghang/dsn/dsn_inn_gate_revnet38.yaml ^
@@ -71,8 +66,7 @@ python train/dsn/train_gate.py configs/shanghang/dsn/dsn_inn_gate_revnet38.yaml 
         --backend gloo ^
         --master-ip localhost ^
         --master-port 9003 ^
-        --seed %~1% ^
-        --opt-level O1
+        --seed %~1% 
 
 rem dsn_inn_gate_revnet110
 python train/dsn/train_gate.py configs/shanghang/dsn/dsn_inn_gate_revnet110.yaml ^
@@ -83,8 +77,7 @@ python train/dsn/train_gate.py configs/shanghang/dsn/dsn_inn_gate_revnet110.yaml
         --backend gloo ^
         --master-ip localhost ^
         --master-port 9003 ^
-        --seed %~1% ^
-        --opt-level O1
+        --seed %~1% 
 
 rem dsn_st
 python train/dsn/train_st.py configs/shanghang/dsn/dsn_st.yaml ^

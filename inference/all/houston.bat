@@ -112,4 +112,41 @@ python inference/inference_dst.py ^
         --master-port 8890 ^
         --sample-number 1000
 
+rem dsn
+python inference/inference_dsn.py ^
+        runs/houston/dsn_resnet18-train/1/config.yaml ^
+        runs/houston/dsn_resnet18-train/1/best.pth ^
+        --path runs/houston/dsn_resnet18-train/1 ^
+        --nodes 1 ^
+        --gpus 1 ^
+        --rank-node 0 ^
+        --backend gloo ^
+        --master-ip localhost ^
+        --master-port 9003 ^
+        --sample-number 1000
 
+rem s4dl
+python inference/inference_dsn_rev_ddc.py ^
+        runs/houston/dsn_rev_nodecoder_ddc_nospec_revnet38_grad_filter_ada_5_100_250_3_tmp-train/1/config.yaml ^
+        runs/houston/dsn_rev_nodecoder_ddc_nospec_revnet38_grad_filter_ada_5_100_250_3_tmp-train/1/best.pth ^
+        --path runs/houston/dsn_rev_nodecoder_ddc_nospec_revnet38_grad_filter_ada_5_100_250_3_tmp-train/1 ^
+        --nodes 1 ^
+        --gpus 1 ^
+        --rank-node 0 ^
+        --backend gloo ^
+        --master-ip localhost ^
+        --master-port 9003 ^
+        --sample-number 1000
+
+rem tstnet
+python inference/inference_tstnet.py ^
+       runs/houston/dann-train/1/config.yaml ^
+       E:/zts/IEEE_TNNLS_TSTnet/results/houston.npy ^
+       --path runs/houston/tstnet/1 ^
+       --nodes 1 ^
+       --gpus 1 ^
+       --rank-node 0 ^
+       --backend gloo ^
+       --master-ip localhost ^
+       --master-port 9006 ^
+       --sample-number 1000

@@ -2,29 +2,43 @@ import torch
 import torch.nn as nn
 
 
-class SupInfoNCELoss(nn.Module):
+class InfoNCELoss(nn.Module):
     def __init__(self, temperature=0.1):
-        super(SupInfoNCELoss, self).__init__()
+        super(InfoNCELoss, self).__init__()
         assert temperature > 0.
         self.temperature = temperature
 
-    def forward(self, features, labels):
+    def forward(self, features, labels=None):
+        """
+        :param features: Tensor of shape [batch_size, feature_dim]
+        :param labels: (optional) Ground truth labels. If not provided, the loss is calculated as InfoNCE without positive/negative pair supervision.
+        """
         features = torch.squeeze(features)
-        labels = labels.unsqueeze(1)
+        batch_size = features.size(0)
 
-        self_contrast_mask = torch.eye(features.size(0)).to(features.device)
-        self_contrast_mask = 1 - self_contrast_mask
-        mask = torch.eq(labels, labels.T).float().to(features.device)
-        mask = mask * self_contrast_mask
-
+        # Compute similarity matrix
         similarity_matrix = torch.div(torch.matmul(features, features.T), self.temperature)
-        assert self_contrast_mask.shape == similarity_matrix.shape == mask.shape
+
+        # Remove diagonal entries (self-similarity)
+        mask = torch.eye(batch_size).to(features.device)
+        similarity_matrix = similarity_matrix * (1 - mask)
+
+        # Compute logits
         logits_max, _ = torch.max(similarity_matrix, dim=1, keepdim=True)
         logits = similarity_matrix - logits_max.detach()
-        exp_logits = torch.exp(logits) * self_contrast_mask
 
+        # Compute the softmax over all logits
+        exp_logits = torch.exp(logits)
         log_prob = logits - torch.log(exp_logits.sum(dim=1, keepdim=True) + 1e-6)
-        mean_log_prob_pos = (mask * log_prob).sum(dim=1) / mask.sum(dim=1)
-        # print(similarity_matrix, torch.log(exp_logits.sum(dim=1, keepdim=True) + 1e-6).flatten())
-        loss = -mean_log_prob_pos.mean()
+
+        if labels is not None:
+            # If labels are provided, calculate the loss with supervision
+            mask = torch.eq(labels.unsqueeze(1), labels.unsqueeze(0)).float().to(features.device)
+            # Calculate the mean log probability of positive samples
+            mean_log_prob_pos = (mask * log_prob).sum(dim=1) / mask.sum(dim=1)
+            loss = -mean_log_prob_pos.mean()
+        else:
+            # If no labels are provided, use InfoNCE loss without positive/negative supervision
+            loss = -log_prob.mean()
+
         return loss

@@ -1,0 +1,41 @@
+CRITERION:
+  ITEMS:
+  - softmax+ce
+  - cbst
+  - orthogonal
+  - softmax+ce
+  THRESHOLD: 0.7
+  WEIGHTS:
+  - 1.0
+  - 2.0
+  - 1.0
+  - 0.5
+DATALOADER:
+  BATCH_SIZE: 128
+  ITERATION: 1060
+  NUM_WORKERS: 0
+DATASET:
+  NAME: ShangHang
+  PATCH:
+    HEIGHT: 11
+    PAD_MODE: symmetric
+    WIDTH: 11
+  ROOT: E:/zzy/GAN/data/ShanghaiHangzhou
+EPOCHS: 10
+HYPERPARAMS:
+- 0.1
+- 1.5
+- 0
+- 0.18
+MODEL:
+  BACKBONE: fe_rev
+  NAME: dsn_inn_nodecoder_nospec_nocls
+OPTIMIZER:
+  LR: 0.001
+  NAME: adam
+  WEIGHT_DECAY: 0.0005
+SCHEDULER:
+  FACTOR: 0.1
+  MODE: min
+  NAME: plateau
+  PATIENCE: 2

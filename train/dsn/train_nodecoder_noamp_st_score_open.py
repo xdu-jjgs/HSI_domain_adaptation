@@ -102,7 +102,7 @@ def worker(rank_gpu, args):
     # rank of global worker
     rank_process = args.gpus * args.rank_node + rank_gpu
     dist.init_process_group(backend=args.backend,
-                            init_method=f'tcp://{args.master_ip}:{args.master_port}',
+                            init_method=f'tcp://{args.master_ip}:{args.master_port}?use_libuv=False',
                             world_size=args.world_size,
                             rank=rank_process)
     # number of workers
@@ -243,8 +243,8 @@ def worker(rank_gpu, args):
             shared_f_t, private_f_t, = model(x_t, 2)
             domain_out_s = domain_classifier(shared_f_s)[-1]
             domain_out_t = domain_classifier(shared_f_t)[-1]
-            scores_s = cal_grad_scores(shared_f_s, domain_out_s, 1, False)
-            scores_t = cal_grad_scores(shared_f_t, domain_out_t, 2, False)
+            scores_s = cal_grad_scores(shared_f_s, domain_out_s, 1)
+            scores_t = cal_grad_scores(shared_f_t, domain_out_t, 2)
 
             filter_num = int(model.module.filter_ratio * scores_s.size()[1])
             mask_s_ds = torch.ones_like(shared_f_s).to(device)
@@ -349,7 +349,7 @@ def worker(rank_gpu, args):
             optimizer_domain_classifier.zero_grad()
             shared_f_t, private_f_t, = model(x_t, 2)
             domain_out_t = domain_classifier(shared_f_t)[-1]
-            scores_t = cal_grad_scores(shared_f_t, domain_out_t, 2, False)
+            scores_t = cal_grad_scores(shared_f_t, domain_out_t, 2)
 
             filter_num = int(model.module.filter_ratio * scores_t.size()[1])
             mask_t_ds = torch.ones_like(shared_f_t).to(device)
@@ -406,10 +406,10 @@ def worker(rank_gpu, args):
                     'state_dict': model.state_dict(),
                 },
                 'classifier': {
-                    'state_dict': model.state_dict(),
+                    'state_dict': classifier.state_dict(),
                 },
                 'domain_classifier': {
-                    'state_dict': model.state_dict(),
+                    'state_dict': domain_classifier.state_dict(),
                 },
                 'optimizer': {
                     'state_dict': optimizer_model.state_dict(),

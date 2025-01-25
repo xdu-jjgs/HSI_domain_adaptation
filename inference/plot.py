@@ -38,7 +38,11 @@ def plot_classification_image(dataset: HSIDataset, pred, path):
 
 
 def plot_features(fs, ft, path):
-    plt.figure()
+    plt.figure(figsize=(6, 6))
     plt.scatter(fs[:, 0], fs[:, 1], c='blue', s=3)
     plt.scatter(ft[:, 0], ft[:, 1], c='orange', s=3)
-    plt.savefig(path)
+    ax = plt.gca()
+    ax.set_xticklabels([])
+    ax.set_yticklabels([])
+    # ax.grid(True)
+    plt.savefig(path, bbox_inches='tight')

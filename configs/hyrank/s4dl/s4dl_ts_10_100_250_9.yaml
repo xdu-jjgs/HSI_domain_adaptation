@@ -12,31 +12,30 @@ DATALOADER:
   ITERATION: 626
 
 MODEL:
-  NAME: 'dsn_inn_nodecoder_nospec'
+  NAME: 's4dl_ts'
   BACKBONE: 'fe_rev'
 
 CRITERION:
   ITEMS:
     - 'softmax+ce'
-    - 'softmax+ce'
     - 'orthogonal'
+    - 'softmax+ce'
   WEIGHTS:
     - 1.0
+    - 0.1
     - 1.0
-    - 0.5
 
 OPTIMIZER:
   NAME: 'adam'
-  LR: 0.003
-  WEIGHT_DECAY: 0.0005
+  LR: 0.001
 
 SCHEDULER:
   NAME: 'plateau'
   MODE: 'min'
-  FACTOR: 0.5
-  PATIENCE: 3
+  FACTOR: 0.1
+  PATIENCE: 2
 
-EPOCHS: 30
+EPOCHS: 20
 
 HYPERPARAMS:
   - 0.1
